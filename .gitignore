@@ -1,0 +1,15 @@
+# Python byte-code
+*.py[co]
+
+# virutalenv directories
+/env*/
+
+# coverage files
+.coverage
+
+# setup sdist, test and upload directories
+/dist/
+/diskcache.egg-info/
+/.tox/
+
+.DS_Store
