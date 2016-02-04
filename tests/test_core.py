@@ -1,12 +1,4 @@
-"""Test diskcache.core.Cache.
-
-TODO
-0. Setup git and commit.
-1. Test eviction policies.
-2. Test Python 3 (setup Tox)
-3. Test under stress.
-
-"""
+"Test diskcache.core.Cache."
 
 import errno
 import functools as ft
@@ -218,8 +210,8 @@ def test_set_noupdate():
 def test_raw():
     cache = Cache('temp')
 
-    cache.set(0, BytesIO('abcd'), raw=True)
-    assert cache[0] == 'abcd'
+    cache.set(0, BytesIO(b'abcd'), raw=True)
+    assert cache[0] == b'abcd'
 
 
 @rmdir
@@ -277,7 +269,7 @@ def test_stats():
 def test_path():
     cache = Cache('temp')
 
-    cache[0] = 'abc'
+    cache[0] = u'abc'
     cache[1] = b'abc' * 2 ** 12
 
     assert cache.path(0) == None

@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 import sys
 from setuptools import setup, find_packages
 from setuptools.command.test import test as TestCommand
@@ -16,11 +14,6 @@ class Tox(TestCommand):
         errno = tox.cmdline(self.test_args)
         sys.exit(errno)
 
-try:
-    from setuptools import setup
-except ImportError:
-    from distutils.core import setup
-
 with open('README.rst') as reader:
     readme = reader.read()
 
@@ -35,7 +28,7 @@ setup(
     author='Grant Jenks',
     author_email='contact@grantjenks.com',
     url='http://www.grantjenks.com/docs/diskcache/',
-    py_modules=['diskcache'],
+    packages=find_packages(exclude=('tests', 'docs')),
     package_data={'': ['LICENSE', 'README.rst']},
     tests_require=['tox'],
     cmdclass={'test': Tox},

@@ -113,11 +113,23 @@ class CacheMeta(type):
         return type.__new__(mcs, name, bases, attrs)
 
 
-class Cache(object):
+# Copied from bitbucket.org/gutworth/six/six.py Seems excessive to depend on
+# `six` when only this snippet is needed. Metaclass syntax changed in Python 3.
+
+def with_metaclass(meta, *bases):
+    """Create a base class with a metaclass."""
+    # This requires a bit of explanation: the basic idea is to make a dummy
+    # metaclass for one level of class instantiation that replaces itself with
+    # the actual metaclass.
+    class metaclass(meta):
+        def __new__(cls, name, this_bases, d):
+            return meta(name, bases, d)
+    return type.__new__(metaclass, 'temporary_class', (), {})
+
+
+class Cache(with_metaclass(CacheMeta, object)):
     "Disk and file-based cache."
     # pylint: disable=bad-continuation
-    __metaclass__ = CacheMeta
-
     def __init__(self, directory, **settings):
         self._dir = directory
 
@@ -380,7 +392,7 @@ class Cache(object):
 
             with io.open(full_path, 'wb') as writer:
                 reader = ft.partial(value.read, 2 ** 22)
-                for chunk in iter(reader, ''):
+                for chunk in iter(reader, b''):
                     writer.write(chunk)
 
             db_value = None
