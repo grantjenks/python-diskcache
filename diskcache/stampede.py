@@ -1,10 +1,12 @@
 "Stampede barrier implementation."
 
-from .core import Cache
 import functools as ft
 import math
 import random
 import tempfile
+import time
+
+from .core import Cache
 
 
 class StampedeBarrier(object):
@@ -15,7 +17,7 @@ class StampedeBarrier(object):
 
     Based on research by Vattani, A.; Chierichetti, F.; Lowenstein, K. (2015),
     Optimal Probabilistic Cache Stampede Prevention,
-    VLDB, pp. 886–897, ISSN 2150-8097
+    VLDB, pp. 886?897, ISSN 2150-8097
 
     Example:
 
@@ -25,6 +27,7 @@ class StampedeBarrier(object):
         return database.lookup_user_info_by_id(user_id)
 
     """
+    # pylint: disable=too-few-public-methods
     def __init__(self, cache=None, expire=None):
         if isinstance(cache, Cache):
             pass
@@ -42,13 +45,14 @@ class StampedeBarrier(object):
 
         ft.wraps(func)
         def wrapper(*args, **kwargs):
+            "Wrapper function to cache function result."
             key = (args, kwargs)
 
             try:
                 result, delta, expire_time = cache[key]
                 now = time.time()
                 ttl = expire_time - now
-                
+
                 if (-delta * math.log(random.random())) < ttl:
                     return result
 
@@ -57,7 +61,7 @@ class StampedeBarrier(object):
 
             now = time.time()
             result = func(*args, **kwargs)
-            delta = time.time() - start
+            delta = time.time() - now
             expire_time = now + expire
             cache.set(key, (result, delta, expire_time), expire=expire)
 
