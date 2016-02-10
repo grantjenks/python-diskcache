@@ -4,6 +4,13 @@ from setuptools.command.test import test as TestCommand
 
 import diskcache
 
+if sys.argv[-1] == 'release':
+    import subprocess as sp
+    run = sp.check_call
+
+    run(['git', 'pull'])
+
+
 class Tox(TestCommand):
     def finalize_options(self):
         TestCommand.finalize_options(self)

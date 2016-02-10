@@ -38,7 +38,7 @@ DEFAULT_SETTINGS = {
     u'eviction_policy': u'least-recently-stored',
     u'size_limit': 2 ** 30, # 1gb
     u'cull_limit': 10,
-    u'large_value_threshold': 2 ** 10, # 2kb, min 8
+    u'large_value_threshold': 2 ** 10, # 1kb, min 8
     u'sqlite_synchronous': u'NORMAL',
     u'sqlite_journal_mode': u'WAL',
     u'sqlite_cache_size': 2 ** 13, # 8,192 pages
@@ -727,13 +727,14 @@ class Cache(with_metaclass(CacheMeta, object)):
 
         # Check file system against Cache.filename.
 
-        filenames.add(op.join(self._dir, DATABASE_NAME))
-
         for dirpath, _, files in os.walk(self._dir):
             paths = [op.join(dirpath, filename) for filename in files]
             error = set(paths) - filenames
 
             for full_path in error:
+                if DATABASE_NAME in full_path:
+                    continue
+
                 warnings.warn('unreferenced file: %s' % full_path)
 
                 if fix:

@@ -25,9 +25,10 @@ TODO
 9. Create and test CLI interface.
    - get, set, store, delete, expire, clear, evict, path, check, stats, show
 10. Run pylint, check 10.0/10.0
-10. Document SQLite database restore trick using dump command and Cache.check(fix=True).
-    Explain how this could happen with optimistic pragmas.
+10. Document SQLite database restore trick using dump command and cache.check(fix=True).
 10. Test and document stampede_barrier.
+10. Benchmark BerkeleyDB backend using APSW.
+10. Use SQLAlchemy as interface to database.
 
 Features
 --------

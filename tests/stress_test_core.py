@@ -4,12 +4,9 @@ from __future__ import print_function
 
 import collections as co
 from diskcache import Cache
-import faulthandler
 import json
 import multiprocessing as mp
-import multiprocessing.pool as mpool
-import threading
-import Queue
+import os
 import random
 import shutil
 import statistics
@@ -17,7 +14,10 @@ import sys
 import threading
 import time
 
-faulthandler.enable()
+try:
+    import Queue
+except ImportError:
+    import queue as Queue
 
 if sys.hexversion < 0x03000000:
     range = xrange
@@ -93,7 +93,10 @@ def worker(queue, kind, args):
     cache.close()
 
 
-def dispatch(num, process_queue, kind, args):
+def dispatch(num, kind, args):
+    with open('process-%s.json' % num, 'r') as reader:
+        process_queue = json.load(reader)
+
     thread_queues = [Queue.Queue() for _ in range(THREADS)]
     threads = [
         threading.Thread(
@@ -104,7 +107,7 @@ def dispatch(num, process_queue, kind, args):
     for thread in threads:
         thread.start()
 
-    for index, triplet in enumerate(iter(process_queue.get, None)):
+    for index, triplet in enumerate(process_queue):
         thread_queue = thread_queues[index % THREADS]
         thread_queue.put(triplet)
 
@@ -128,32 +131,37 @@ def dispatch(num, process_queue, kind, args):
 def stress_test():
     shutil.rmtree('temp', ignore_errors=True)
 
-    process_queues = [mp.Queue() for _ in range(PROCESSES)]
     processes = [
-        mp.Process(target=dispatch, args=(num, process_queue, Cache, ('temp',)))
-        for num, process_queue in enumerate(process_queues)
+        mp.Process(target=dispatch, args=(num, Cache, ('temp',)))
+        for num in range(PROCESSES)
     ]
+
+    operations = list(all_ops())
+    process_queue = [[] for _ in range(PROCESSES)]
+
+    for index, ops in enumerate(operations):
+        process_queue[index % PROCESSES].append(ops)
+
+    for num in range(PROCESSES):
+        with open('process-%s.json' % num, 'w') as writer:
+            json.dump(process_queue[num], writer)
 
     for process in processes:
         process.start()
-
-    for index, operation in enumerate(all_ops()):
-        process_queue = process_queues[index % PROCESSES]
-        process_queue.put(operation)
-
-    for process_queue in process_queues:
-        process_queue.put(None)
 
     for process in processes:
         process.join()
 
     timings = {'get': [], 'set': [], 'del': []}
 
-    for num in range(len(process_queues)):
+    for num in range(PROCESSES):
         with open('process-%s.json' % num, 'r') as reader:
             data = json.load(reader)
             for key in data:
                 timings[key].extend(data[key])
+
+    for num in range(PROCESSES):
+        os.remove('process-%s.json' % num)
 
     template = '%10s,%10s,%10s,%10s,%10s,%10s,%10s'
 

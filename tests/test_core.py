@@ -18,7 +18,7 @@ except:
 
 from diskcache import Cache, DEFAULT_SETTINGS, EmptyDirWarning
 
-warnings.filterwarnings('ignore', category=EmptyDirWarning)
+warnings.simplefilter('ignore', category=EmptyDirWarning)
 
 if sys.hexversion < 0x03000000:
     range = xrange
@@ -259,7 +259,7 @@ def test_stats(cache):
 @setup_cache
 def test_path(cache):
     cache[0] = u'abc'
-    cache[1] = io.BytesIO(b'abc' * 2 ** 12)
+    cache[1] = (None,) * 2 ** 12
 
     assert cache.path(0) == None
     assert cache.path(1) != None
@@ -271,7 +271,8 @@ def test_path(cache):
 
     value = pickle.loads(data)
 
-    assert value.getvalue() == b'abc' * 2 ** 12
+    assert value == (None,) * 2 ** 12
+
     cache.check()
 
 

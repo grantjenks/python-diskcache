@@ -38,61 +38,7 @@ class Cache(BaseCache):
 
 
     def get(self, key, default=None, version=None):
-        key = self.make_key(key, version=version)
-
-        self.validate_key(key)
-
-        row = self._sql.execute(
-            'SELECT rowid, filename, expire_time, value FROM Disk WHERE key = ?',
-            (key,),
-        ).fetchone()
-
-        if row is None:
-            return default
-
-        rowid, filename, expire_time, value = row
-
-        now = dt.datetime.utcnow()
-
-        if expire_time is not None and expire_time < now:
-            if filename is not None:
-                full_path = path.join(self._dir, filename)
-                try:
-                    os.remove(full_path)
-                except OSError as error:
-                    if error.errno != errno.ENOENT:
-                        # ENOENT may occur if two caches retrieve the same
-                        # expired key at the same time.
-                        raise
-
-            self._sql.execute('DELETE FROM Disk WHERE rowid = ?', (rowid,))
-
-            return default
-
-        if filename is None:
-            result = pickle.loads(zlib.decompress(value))
-        else:
-            full_path = path.join(self._dir, filename)
-            try:
-                with io.open(full_path, 'rb') as reader:
-                    result = pickle.loads(zlib.decompress(reader.read()))
-            except IOError as error:
-                if error.errno == errno.ENOENT:
-                    return default
-                else:
-                    raise
-                
-        # TODO: Do this based on Cache Policy.
-
-        self._sql.execute(
-            'UPDATE Disk SET'
-            ' access_time = ?,'
-            ' access_count = access_count + 1'
-            ' WHERE rowid = ?',
-            (now, rowid),
-        )
-
-        return result
+        pass
 
     get.__doc__ = BaseCache.get.__doc__
 
@@ -110,21 +56,7 @@ class Cache(BaseCache):
 
 
     def clear(self):
-        rows = self._sql.execute(
-            'SELECT filename FROM Disk where filename IS NOT NULL'
-        )
-
-        for filename, in rows:
-            full_path = path.join(self._dir, filename)
-            try:
-                os.remove(full_path)
-            except OSError as error:
-                if error.errno != errno.ENOENT:
-                    # ENOENT may occur if two caches retrieve the same
-                    # expired key at the same time.
-                    raise
-
-        self._sql.execute('DELETE FROM Disk')
+        pass
 
     clear.__doc__ = BaseCache.clear.__doc__
 
