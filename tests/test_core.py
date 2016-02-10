@@ -296,12 +296,9 @@ def test_expire_rows(cache):
 
 @setup_cache
 def test_least_recently_stored(cache):
-    cache = Cache(
-        'temp',
-        eviction_policy='least-recently-stored',
-        size_limit=int(10.1e6),
-        cull_limit=2,
-    )
+    cache.eviction_policy = u'least-recently-stored'
+    cache.size_limit = int(10.1e6)
+    cache.cull_limit = 2
 
     million = b'x' * int(1e6)
 
@@ -335,12 +332,9 @@ def test_least_recently_stored(cache):
 
 @setup_cache
 def test_least_recently_used(cache):
-    cache = Cache(
-        'temp',
-        eviction_policy='least-recently-used',
-        size_limit=int(10.1e6),
-        cull_limit=5,
-    )
+    cache.eviction_policy = u'least-recently-used'
+    cache.size_limit = int(10.1e6)
+    cache.cull_limit = 5
 
     million = b'x' * int(1e6)
 
@@ -367,12 +361,9 @@ def test_least_recently_used(cache):
 
 @setup_cache
 def test_least_frequently_used(cache):
-    cache = Cache(
-        'temp',
-        eviction_policy='least-frequently-used',
-        size_limit=int(10.1e6),
-        cull_limit=5,
-    )
+    cache.eviction_policy = u'least-frequently-used'
+    cache.size_limit = int(10.1e6)
+    cache.cull_limit = 5
 
     million = b'x' * int(1e6)
 
@@ -535,3 +526,7 @@ def test_path_keyerror2(cache):
 
     with mock.patch.object(cache, '_sql', con):
         cache.path(0)
+
+if __name__ == '__main__':
+    import nose
+    nose.runmodule()
