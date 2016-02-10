@@ -278,7 +278,7 @@ ignored-classes=
 # List of members which are set dynamically and missed by pylint inference
 # system, and so shouldn't trigger E1101 when accessed. Python regular
 # expressions are accepted.
-generated-members=statistics,eviction_policy,size_limit,cull_limit,large_value_threshold,sqlite_cache_size,sqlite_mmap_size,count,size,hits,misses
+generated-members=statistics,eviction_policy,size_limit,cull_limit,large_value_threshold,sqlite_cache_size,sqlite_mmap_size,sqlite_synchronous,sqlite_journal_mode,count,size,hits,misses
 
 
 [VARIABLES]
@@ -328,19 +328,19 @@ ignored-argument-names=_.*
 max-locals=30
 
 # Maximum number of return / yield for function / method body
-max-returns=6
+max-returns=10
 
 # Maximum number of branch for function / method body
 max-branches=20
 
 # Maximum number of statements in function / method body
-max-statements=50
+max-statements=70
 
 # Maximum number of parents for a class (see R0901).
 max-parents=7
 
 # Maximum number of attributes for a class (see R0902).
-max-attributes=7
+max-attributes=9
 
 # Minimum number of public methods for a class (see R0903).
 min-public-methods=2
@@ -349,7 +349,7 @@ min-public-methods=2
 max-public-methods=20
 
 # Maximum number of boolean expressions in a if statement
-max-bool-expr=5
+max-bool-expr=10
 
 
 [IMPORTS]

@@ -14,24 +14,42 @@ If only we had some kind of file-based database... we do! It's called
 SQLite. For metadata and small stuff, use SQLite and for bigger things use
 files.
 
+TODO
+----
+
+7. Improve stress_test_core.
+   - Support different key sizes / constraints.
+   - Support different value sizes / constraints.
+   - Test eviction policies.
+8. Create and test Django interface.
+9. Create and test CLI interface.
+   - get, set, store, delete, expire, clear, evict, path, check, stats, show
+10. Run pylint, check 10.0/10.0
+10. Document SQLite database restore trick using dump command and Cache.check(fix=True).
+    Explain how this could happen with optimistic pragmas.
+10. Test and document stampede_barrier.
+
 Features
 --------
 
 - Pure-Python
 - Developed on Python 2.7
 - Tested on CPython 2.6, 2.7, 3.2, 3.3, 3.4, 3.5 and PyPy 2.5+, PyPy3 2.4+
-- TODO Get full_path reference to value
-  - Allow storing raw data
+- Get full_path reference to value.
+- Allow storing raw data.
 - Small values stored in database.
+- Leverages SQLite native types: int, float, unicode, blob.
 - Thread-safe and process-safe.
 - Multiple eviction policies
   - Least-Recently-Store
   - Least-Recently-Used
   - Least-Frequently-Used
 - Stampede barrier decorator.
-- TODO Support pickle alternatives: json, msgpack, pickle with compression
-- TODO Metadata support for "tag" to evict a group of keys at once.
+- Metadata support for "tag" to evict a group of keys at once.
 
+- TODO Support pickle alternatives: json, msgpack, pickle with compression
+- TODO Write-through cache with writer in separate thread
+  - Return version, value and cache key, version in dict.
 
 Quickstart
 ----------

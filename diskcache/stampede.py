@@ -10,8 +10,8 @@ import tempfile
 class StampedeBarrier(object):
     """Stampede barrier mitigates cache stampedes.
 
-    Cache stampedes are also known as dog-piling, cache miss storm, or cache
-    choking.
+    Cache stampedes are also known as dog-piling, cache miss storm, cache
+    choking, or the thundering herd problem.
 
     Based on research by Vattani, A.; Chierichetti, F.; Lowenstein, K. (2015),
     Optimal Probabilistic Cache Stampede Prevention,
@@ -26,8 +26,12 @@ class StampedeBarrier(object):
 
     """
     def __init__(self, cache=None, expire=None):
-        if cache is None:
+        if isinstance(cache, Cache):
+            pass
+        elif cache is None:
             cache = Cache(tempfile.mkdtemp())
+        else:
+            cache = Cache(cache)
 
         self._cache = cache
         self._expire = expire
