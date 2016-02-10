@@ -9,7 +9,7 @@ import diskcache
 
 if sys.argv[-1] == 'release':
     def run(command):
-        print('***$', command)
+        print('setup.py$', command)
         sp.check_call(command.split())
 
     version = b'v%s' % diskcache.__version__
