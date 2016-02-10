@@ -226,7 +226,7 @@ class CachedAttr(object):
         query = 'INSERT OR REPLACE INTO Settings VALUES (?, ?)'
         sql(query, (self._key, value))
         if self._pragma:
-            sql('PRAGMA %s = %s' % (self._pragma, value))
+            sql('PRAGMA %s = %s' % (self._pragma, value)).fetchone()
         setattr(cache, self._value, value)
 
     def __delete__(self, cache):
