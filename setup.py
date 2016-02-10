@@ -1,34 +1,39 @@
 from __future__ import print_function
 
-import sys
 from setuptools import setup, find_packages
 from setuptools.command.test import test as TestCommand
+import subprocess as sp
+import sys
+
 
 import diskcache
 
 if sys.argv[-1] == 'release':
-    import subprocess as sp
+    def run(command):
+        print('run:', command)
+        sp.check_call(command.split())
 
-    run = sp.check_call
     version = b'v%s' % diskcache.__version__
 
-    run(['git', 'checkout', 'master'])
+    run('git checkout master')
 
     if version in sp.check_output(['git', 'tag']):
         print('Error: Version already tagged.')
+        sys.exit(1)
 
     if sp.check_output(['git', 'status', '--porcelain']):
         print('Error: Commit files in working directory before release.')
-        run(['git', 'status'])
+        run('git status')
         sys.exit(1)
 
-    run(['git', 'pull'])
-    run(['pylint', 'diskcache'])
-    run(['tox'])
-    run(['git', 'tag', '-a', version, '-m', version])
-    run(['git', 'push'])
-    run(['git', 'push', '--tags'])
-    run(['python', 'setup.py', 'sdist', 'upload'])
+    run('git pull')
+    run('pylint diskcache')
+    run('tox')
+    run('git tag -a %s -m %s' % (version, version))
+    run('git push')
+    run('git push --tags')
+    run('python setup.py sdist upload')
+
     # Update docs
     # cd docs && make html
     # Upload docs/_build/html to gj server
