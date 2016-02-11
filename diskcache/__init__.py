@@ -1,6 +1,6 @@
 "DiskCache: disk and file-based cache."
 
-from .core import Cache, EVICTION_POLICY, DEFAULT_SETTINGS, EmptyDirWarning
+from .core import Disk, Cache, EVICTION_POLICY, DEFAULT_SETTINGS, EmptyDirWarning
 # from .djangocache import DjangoCache
 
 __title__ = 'diskcache'
