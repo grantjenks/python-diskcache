@@ -6,6 +6,7 @@ import os
 import os.path as op
 from setuptools import setup, find_packages
 from setuptools.command.test import test as TestCommand
+import shutil
 import subprocess as sp
 import sys
 
@@ -17,6 +18,8 @@ if sys.argv[-1] == 'release':
         sp.check_call(command.split())
 
     version = b'v%s' % diskcache.__version__
+
+    shutil.rmtree(op.join('docs', '_build'), ignore_errors=True)
 
     run('git checkout master')
 
