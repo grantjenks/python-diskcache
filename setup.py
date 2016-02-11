@@ -36,7 +36,7 @@ if sys.argv[-1] == 'release':
     run('git push')
     run('git push --tags')
     run('python setup.py sdist')
-    run('python setup.py upload')
+    run('twine upload dist/diskcache-%s.tar.gz' % diskcache.__version__)
 
     root = os.getcwd()
     os.chdir(op.join(root, 'docs'))
