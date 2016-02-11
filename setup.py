@@ -35,7 +35,8 @@ if sys.argv[-1] == 'release':
     run('git tag -a %s -m %s' % (version, version))
     run('git push')
     run('git push --tags')
-    run('python setup.py sdist upload')
+    run('python setup.py sdist')
+    run('python setup.py upload')
 
     root = os.getcwd()
     os.chdir(op.join(root, 'docs'))
