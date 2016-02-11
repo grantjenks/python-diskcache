@@ -71,8 +71,8 @@ setup(
     classifiers=(
         'Development Status :: 3 - Alpha',
         'Intended Audience :: Developers',
-        'Natural Language :: English',
         'License :: OSI Approved :: Apache Software License',
+        'Natural Language :: English',
         'Programming Language :: Python',
         'Programming Language :: Python :: Implementation :: CPython',
         'Programming Language :: Python :: Implementation :: PyPy',
