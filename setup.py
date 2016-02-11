@@ -109,7 +109,7 @@ setup(
     package_data={'': ['LICENSE', 'README.rst']},
     tests_require=['tox'],
     cmdclass={'test': Tox},
-    license=license,
+    license='Apache 2.0',
     install_requires=[],
     classifiers=(
         'Development Status :: 3 - Alpha',
