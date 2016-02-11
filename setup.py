@@ -111,7 +111,7 @@ setup(
     license='Apache 2.0',
     install_requires=[],
     classifiers=(
-        # 'Development Status :: 3 - Alpha',
+        'Development Status :: 3 - Alpha',
         # 'Intended Audience :: Developers',
         # 'Natural Language :: English',
         # 'License :: OSI Approved :: Apache Software License',
