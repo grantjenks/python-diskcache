@@ -17,25 +17,25 @@ files.
 TODO
 ----
 
-7. Improve stress_test_core.
+0. Improve stress_test_core.
    - Support different key sizes / constraints.
    - Support different value sizes / constraints.
    - Test eviction policies.
-8. Create and test Django interface.
-9. Create and test CLI interface.
+0. Create and test Django interface.
+0. Create and test CLI interface.
    - get, set, store, delete, expire, clear, evict, path, check, stats, show
-10. Run pylint, check 10.0/10.0
-10. Document SQLite database restore trick using dump command and cache.check(fix=True).
-10. Test and document stampede_barrier.
-10. Benchmark BerkeleyDB backend using APSW.
-10. Use SQLAlchemy as interface to database.
+0. Document SQLite database restore trick using dump command and cache.check(fix=True).
+0. Test and document stampede_barrier.
+0. Benchmark BerkeleyDB backend using APSW.
+0. Use SQLAlchemy as interface to database.
+0. Support metadata (store_time, expire_time, tag) in ``get``
 
 Features
 --------
 
 - Pure-Python
 - Developed on Python 2.7
-- Tested on CPython 2.6, 2.7, 3.2, 3.3, 3.4, 3.5 and PyPy 2.5+, PyPy3 2.4+
+- Tested on CPython 2.6, 2.7, 3.3, 3.4, 3.5 and PyPy, PyPy3
 - Get full_path reference to value.
 - Allow storing raw data.
 - Small values stored in database.
@@ -47,10 +47,6 @@ Features
   - Least-Frequently-Used
 - Stampede barrier decorator.
 - Metadata support for "tag" to evict a group of keys at once.
-
-- TODO Support pickle alternatives: json, msgpack, pickle with compression
-- TODO Write-through cache with writer in separate thread
-  - Return version, value and cache key, version in dict.
 
 Quickstart
 ----------
