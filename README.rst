@@ -14,22 +14,6 @@ If only we had some kind of file-based database... we do! It's called
 SQLite. For metadata and small stuff, use SQLite and for bigger things use
 files.
 
-TODO
-----
-
-0. Improve stress_test_core.
-   - Support different key sizes / constraints.
-   - Support different value sizes / constraints.
-   - Test eviction policies.
-0. Create and test Django interface.
-0. Create and test CLI interface.
-   - get, set, store, delete, expire, clear, evict, path, check, stats, show
-0. Document SQLite database restore trick using dump command and cache.check(fix=True).
-0. Test and document stampede_barrier.
-0. Benchmark BerkeleyDB backend using APSW.
-0. Use SQLAlchemy as interface to database.
-0. Support metadata (store_time, expire_time, tag) in ``get``
-
 Features
 --------
 
