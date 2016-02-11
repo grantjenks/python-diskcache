@@ -109,6 +109,7 @@ setup(
     tests_require=['tox'],
     cmdclass={'test': Tox},
     license='Apache 2.0',
+    install_requires=[],
     classifiers=(
         'Development Status :: 3 - Alpha',
         'Intended Audience :: Developers',
