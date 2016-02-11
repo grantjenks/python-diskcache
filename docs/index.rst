@@ -26,9 +26,11 @@ Features
 - Leverages SQLite native types: int, float, unicode, blob.
 - Thread-safe and process-safe.
 - Multiple eviction policies
+
   - Least-Recently-Stored
   - Least-Recently-Used
   - Least-Frequently-Used
+
 - Stampede barrier decorator.
 - Metadata support for "tag" to evict a group of keys at once.
 
@@ -60,18 +62,22 @@ TODO
 TODO
 ----
 
-0. Improve stress_test_core.
+1. Improve stress_test_core.
+
    - Support different key sizes / constraints.
    - Support different value sizes / constraints.
    - Test eviction policies.
-0. Create and test Django interface.
-0. Create and test CLI interface.
+
+2. Create and test Django interface.
+3. Create and test CLI interface.
+
    - get, set, store, delete, expire, clear, evict, path, check, stats, show
-0. Document SQLite database restore trick using dump command and cache.check(fix=True).
-0. Test and document stampede_barrier.
-0. Benchmark BerkeleyDB backend using APSW.
-0. Use SQLAlchemy as interface to database.
-0. Support metadata (store_time, expire_time, tag) in ``get``
+
+4. Document SQLite database restore trick using dump command and cache.check(fix=True).
+5. Test and document stampede_barrier.
+6. Benchmark BerkeleyDB backend using APSW.
+7. Use SQLAlchemy as interface to database.
+8. Support metadata (store_time, expire_time, tag) in ``get``
 
 Reference and Indices
 ---------------------
