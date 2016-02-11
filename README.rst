@@ -26,7 +26,7 @@ Features
 - Leverages SQLite native types: int, float, unicode, blob.
 - Thread-safe and process-safe.
 - Multiple eviction policies
-  - Least-Recently-Store
+  - Least-Recently-Stored
   - Least-Recently-Used
   - Least-Frequently-Used
 - Stampede barrier decorator.
