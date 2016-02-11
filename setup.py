@@ -1,5 +1,9 @@
 from __future__ import print_function
 
+import ftplib
+import getpass
+import os
+import os.path as op
 from setuptools import setup, find_packages
 from setuptools.command.test import test as TestCommand
 import subprocess as sp
@@ -33,11 +37,48 @@ if sys.argv[-1] == 'release':
     run('git push --tags')
     run('python setup.py sdist upload')
 
-    # Update docs
-    # cd docs && make html
-    # Upload docs/_build/html to gj server
+    root = os.getcwd()
+    os.chdir(op.join(root, 'docs'))
+
+    print('setup.py$ building docs')
+
+    run('make clean')
+    run('make html')
+
+    print('setup.py$ uploading docs')
+
+    ftps = ftplib.FTP_TLS(
+        'grantjenks.com',
+        user='grant',
+        passwd=getpass.getpass()
+    )
+    ftps.prot_p()
+
+    base = '/domains/grantjenks.com/docs/diskcache'
+
+    try:
+        ftps.mkd(base)
+    except ftplib.error_perm:
+        pass
+
+    os.chdir(op.join('_build', 'html'))
+
+    for root, dirs, files in os.walk('.'):
+        for directory in dirs:
+            print('Creating directory', op.join(root, directory))
+            try:
+                ftps.mkd('/'.join([base, root, directory]))
+            except ftplib.error_perm:
+                pass
+
+        for filename in files:
+            print('Uploading file', op.join(root, filename))
+            with open(op.join(root, filename), 'rb') as reader:
+                command = 'STOR %s/%s/%s' % (base, root, filename)
+                ftps.storbinary(command, reader)
 
     sys.exit()
+
 
 class Tox(TestCommand):
     def finalize_options(self):
@@ -74,13 +115,13 @@ setup(
         'License :: OSI Approved :: Apache Software License',
         'Natural Language :: English',
         'Programming Language :: Python',
-        'Programming Language :: Python :: Implementation :: CPython',
-        'Programming Language :: Python :: Implementation :: PyPy',
         'Programming Language :: Python :: 2.6',
         'Programming Language :: Python :: 2.7',
         'Programming Language :: Python :: 3',
         'Programming Language :: Python :: 3.3',
         'Programming Language :: Python :: 3.4',
         'Programming Language :: Python :: 3.5',
+        'Programming Language :: Python :: Implementation :: CPython',
+        'Programming Language :: Python :: Implementation :: PyPy',
     ),
 )
