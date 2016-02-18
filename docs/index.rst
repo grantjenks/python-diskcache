@@ -73,7 +73,8 @@ TODO
 
    - get, set, store, delete, expire, clear, evict, path, check, stats, show
 
-4. Document SQLite database restore trick using dump command and cache.check(fix=True).
+4. Document SQLite database restore trick using dump command and
+   cache.check(fix=True).
 5. Test and document stampede_barrier.
 6. Benchmark BerkeleyDB backend using APSW.
 7. Use SQLAlchemy as interface to database.
