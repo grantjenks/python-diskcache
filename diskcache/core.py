@@ -22,10 +22,13 @@ else:
     BytesType = bytes
     INT_TYPES = int,
 
+ENOVAL = object()
+
 MIN_INT = -sys.maxsize - 1
 MAX_INT = sys.maxsize
 
 DATABASE_NAME = 'cache.sqlite3'
+TIMEOUT = 60.0
 
 MODE_NONE = 0
 MODE_RAW = 1
@@ -128,12 +131,12 @@ class Disk(object):
             return pickle.load(io.BytesIO(key))
 
 
-    def store(self, value, file_like, threshold, prep_file):
+    def store(self, value, read, threshold, prep_file):
         """Return fields (size, mode, filename, value) for Cache table.
 
         Arguments:
         value -- value to convert
-        file_like -- True iff value is file-like object
+        read -- True iff value is file-like object
         threshold -- size threshold for large values
         prep_file -- callable returning (filename, full_path) pair
 
@@ -164,7 +167,7 @@ class Disk(object):
             size = op.getsize(full_path)
 
             return size, MODE_TEXT, filename, None
-        elif file_like:
+        elif read:
             size = 0
             reader = ft.partial(value.read, 2 ** 22)
             filename, full_path = prep_file()
@@ -189,14 +192,17 @@ class Disk(object):
                 return len(result), MODE_PICKLE, filename, None
 
 
-    def fetch(self, directory, mode, filename, value):
+    def fetch(self, directory, mode, filename, value, read):
         "Convert fields (mode, filename, value) from Cache table to value."
         # pylint: disable=no-self-use,unidiomatic-typecheck
         if mode == MODE_RAW:
             return BytesType(value) if type(value) is sqlite3.Binary else value
         elif mode == MODE_BINARY:
-            with io.open(op.join(directory, filename), 'rb') as reader:
-                return reader.read()
+            if read:
+                return io.open(op.join(directory, filename), 'rb')
+            else:
+                with io.open(op.join(directory, filename), 'rb') as reader:
+                    return reader.read()
         elif mode == MODE_TEXT:
             with io.open(op.join(directory, filename), 'rt') as reader:
                 return reader.read()
@@ -225,8 +231,26 @@ class CachedAttr(object):
         sql = cache._sql.execute
         query = 'INSERT OR REPLACE INTO Settings VALUES (?, ?)'
         sql(query, (self._key, value))
+
         if self._pragma:
-            sql('PRAGMA %s = %s' % (self._pragma, value)).fetchone()
+
+            # 2016-02-17 GrantJ - PRAGMA and autocommit_level=None don't always
+            # play nicely together. Retry setting the PRAGMA. I think some
+            # PRAGMA statements expect to immediately take an EXCLUSIVE lock on
+            # the database. I can't find any documentation for this but without
+            # the retry, stress will intermittently fail with multiple
+            # processes.
+
+            for _ in range(int(TIMEOUT / 0.001)): # Wait up to ~60 seconds.
+                try:
+                    sql('PRAGMA %s = %s' % (self._pragma, value)).fetchone()
+                except sqlite3.OperationalError as error:
+                    time.sleep(0.001)
+                else:
+                    break
+            else:
+                raise error
+
         setattr(cache, self._value, value)
 
     def __delete__(self, cache):
@@ -286,7 +310,7 @@ class Cache(with_metaclass(CacheMeta, object)):
 
         _sql = self._sql = sqlite3.connect(
             op.join(directory, DATABASE_NAME),
-            timeout=60.0,
+            timeout=TIMEOUT,
             isolation_level=None,
         )
         sql = _sql.execute
@@ -324,7 +348,7 @@ class Cache(with_metaclass(CacheMeta, object)):
             ' expire_time REAL,'
             ' access_time REAL,'
             ' access_count INTEGER DEFAULT 0,'
-            ' tag TEXT,'
+            ' tag BLOB,'
             ' size INTEGER DEFAULT 0,'
             ' mode INTEGER DEFAULT 0,'
             ' filename TEXT,'
@@ -378,16 +402,16 @@ class Cache(with_metaclass(CacheMeta, object)):
         )
 
 
-    def set(self, key, value, expire=None, tag=None, file_like=False):
+    def set(self, key, value, read=False, expire=None, tag=None):
         """Store key, value pair in cache.
 
-        When `file_like` is True, `value` should be a file-like object opened
+        When `read` is `True`, `value` should be a file-like object opened
         for reading in binary mode.
 
         Keyword arguments:
         expire -- seconds until the key expires (default None, no expiry)
         tag -- text to associate with key (default None)
-        file_like -- store value in file as raw bytes (default False)
+        read -- read value as raw bytes from file (default False)
         """
         sql = self._sql.execute
 
@@ -416,7 +440,7 @@ class Cache(with_metaclass(CacheMeta, object)):
         # Prepare value for disk storage.
 
         size, mode, filename, db_value = self._disk.store(
-            value, file_like, self.large_value_threshold, self._prep_file
+            value, read, self.large_value_threshold, self._prep_file
         )
 
         next_version = version + 1
@@ -501,7 +525,15 @@ class Cache(with_metaclass(CacheMeta, object)):
     __setitem__ = set
 
 
-    def __getitem__(self, key):
+    def get(self, key, default=None, read=False, expire_time=False, tag=False):
+        """Get key from cache. If key is missing, return default.
+
+        Keyword arguments:
+        default -- value to return if key is missing (default None)
+        read -- if True, return open file handle to value (default False)
+        expire_time -- if True, return expire_time in tuple (default False)
+        tag -- if True, return tag in tuple (default False)
+        """
         sql = self._sql.execute
         cache_hit = 'UPDATE Settings SET value = value + 1 WHERE key = "hits"'
         cache_miss = (
@@ -509,10 +541,15 @@ class Cache(with_metaclass(CacheMeta, object)):
             ' WHERE key = "misses"'
         )
 
+        if expire_time and tag:
+            default = (default, None, None)
+        elif expire_time or tag:
+            default = (default, None)
+
         db_key, raw = self._disk.put(key)
 
         row = sql(
-            'SELECT rowid, store_time, expire_time,'
+            'SELECT rowid, store_time, expire_time, tag,'
             ' mode, filename, value'
             ' FROM Cache WHERE key = ? AND raw = ?',
             (db_key, raw),
@@ -521,30 +558,31 @@ class Cache(with_metaclass(CacheMeta, object)):
         if row is None:
             if self.statistics:
                 sql(cache_miss)
-            raise KeyError(key)
+            return default
 
-        rowid, store_time, expire_time, mode, filename, db_value = row
+        (rowid, store_time, db_expire_time, db_tag,
+            mode, filename, db_value) = row
 
         if store_time is None:
             if self.statistics:
                 sql(cache_miss)
-            raise KeyError(key)
+            return default
 
         now = time.time()
 
-        if expire_time is not None and expire_time < now:
+        if db_expire_time is not None and db_expire_time < now:
             if self.statistics:
                 sql(cache_miss)
-            raise KeyError(key)
+            return default
 
         try:
-            value = self._disk.fetch(self._dir, mode, filename, db_value)
+            value = self._disk.fetch(self._dir, mode, filename, db_value, read)
         except IOError as error:
             if error.errno == errno.ENOENT:
                 # Key was deleted before we could retrieve result.
                 if self.statistics:
                     sql(cache_miss)
-                raise KeyError(key)
+                return default
             else:
                 raise
 
@@ -556,19 +594,21 @@ class Cache(with_metaclass(CacheMeta, object)):
         if query is not None:
             sql(query, (rowid,))
 
+        if expire_time and tag:
+            return (value, db_expire_time, db_tag)
+        elif expire_time:
+            return (value, db_expire_time)
+        elif tag:
+            return (value, db_tag)
+        else:
+            return value
+
+
+    def __getitem__(self, key):
+        value = self.get(key, default=ENOVAL)
+        if value is ENOVAL:
+            raise KeyError(key)
         return value
-
-
-    def get(self, key, default=None):
-        """Get key from cache. If key is missing, return default.
-
-        Keyword arguments:
-        default -- value to return if key is missing (default None)
-        """
-        try:
-            return self[key]
-        except KeyError:
-            return default
 
 
     def __delitem__(self, key):
@@ -817,35 +857,6 @@ class Cache(with_metaclass(CacheMeta, object)):
 
             for rowid, version, filename in rows:
                 self._delete(rowid, version, filename)
-
-
-    def path(self, key):
-        """Return file path for corresponding value.
-
-        When value is stored in database, return None. If key not found in
-        Cache, raise KeyError.
-        """
-        sql = self._sql.execute
-        db_key, raw = self._disk.put(key)
-
-        row = sql(
-            'SELECT store_time, filename'
-            ' FROM Cache WHERE key = ? AND raw = ?',
-            (db_key, raw),
-        ).fetchone()
-
-        if not row:
-            raise KeyError(key)
-
-        store_time, filename = row
-
-        if not store_time:
-            raise KeyError(key)
-
-        if filename is None:
-            return None
-        else:
-            return op.join(self._dir, filename)
 
 
     def stats(self, enable=True, reset=False):
