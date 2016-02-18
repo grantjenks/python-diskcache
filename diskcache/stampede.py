@@ -6,7 +6,7 @@ import random
 import tempfile
 import time
 
-from .core import Cache
+from .core import Cache, ENOVAL
 
 
 class StampedeBarrier(object):
@@ -49,7 +49,13 @@ class StampedeBarrier(object):
             key = (args, kwargs)
 
             try:
-                result, delta, expire_time = cache[key]
+                result, expire_time, delta = cache.get(
+                    key, default=ENOVAL, expire_time=True, tag=True
+                )
+
+                if result is ENOVAL:
+                    raise KeyError
+
                 now = time.time()
                 ttl = expire_time - now
 
@@ -62,8 +68,7 @@ class StampedeBarrier(object):
             now = time.time()
             result = func(*args, **kwargs)
             delta = time.time() - now
-            expire_time = now + expire
-            cache.set(key, (result, delta, expire_time), expire=expire)
+            cache.set(key, result, expire=expire, tag=delta)
 
             return result
 
