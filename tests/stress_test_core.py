@@ -46,11 +46,80 @@ def secs(value):
                 value *= 1000
 
 
-def key_ops():
-    key = random.random()
+def make_keys():
+    def make_int():
+        return random.randrange(int(1e9))
+
+    def make_long():
+        value = random.randrange(int(1e9))
+        return value << 64
+
+    def make_unicode():
+        word_size = random.randint(1, 26)
+        word = u''.join(random.sample(u'abcdefghijklmnopqrstuvwxyz', word_size))
+        size = random.randint(1, int(200 / 13))
+        return word * size
+
+    def make_bytes():
+        word_size = random.randint(1, 26)
+        word = b''.join(random.sample(b'abcdefghijklmnopqrstuvwxyz', word_size))
+        size = random.randint(1, int(200 / 13))
+        return word * size
+
+    def make_float():
+        return random.random()
+
+    def make_object():
+        return [make_float()] * random.randint(1, 20)
+
+    funcs = [make_int, make_long, make_unicode, make_bytes, make_float, make_object]
 
     while True:
-        value = random.random()
+        func = random.choice(funcs)
+        yield func()
+
+
+def make_vals():
+    def make_int():
+        return random.randrange(int(1e9))
+
+    def make_long():
+        value = random.randrange(int(1e9))
+        return value << 64
+
+    def make_unicode():
+        word_size = random.randint(1, 26)
+        word = u''.join(random.sample(u'abcdefghijklmnopqrstuvwxyz', word_size))
+        size = random.randint(1, int(2000 / 13))
+        return word * size
+
+    def make_bytes():
+        word_size = random.randint(1, 26)
+        word = b''.join(random.sample(b'abcdefghijklmnopqrstuvwxyz', word_size))
+        size = random.randint(1, int(2000 / 13))
+        return word * size
+
+    def make_float():
+        return random.random()
+
+    def make_object():
+        return [make_float()] * random.randint(1, int(2e3))
+
+    funcs = [make_int, make_long, make_unicode, make_bytes, make_float, make_object]
+
+    while True:
+        func = random.choice(funcs)
+        yield func()
+
+
+def key_ops():
+    keys = make_keys()
+    vals = make_vals()
+
+    key = next(keys)
+
+    while True:
+        value = next(vals)
         yield 'set', key, value
         for _ in range(int(random.expovariate(1.0 / GET_AVERAGE))):
             yield 'get', key, value
@@ -77,13 +146,14 @@ def worker(queue, kind, args):
             cache.set(key, value, expire=EXPIRE)
         elif action == 'get':
             result = cache.get(key)
-            if PROCESSES == 1 and THREADS == 1:
-                assert result == value
         else:
             assert action == 'del'
             cache.delete(key)
 
         stop = time.time()
+
+        if action == 'get' and PROCESSES == 1 and THREADS == 1:
+            assert result == value
 
         if index > WARMUP:
             timings[action].append(stop - start)
@@ -94,7 +164,7 @@ def worker(queue, kind, args):
 
 
 def dispatch(num, kind, args):
-    with open('process-%s.json' % num, 'r') as reader:
+    with open('input-%s.json' % num, 'r') as reader:
         process_queue = json.load(reader)
 
     thread_queues = [Queue.Queue() for _ in range(THREADS)]
@@ -128,7 +198,7 @@ def dispatch(num, kind, args):
         for key in data:
             timings[key].extend(data[key])
 
-    with open('process-%s.json' % num, 'w') as writer:
+    with open('output-%s.json' % num, 'w') as writer:
         json.dump(timings, writer)
 
 
@@ -146,7 +216,7 @@ def percentile(sequence, percent):
     return values[pos]
 
 
-def stress_test():
+def stress_test(create=True, delete=True):
     shutil.rmtree('temp', ignore_errors=True)
 
     if PROCESSES == 1:
@@ -160,15 +230,16 @@ def stress_test():
         for num in range(PROCESSES)
     ]
 
-    operations = list(all_ops())
-    process_queue = [[] for _ in range(PROCESSES)]
+    if create:
+        operations = list(all_ops())
+        process_queue = [[] for _ in range(PROCESSES)]
 
-    for index, ops in enumerate(operations):
-        process_queue[index % PROCESSES].append(ops)
+        for index, ops in enumerate(operations):
+            process_queue[index % PROCESSES].append(ops)
 
-    for num in range(PROCESSES):
-        with open('process-%s.json' % num, 'w') as writer:
-            json.dump(process_queue[num], writer)
+        for num in range(PROCESSES):
+            with open('input-%s.json' % num, 'w') as writer:
+                json.dump(process_queue[num], writer)
 
     for process in processes:
         process.start()
@@ -179,13 +250,15 @@ def stress_test():
     timings = {'get': [], 'set': [], 'del': [], 'self': 0.0}
 
     for num in range(PROCESSES):
-        with open('process-%s.json' % num, 'r') as reader:
+        with open('output-%s.json' % num, 'r') as reader:
             data = json.load(reader)
             for key in data:
                 timings[key] += data[key]
 
-    for num in range(PROCESSES):
-        os.remove('process-%s.json' % num)
+    if delete:
+        for num in range(PROCESSES):
+            os.remove('input-%s.json' % num)
+            os.remove('output-%s.json' % num)
 
     template = '%10s,%10s,%10s,%10s,%10s,%10s,%10s,%10s,%10s'
 
@@ -256,6 +329,16 @@ if __name__ == '__main__':
         '-p', '--processes', type=int, default=PROCESSES,
         help='Number of processes to start',
     )
+    parser.add_argument(
+        '-s', '--seed', type=int, default=0,
+        help='Random seed',
+    )
+    parser.add_argument(
+        '--no-create', action='store_false', dest='create'
+    )
+    parser.add_argument(
+        '--no-delete', action='store_false', dest='delete'
+    )
 
     args = parser.parse_args()
 
@@ -268,4 +351,6 @@ if __name__ == '__main__':
     THREADS = args.threads
     PROCESSES = args.processes
 
-    stress_test()
+    random.seed(args.seed)
+
+    stress_test(create=args.create, delete=args.delete)

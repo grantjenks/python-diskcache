@@ -62,12 +62,7 @@ TODO
 TODO
 ----
 
-1. Improve stress_test_core.
-
-   - Support different key sizes / constraints.
-   - Support different value sizes / constraints.
-   - Test eviction policies.
-
+1. Stress test eviction policies.
 2. Create and test Django interface.
 3. Create and test CLI interface.
 
