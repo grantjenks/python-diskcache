@@ -104,9 +104,6 @@ def dispatch(num, kind, args):
         ) for thread_queue in thread_queues
     ]
 
-    for thread in threads:
-        thread.start()
-
     for index, triplet in enumerate(process_queue):
         thread_queue = thread_queues[index % THREADS]
         thread_queue.put(triplet)
@@ -114,10 +111,17 @@ def dispatch(num, kind, args):
     for thread_queue in thread_queues:
         thread_queue.put(None)
 
+    start = time.time()
+
+    for thread in threads:
+        thread.start()
+
     for thread in threads:
         thread.join()
 
-    timings = {'get': [], 'set': [], 'del': []}
+    stop = time.time()
+
+    timings = {'get': [], 'set': [], 'del': [], 'self': (stop - start)}
 
     for thread_queue in thread_queues:
         data = thread_queue.get()
@@ -128,11 +132,31 @@ def dispatch(num, kind, args):
         json.dump(timings, writer)
 
 
+def percentile(sequence, percent):
+    if not sequence:
+        return None
+
+    values = sorted(sequence)
+
+    if percent == 0:
+        return values[0]
+
+    pos = int(len(values) * percent) - 1
+
+    return values[pos]
+
+
 def stress_test():
     shutil.rmtree('temp', ignore_errors=True)
 
+    if PROCESSES == 1:
+        # Use threads.
+        func = threading.Thread
+    else:
+        func = mp.Process
+
     processes = [
-        mp.Process(target=dispatch, args=(num, Cache, ('temp',)))
+        func(target=dispatch, args=(num, Cache, ('temp',)))
         for num in range(PROCESSES)
     ]
 
@@ -152,22 +176,20 @@ def stress_test():
     for process in processes:
         process.join()
 
-    timings = {'get': [], 'set': [], 'del': []}
+    timings = {'get': [], 'set': [], 'del': [], 'self': 0.0}
 
     for num in range(PROCESSES):
         with open('process-%s.json' % num, 'r') as reader:
             data = json.load(reader)
             for key in data:
-                timings[key].extend(data[key])
+                timings[key] += data[key]
 
     for num in range(PROCESSES):
         os.remove('process-%s.json' % num)
 
-    template = '%10s,%10s,%10s,%10s,%10s,%10s,%10s'
+    template = '%10s,%10s,%10s,%10s,%10s,%10s,%10s,%10s,%10s'
 
-    print(template % ('op', 'len', 'min', 'max', 'std', 'mean', 'median'))
-
-    template = '%10s,%10d' + ',%10s' * 5
+    print(template % ('op', 'count', 'mean', 'std', 'min', 'p50', 'p90', 'p99', 'max'))
 
     total = 0
 
@@ -181,14 +203,17 @@ def stress_test():
         print(template % (
             action,
             len(values),
-            secs(min(values)),
-            secs(max(values)),
-            secs(statistics.pstdev(values)),
             secs(statistics.mean(values)),
-            secs(statistics.median_high(values)),
+            secs(statistics.pstdev(values)),
+            secs(percentile(values, 0.0)),
+            secs(percentile(values, 0.5)),
+            secs(percentile(values, 0.9)),
+            secs(percentile(values, 0.99)),
+            secs(percentile(values, 1.0)),
         ))
 
     print('Total operations time: %.3f seconds' % total)
+    print('Total wall clock time: %.3f seconds.' % timings['self'])
 
     shutil.rmtree('temp', ignore_errors=True)
 
@@ -204,7 +229,7 @@ if __name__ == '__main__':
         help='Number of operations to perform',
     )
     parser.add_argument(
-        '-g', '--get-average', type=int, default=GET_AVERAGE,
+        '-g', '--get-average', type=float, default=GET_AVERAGE,
         help='Expected value of exponential variate used for GET count',
     )
     parser.add_argument(
@@ -216,7 +241,7 @@ if __name__ == '__main__':
         help='Likelihood of a key deletion',
     )
     parser.add_argument(
-        '-w', '--warmup', type=int, default=WARMUP,
+        '-w', '--warmup', type=float, default=WARMUP,
         help='Number of warmup operations before timings',
     )
     parser.add_argument(
@@ -235,16 +260,12 @@ if __name__ == '__main__':
     args = parser.parse_args()
 
     OPERATIONS = int(args.operations)
-    GET_AVERAGE = args.get_average
+    GET_AVERAGE = int(args.get_average)
     KEY_COUNT = int(args.key_count)
     DEL_CHANCE = args.del_chance
-    WARMUP = args.warmup
+    WARMUP = int(args.warmup)
     EXPIRE = args.expire
     THREADS = args.threads
     PROCESSES = args.processes
 
-    start = time.time()
     stress_test()
-    stop = time.time()
-
-    print('Total wall clock time: %.3f seconds.' % (stop - start))
