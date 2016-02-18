@@ -7,6 +7,7 @@ import mock
 import nose.tools as nt
 import os
 import shutil
+import sqlite3
 import sys
 import time
 import warnings
@@ -16,9 +17,9 @@ try:
 except:
     import pickle
 
-from diskcache import Cache, DEFAULT_SETTINGS, EmptyDirWarning
+import diskcache as dc
 
-warnings.simplefilter('ignore', category=EmptyDirWarning)
+warnings.simplefilter('ignore', category=dc.EmptyDirWarning)
 
 if sys.hexversion < 0x03000000:
     range = xrange
@@ -27,7 +28,7 @@ def setup_cache(func):
     @ft.wraps(func)
     def wrapper():
         shutil.rmtree('temp', ignore_errors=True)
-        cache = Cache('temp')
+        cache = dc.Cache('temp')
         func(cache)
         cache.close()
         shutil.rmtree('temp', ignore_errors=True)
@@ -36,7 +37,7 @@ def setup_cache(func):
 
 @setup_cache
 def test_init(cache):
-    for key, value in DEFAULT_SETTINGS.items():
+    for key, value in dc.DEFAULT_SETTINGS.items():
         assert getattr(cache, key) == value
     cache.check()
     cache.close()
@@ -48,10 +49,48 @@ def test_init_makedirs():
 
     try:
         with mock.patch('os.makedirs', func):
-            cache = Cache('temp')
+            cache = dc.Cache('temp')
     except EnvironmentError:
         shutil.rmtree('temp')
         raise
+
+
+@setup_cache
+def test_pragma(cache):
+    con = mock.Mock()
+    func = mock.Mock()
+    cursor = mock.Mock()
+
+    con.execute = func
+    func.return_value = cursor
+    cursor.fetchone = mock.Mock(side_effect=[sqlite3.OperationalError, None])
+
+    with mock.patch.object(cache, '_sql', con):
+        cache.sqlite_mmap_size = 2 ** 28
+
+
+@nt.raises(sqlite3.OperationalError)
+@setup_cache
+def test_pragma_error(cache):
+    con = mock.Mock()
+    func = mock.Mock()
+    cursor = mock.Mock()
+
+    con.execute = func
+    func.return_value = cursor
+    cursor.fetchone = mock.Mock(side_effect=sqlite3.OperationalError)
+
+    import diskcache.core
+
+    prev = diskcache.core.TIMEOUT
+    diskcache.core.TIMEOUT = 0.003
+
+    try:
+        with mock.patch.object(cache, '_sql', con):
+            cache.sqlite_mmap_size = 2 ** 28
+    finally:
+        diskcache.core.TIMEOUT = prev
+
 
 @setup_cache
 def test_getsetdel(cache):
@@ -69,7 +108,7 @@ def test_getsetdel(cache):
     ]
 
     for key, (value, file_like) in enumerate(values):
-        cache.set(key, value, file_like=file_like)
+        cache.set(key, value, read=file_like)
 
     assert len(cache) == len(values)
 
@@ -110,7 +149,7 @@ def test_get_keyerror1(cache):
 @setup_cache
 def test_get_keyerror2(cache):
     "Test cache miss when store_time is None."
-    row = (0, None, None, 0, None, 0)
+    row = (0, None, None, None, 0, None, 0)
     cursor = mock.Mock()
     cursor.fetchone = mock.Mock(return_value=row)
     func = mock.Mock(return_value=cursor)
@@ -127,7 +166,7 @@ def test_get_keyerror2(cache):
 @setup_cache
 def test_get_keyerror3(cache):
     "Test cache miss when expire_time is less than now."
-    row = (0, 0, 0, 0, None, 0)
+    row = (0, 0, 0, None, 0, None, 0)
     cursor = mock.MagicMock()
     cursor.fetchone = mock.Mock(return_value=row)
     cursor.__iter__.return_value = [(0,)]
@@ -176,12 +215,12 @@ def test_set_twice(cache):
     cache[0] = large_value
 
     assert cache[0] == large_value
-    assert cache.path(0) is not None
+    assert cache.get(0, read=True).name is not None
 
     cache[0] = 2
 
     assert cache[0] == 2
-    assert cache.path(0) is None
+    assert cache.get(0, read=True) == 2
 
     cache.check()
 
@@ -205,7 +244,7 @@ def test_set_noupdate(cache):
 
 @setup_cache
 def test_raw(cache):
-    cache.set(0, io.BytesIO(b'abcd'), file_like=True)
+    cache.set(0, io.BytesIO(b'abcd'), read=True)
     assert cache[0] == b'abcd'
 
 
@@ -214,6 +253,13 @@ def test_get(cache):
     assert cache.get(0) is None
     assert cache.get(1, 'dne') == 'dne'
     assert cache.get(2, {}) == {}
+    assert cache.get(0, expire_time=True, tag=True) == (None, None, None)
+
+    cache.set(0, 0, expire=None, tag=u'number')
+
+    assert cache.get(0, expire_time=True) == (0, None)
+    assert cache.get(0, tag=True) == (0, u'number')
+    assert cache.get(0, expire_time=True, tag=True) == (0, None, u'number')
 
 
 @setup_cache
@@ -259,19 +305,19 @@ def test_stats(cache):
 @setup_cache
 def test_path(cache):
     cache[0] = u'abc'
-    cache[1] = (None,) * 2 ** 12
+    large_value = b'abc' * 2 ** 12
+    cache[1] = large_value
 
-    assert cache.path(0) == None
-    assert cache.path(1) != None
+    assert cache.get(0, read=True) == u'abc'
 
-    path = cache.path(1)
+    with cache.get(1, read=True) as reader:
+        assert reader.name is not None
+        path = reader.name
 
     with open(path, 'rb') as reader:
-        data = reader.read()
+        value = reader.read()
 
-    value = pickle.loads(data)
-
-    assert value == (None,) * 2 ** 12
+    assert value == large_value
 
     cache.check()
 
@@ -419,10 +465,14 @@ def test_check(cache):
 
     # Cause mayhem.
 
-    full_path = cache.path(0)
+    with cache.get(0, read=True) as reader:
+        full_path = reader.name
     os.rename(full_path, full_path + '_moved')
-    full_path = cache.path(1)
+
+    with cache.get(1, read=True) as reader:
+        full_path = reader.name
     os.remove(full_path)
+
     cache._sql.execute('UPDATE Cache SET store_time = NULL WHERE rowid > 2')
     cache.count = 0
     cache.size = 0
@@ -446,7 +496,7 @@ def test_integrity_check(cache):
         writer.seek(52)
         writer.write(b'\x00\x01') # Should be 0, change it.
 
-    cache = Cache('temp')
+    cache = dc.Cache('temp')
 
     with warnings.catch_warnings():
         warnings.filterwarnings('ignore')
@@ -461,7 +511,7 @@ def test_expire(cache):
     cache.cull_limit = 0 # Disable expiring keys on `set`.
     now = time.time()
     func = mock.Mock(return_value=now)
-    
+
     with mock.patch('time.time', func):
         for value in range(100):
             cache.set(value, value, expire=value)
@@ -500,32 +550,18 @@ def test_clear(cache):
     cache.check()
 
 
-@nt.raises(KeyError)
 @setup_cache
-def test_path_keyerror1(cache):
-    row = None
-    cursor = mock.Mock()
-    cursor.fetchone = mock.Mock(return_value=row)
-    func = mock.Mock(return_value=cursor)
-    con = mock.Mock()
-    con.execute = func
+def test_tag(cache):
+    cache.set(0, None, tag=u'zero')
+    cache.set(1, None, tag=1234)
+    cache.set(2, None, tag=5.67)
+    cache.set(3, None, tag=b'three')
 
-    with mock.patch.object(cache, '_sql', con):
-        cache.path(0)
+    assert cache.get(0, tag=True) == (None, u'zero')
+    assert cache.get(1, tag=True) == (None, 1234)
+    assert cache.get(2, tag=True) == (None, 5.67)
+    assert cache.get(3, tag=True) == (None, b'three')
 
-
-@nt.raises(KeyError)
-@setup_cache
-def test_path_keyerror2(cache):
-    row = (None, None)
-    cursor = mock.Mock()
-    cursor.fetchone = mock.Mock(return_value=row)
-    func = mock.Mock(return_value=cursor)
-    con = mock.Mock()
-    con.execute = func
-
-    with mock.patch.object(cache, '_sql', con):
-        cache.path(0)
 
 if __name__ == '__main__':
     import nose
