@@ -78,6 +78,7 @@ TODO
 6. Benchmark BerkeleyDB backend using APSW.
 7. Use SQLAlchemy as interface to database.
 8. Support metadata (store_time, expire_time, tag) in ``get``
+9. Benchmark ``set`` with delete, then insert.
 
 Reference and Indices
 ---------------------
