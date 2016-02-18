@@ -241,7 +241,7 @@ class CachedAttr(object):
             # the retry, stress will intermittently fail with multiple
             # processes.
 
-            error = None
+            error = sqlite3.OperationalError
 
             for _ in range(int(TIMEOUT / 0.001)): # Wait up to ~60 seconds.
                 try:
