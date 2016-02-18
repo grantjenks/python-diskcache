@@ -4,8 +4,8 @@ from .core import Disk, Cache, EVICTION_POLICY, DEFAULT_SETTINGS, EmptyDirWarnin
 # from .djangocache import DjangoCache
 
 __title__ = 'diskcache'
-__version__ = '0.3.1'
-__build__ = 0x000301
+__version__ = '0.4.0'
+__build__ = 0x000400
 __author__ = 'Grant Jenks'
 __license__ = 'Apache 2.0'
 __copyright__ = 'Copyright 2016 Grant Jenks'
