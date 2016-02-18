@@ -241,15 +241,20 @@ class CachedAttr(object):
             # the retry, stress will intermittently fail with multiple
             # processes.
 
+            error = None
+
             for _ in range(int(TIMEOUT / 0.001)): # Wait up to ~60 seconds.
                 try:
                     sql('PRAGMA %s = %s' % (self._pragma, value)).fetchone()
-                except sqlite3.OperationalError as error:
+                except sqlite3.OperationalError as exc:
+                    error = exc
                     time.sleep(0.001)
                 else:
                     break
             else:
                 raise error
+
+            del error
 
         setattr(cache, self._value, value)
 
