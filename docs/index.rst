@@ -71,10 +71,11 @@ TODO
 4. Document SQLite database restore trick using dump command and
    cache.check(fix=True).
 5. Test and document stampede_barrier.
-6. Benchmark BerkeleyDB backend using APSW.
-7. Use SQLAlchemy as interface to database.
-8. Support metadata (store_time, expire_time, tag) in ``get``
-9. Benchmark ``set`` with delete, then insert.
+6. Benchmark ``set`` with delete, then insert.
+7. Add DjangoCache to djangopackages/caching.
+8. Document: core.Cache objects cannot be pickled.
+9. Document: core.Cache objects do not survive os.fork.
+10. Dcoument: core.Cache objects are thread-safe.
 
 Reference and Indices
 ---------------------
