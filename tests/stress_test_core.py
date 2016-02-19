@@ -4,7 +4,6 @@ from __future__ import print_function
 
 import collections as co
 from diskcache import Cache
-import json
 import multiprocessing as mp
 import os
 import random
@@ -21,6 +20,9 @@ except ImportError:
 
 if sys.hexversion < 0x03000000:
     range = xrange
+    import cPickle as pickle
+else:
+    import pickle
 
 OPERATIONS = int(1e4)
 GET_AVERAGE = 100
@@ -62,7 +64,7 @@ def make_keys():
 
     def make_bytes():
         word_size = random.randint(1, 26)
-        word = b''.join(random.sample(b'abcdefghijklmnopqrstuvwxyz', word_size))
+        word = u''.join(random.sample(u'abcdefghijklmnopqrstuvwxyz', word_size)).encode('utf-8')
         size = random.randint(1, int(200 / 13))
         return word * size
 
@@ -95,7 +97,7 @@ def make_vals():
 
     def make_bytes():
         word_size = random.randint(1, 26)
-        word = b''.join(random.sample(b'abcdefghijklmnopqrstuvwxyz', word_size))
+        word = u''.join(random.sample(u'abcdefghijklmnopqrstuvwxyz', word_size)).encode('utf-8')
         size = random.randint(1, int(2000 / 13))
         return word * size
 
@@ -164,8 +166,8 @@ def worker(queue, kind, args):
 
 
 def dispatch(num, kind, args):
-    with open('input-%s.json' % num, 'r') as reader:
-        process_queue = json.load(reader)
+    with open('input-%s.pkl' % num, 'rb') as reader:
+        process_queue = pickle.load(reader)
 
     thread_queues = [Queue.Queue() for _ in range(THREADS)]
     threads = [
@@ -198,8 +200,8 @@ def dispatch(num, kind, args):
         for key in data:
             timings[key].extend(data[key])
 
-    with open('output-%s.json' % num, 'w') as writer:
-        json.dump(timings, writer)
+    with open('output-%s.pkl' % num, 'wb') as writer:
+        pickle.dump(timings, writer, protocol=2)
 
 
 def percentile(sequence, percent):
@@ -238,8 +240,8 @@ def stress_test(create=True, delete=True):
             process_queue[index % PROCESSES].append(ops)
 
         for num in range(PROCESSES):
-            with open('input-%s.json' % num, 'w') as writer:
-                json.dump(process_queue[num], writer)
+            with open('input-%s.pkl' % num, 'wb') as writer:
+                pickle.dump(process_queue[num], writer, protocol=2)
 
     for process in processes:
         process.start()
@@ -250,15 +252,15 @@ def stress_test(create=True, delete=True):
     timings = {'get': [], 'set': [], 'del': [], 'self': 0.0}
 
     for num in range(PROCESSES):
-        with open('output-%s.json' % num, 'r') as reader:
-            data = json.load(reader)
+        with open('output-%s.pkl' % num, 'rb') as reader:
+            data = pickle.load(reader)
             for key in data:
                 timings[key] += data[key]
 
     if delete:
         for num in range(PROCESSES):
-            os.remove('input-%s.json' % num)
-            os.remove('output-%s.json' % num)
+            os.remove('input-%s.pkl' % num)
+            os.remove('output-%s.pkl' % num)
 
     template = '%10s,%10s,%10s,%10s,%10s,%10s,%10s,%10s,%10s'
 
