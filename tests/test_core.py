@@ -6,9 +6,11 @@ import io
 import mock
 import nose.tools as nt
 import os
+import random
 import shutil
 import sqlite3
 import sys
+import threading
 import time
 import warnings
 
@@ -27,11 +29,11 @@ if sys.hexversion < 0x03000000:
 def setup_cache(func):
     @ft.wraps(func)
     def wrapper():
-        shutil.rmtree('temp', ignore_errors=True)
-        cache = dc.Cache('temp')
+        shutil.rmtree('tmp', ignore_errors=True)
+        cache = dc.Cache('tmp')
         func(cache)
         cache.close()
-        shutil.rmtree('temp', ignore_errors=True)
+        shutil.rmtree('tmp', ignore_errors=True)
     return wrapper
 
 
@@ -45,40 +47,49 @@ def test_init(cache):
 
 @nt.raises(EnvironmentError)
 def test_init_makedirs():
-    func = mock.Mock(side_effect=OSError(errno.EACCES))
+    shutil.rmtree('tmp', ignore_errors=True)
+    makedirs = mock.Mock(side_effect=OSError(errno.EACCES))
 
     try:
-        with mock.patch('os.makedirs', func):
-            cache = dc.Cache('temp')
+        with mock.patch('os.makedirs', makedirs):
+            cache = dc.Cache('tmp')
     except EnvironmentError:
-        shutil.rmtree('temp')
+        shutil.rmtree('tmp')
         raise
 
 
 @setup_cache
 def test_pragma(cache):
+    local = mock.Mock()
     con = mock.Mock()
-    func = mock.Mock()
+    execute = mock.Mock()
     cursor = mock.Mock()
+    fetchone = mock.Mock()
 
-    con.execute = func
-    func.return_value = cursor
-    cursor.fetchone = mock.Mock(side_effect=[sqlite3.OperationalError, None])
+    local.con = con
+    con.execute = execute
+    execute.return_value = cursor
+    cursor.fetchone = fetchone
+    fetchone.side_effect = [sqlite3.OperationalError, None]
 
-    with mock.patch.object(cache, '_sql', con):
+    with mock.patch.object(cache, '_local', local):
         cache.sqlite_mmap_size = 2 ** 28
 
 
 @nt.raises(sqlite3.OperationalError)
 @setup_cache
 def test_pragma_error(cache):
+    local = mock.Mock()
     con = mock.Mock()
-    func = mock.Mock()
+    execute = mock.Mock()
     cursor = mock.Mock()
+    fetchone = mock.Mock()
 
-    con.execute = func
-    func.return_value = cursor
-    cursor.fetchone = mock.Mock(side_effect=sqlite3.OperationalError)
+    local.con = con
+    con.execute = execute
+    execute.return_value = cursor
+    cursor.fetchone = fetchone
+    fetchone.side_effect = sqlite3.OperationalError
 
     import diskcache.core
 
@@ -86,7 +97,7 @@ def test_pragma_error(cache):
     diskcache.core.TIMEOUT = 0.003
 
     try:
-        with mock.patch.object(cache, '_sql', con):
+        with mock.patch.object(cache, '_local', local):
             cache.sqlite_mmap_size = 2 ** 28
     finally:
         diskcache.core.TIMEOUT = prev
@@ -149,16 +160,21 @@ def test_get_keyerror1(cache):
 @setup_cache
 def test_get_keyerror2(cache):
     "Test cache miss when store_time is None."
-    row = (0, None, None, None, 0, None, 0)
-    cursor = mock.Mock()
-    cursor.fetchone = mock.Mock(return_value=row)
-    func = mock.Mock(return_value=cursor)
+    local = mock.Mock()
     con = mock.Mock()
-    con.execute = func
+    execute = mock.Mock()
+    cursor = mock.Mock()
+    fetchone = mock.Mock()
+
+    local.con = con
+    con.execute = execute
+    execute.return_value = cursor
+    cursor.fetchone = fetchone
+    fetchone.return_value = (0, None, None, None, 0, None, 0)
 
     cache.statistics = True
 
-    with mock.patch.object(cache, '_sql', con):
+    with mock.patch.object(cache, '_local', local):
         cache[0]
 
 
@@ -166,17 +182,21 @@ def test_get_keyerror2(cache):
 @setup_cache
 def test_get_keyerror3(cache):
     "Test cache miss when expire_time is less than now."
-    row = (0, 0, 0, None, 0, None, 0)
-    cursor = mock.MagicMock()
-    cursor.fetchone = mock.Mock(return_value=row)
-    cursor.__iter__.return_value = [(0,)]
-    func = mock.Mock(return_value=cursor)
+    local = mock.Mock()
     con = mock.Mock()
-    con.execute = func
+    execute = mock.Mock()
+    cursor = mock.Mock()
+    fetchone = mock.Mock()
+
+    local.con = con
+    con.execute = execute
+    execute.return_value = cursor
+    cursor.fetchone = fetchone
+    fetchone.return_value = (0, 0, 0, None, 0, None, 0)
 
     cache.statistics = True
 
-    with mock.patch.object(cache, '_sql', con):
+    with mock.patch.object(cache, '_local', local):
         cache[0]
 
 
@@ -227,16 +247,22 @@ def test_set_twice(cache):
 
 @setup_cache
 def test_set_noupdate(cache):
-    cursor = mock.Mock()
-    cursor.fetchone = mock.Mock(return_value=None)
-    cursor.rowcount = 0
-    func = mock.Mock(return_value=cursor)
+    local = mock.Mock()
     con = mock.Mock()
-    con.execute = func
+    execute = mock.Mock()
+    cursor = mock.Mock()
+    fetchone = mock.Mock()
+
+    local.con = con
+    con.execute = execute
+    execute.return_value = cursor
+    cursor.rowcount = 0
+    cursor.fetchone = fetchone
+    fetchone.return_value = None
 
     del cache.large_value_threshold
 
-    with mock.patch.object(cache, '_sql', con):
+    with mock.patch.object(cache, '_local', local):
         cache[0] = b'abcd' * 2 ** 12
 
     cache.check()
@@ -473,7 +499,7 @@ def test_check(cache):
         full_path = reader.name
     os.remove(full_path)
 
-    cache._sql.execute('UPDATE Cache SET store_time = NULL WHERE rowid > 2')
+    cache._sql('UPDATE Cache SET store_time = NULL WHERE rowid > 2')
     cache.count = 0
     cache.size = 0
 
@@ -492,11 +518,11 @@ def test_integrity_check(cache):
 
     cache.close()
 
-    with io.open('temp/cache.sqlite3', 'r+b') as writer:
+    with io.open('tmp/cache.sqlite3', 'r+b') as writer:
         writer.seek(52)
         writer.write(b'\x00\x01') # Should be 0, change it.
 
-    cache = dc.Cache('temp')
+    cache = dc.Cache('tmp')
 
     with warnings.catch_warnings():
         warnings.filterwarnings('ignore')
@@ -561,6 +587,33 @@ def test_tag(cache):
     assert cache.get(1, tag=True) == (None, 1234)
     assert cache.get(2, tag=True) == (None, 5.67)
     assert cache.get(3, tag=True) == (None, b'three')
+
+
+@setup_cache
+def test_thread_safe(cache):
+    def worker():
+        values = list(range(1000))
+        random.shuffle(values)
+        for value in values:
+            cache[value] = value
+
+    threads = [threading.Thread(target=worker) for _ in range(10)]
+
+    for thread in threads:
+        thread.start()
+
+    for thread in threads:
+        thread.join()
+
+
+@setup_cache
+def test_with(cache):
+    with dc.Cache('tmp') as tmp:
+        tmp[u'a'] = 0
+        tmp[u'b'] = 1
+
+    assert cache[u'a'] == 0
+    assert cache[u'b'] == 1
 
 
 if __name__ == '__main__':

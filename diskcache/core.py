@@ -7,6 +7,7 @@ import os
 import os.path as op
 import sqlite3
 import sys
+import threading
 import time
 import uuid
 import warnings
@@ -228,7 +229,7 @@ class CachedAttr(object):
     def __set__(self, cache, value):
         "Cache attribute value and write back to database."
         # pylint: disable=protected-access,attribute-defined-outside-init
-        sql = cache._sql.execute
+        sql = cache._sql
         query = 'INSERT OR REPLACE INTO Settings VALUES (?, ?)'
         sql(query, (self._key, value))
 
@@ -262,7 +263,7 @@ class CachedAttr(object):
         "Update descriptor value from database."
         # pylint: disable=protected-access,attribute-defined-outside-init
         query = 'SELECT value FROM Settings WHERE key = ?'
-        value, = cache._sql.execute(query, (self._key,)).fetchone()
+        value, = cache._sql(query, (self._key,)).fetchone()
         setattr(cache, self._value, value)
 
 
@@ -301,6 +302,7 @@ class Cache(with_metaclass(CacheMeta, object)):
     def __init__(self, directory, disk=Disk(), **settings):
         self._dir = directory
         self._disk = disk
+        self._local = threading.local()
 
         if not op.isdir(directory):
             try:
@@ -313,12 +315,7 @@ class Cache(with_metaclass(CacheMeta, object)):
                         ' and could not be created' % self._dir
                     )
 
-        _sql = self._sql = sqlite3.connect(
-            op.join(directory, DATABASE_NAME),
-            timeout=TIMEOUT,
-            isolation_level=None,
-        )
-        sql = _sql.execute
+        sql = self._sql
 
         # Setup Settings table.
 
@@ -407,6 +404,18 @@ class Cache(with_metaclass(CacheMeta, object)):
         )
 
 
+    @property
+    def _sql(self):
+        con = getattr(self._local, 'con', None)
+        if con is None:
+            con = self._local.con = sqlite3.connect(
+                op.join(self._dir, DATABASE_NAME),
+                timeout=TIMEOUT,
+                isolation_level=None,
+            )
+        return con.execute
+
+
     def set(self, key, value, read=False, expire=None, tag=None):
         """Store key, value pair in cache.
 
@@ -418,7 +427,7 @@ class Cache(with_metaclass(CacheMeta, object)):
         tag -- text to associate with key (default None)
         read -- read value as raw bytes from file (default False)
         """
-        sql = self._sql.execute
+        sql = self._sql
 
         db_key, raw = self._disk.put(key)
 
@@ -539,7 +548,7 @@ class Cache(with_metaclass(CacheMeta, object)):
         expire_time -- if True, return expire_time in tuple (default False)
         tag -- if True, return tag in tuple (default False)
         """
-        sql = self._sql.execute
+        sql = self._sql
         cache_hit = 'UPDATE Settings SET value = value + 1 WHERE key = "hits"'
         cache_miss = (
             'UPDATE Settings SET value = value + 1'
@@ -617,7 +626,7 @@ class Cache(with_metaclass(CacheMeta, object)):
 
 
     def __delitem__(self, key):
-        sql = self._sql.execute
+        sql = self._sql
 
         db_key, raw = self._disk.put(key)
 
@@ -642,7 +651,7 @@ class Cache(with_metaclass(CacheMeta, object)):
 
 
     def _delete(self, rowid, version, filename):
-        cursor = self._sql.execute(
+        cursor = self._sql(
             'DELETE FROM Cache WHERE rowid = ? AND version = ?',
             (rowid, version),
         )
@@ -688,7 +697,7 @@ class Cache(with_metaclass(CacheMeta, object)):
     def check(self, fix=False):
         "Check database and file system consistency."
         # pylint: disable=access-member-before-definition,W0201
-        sql = self._sql.execute
+        sql = self._sql
 
         # Check integrity of database.
 
@@ -799,7 +808,7 @@ class Cache(with_metaclass(CacheMeta, object)):
         "Remove expired items from Cache."
 
         now = time.time()
-        sql = self._sql.execute
+        sql = self._sql
         chunk = self.cull_limit
         expire_time = 0
 
@@ -821,7 +830,7 @@ class Cache(with_metaclass(CacheMeta, object)):
     def evict(self, tag):
         "Remove items with matching tag from Cache."
 
-        sql = self._sql.execute
+        sql = self._sql
         chunk = self.cull_limit
         rowid = 0
 
@@ -846,7 +855,7 @@ class Cache(with_metaclass(CacheMeta, object)):
     def clear(self):
         "Remove all items from Cache."
 
-        sql = self._sql.execute
+        sql = self._sql
         chunk = self.cull_limit
         rowid = 0
 
@@ -889,7 +898,17 @@ class Cache(with_metaclass(CacheMeta, object)):
 
     def close(self):
         "Close database connection."
-        self._sql.close()
+        con = getattr(self._local, 'con', None)
+        if con is not None:
+            con.close()
+
+
+    def __enter__(self):
+        return self
+
+
+    def __exit__(self, *exception):
+        self.close()
 
 
     def __len__(self):
