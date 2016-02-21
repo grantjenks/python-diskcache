@@ -62,6 +62,7 @@ TODO
 TODO
 ----
 
+0. If you use the cache in a thread, you need to close the cache in that thread.
 1. Stress test eviction policies.
 2. Create and test Django interface.
 3. Create and test CLI interface.
