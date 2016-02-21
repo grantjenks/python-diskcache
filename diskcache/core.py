@@ -25,17 +25,17 @@ else:
 
 ENOVAL = object()
 
-MIN_INT = -sys.maxsize - 1
-MAX_INT = sys.maxsize
-
-DATABASE_NAME = 'cache.sqlite3'
-TIMEOUT = 60.0
-
 MODE_NONE = 0
 MODE_RAW = 1
 MODE_BINARY = 2
 MODE_TEXT = 3
 MODE_PICKLE = 4
+
+LIMITS = {
+    u'timeout': 60.0,
+    u'min_int': -sys.maxsize - 1,
+    u'max_int': sys.maxsize,
+}
 
 DEFAULT_SETTINGS = {
     u'statistics': 0, # False
@@ -47,9 +47,9 @@ DEFAULT_SETTINGS = {
     u'sqlite_journal_mode': u'WAL',
     u'sqlite_cache_size': 2 ** 13, # 8,192 pages
     u'sqlite_mmap_size': 2 ** 27,  # 128mb
+}
 
-    # Metadata
-
+METADATA = {
     u'count': 0,
     u'size': 0,
     u'hits': 0,
@@ -115,7 +115,8 @@ class Disk(object):
         if type_key is BytesType:
             return sqlite3.Binary(key), True
         elif ((type_key is TextType)
-                or (type_key in INT_TYPES and MIN_INT <= key <= MAX_INT)
+                or (type_key in INT_TYPES
+                    and LIMITS[u'min_int'] <= key <= LIMITS[u'max_int'])
                 or (type_key is float)):
             return key, True
         else:
@@ -146,7 +147,8 @@ class Disk(object):
         type_value = type(value)
 
         if ((type_value is TextType and len(value) < threshold)
-                or (type_value in INT_TYPES and MIN_INT <= value <= MAX_INT)
+                or (type_value in INT_TYPES
+                    and LIMITS[u'min_int'] <= value <= LIMITS[u'max_int'])
                 or (type_value is float)):
             return 0, MODE_RAW, None, value
         elif type_value is BytesType:
@@ -230,8 +232,9 @@ class CachedAttr(object):
         "Cache attribute value and write back to database."
         # pylint: disable=protected-access,attribute-defined-outside-init
         sql = cache._sql
-        query = 'INSERT OR REPLACE INTO Settings VALUES (?, ?)'
-        sql(query, (self._key, value))
+        query = 'UPDATE Settings SET value = ? WHERE key = ?'
+
+        sql(query, (value, self._key))
 
         if self._pragma:
 
@@ -242,14 +245,15 @@ class CachedAttr(object):
             # the retry, stress will intermittently fail with multiple
             # processes.
 
+            pause = 0.001
             error = sqlite3.OperationalError
 
-            for _ in range(int(TIMEOUT / 0.001)): # Wait up to ~60 seconds.
+            for _ in range(int(LIMITS[u'timeout'] / pause)):
                 try:
                     sql('PRAGMA %s = %s' % (self._pragma, value)).fetchone()
                 except sqlite3.OperationalError as exc:
                     error = exc
-                    time.sleep(0.001)
+                    time.sleep(pause)
                 else:
                     break
             else:
@@ -271,6 +275,8 @@ class CacheMeta(type):
     "Metaclass for Cache to make Settings into attributes."
     def __new__(mcs, name, bases, attrs):
         for key in DEFAULT_SETTINGS:
+            attrs[key] = CachedAttr(key)
+        for key in METADATA:
             attrs[key] = CachedAttr(key)
         return type.__new__(mcs, name, bases, attrs)
 
@@ -299,8 +305,9 @@ class EmptyDirWarning(UserWarning):
 class Cache(with_metaclass(CacheMeta, object)):
     "Disk and file-based cache."
     # pylint: disable=bad-continuation
-    def __init__(self, directory, disk=Disk(), **settings):
+    def __init__(self, directory, dbname='cache.db', disk=Disk(), **settings):
         self._dir = directory
+        self._dbname = dbname
         self._disk = disk
         self._local = threading.local()
 
@@ -328,14 +335,24 @@ class Cache(with_metaclass(CacheMeta, object)):
             'SELECT key, value FROM Settings'
         ).fetchall())
 
-        temp = DEFAULT_SETTINGS.copy()
-        temp.update(current_settings)
-        temp.update(settings)
+        sets = DEFAULT_SETTINGS.copy()
+        sets.update(current_settings)
+        sets.update(settings)
+
+        for key in METADATA:
+            sets.pop(key, None)
 
         # Set cached attributes: updates settings and sets pragmas.
 
-        for key, value in temp.items():
+        for key, value in sets.items():
+            query = 'INSERT OR REPLACE INTO Settings VALUES (?, ?)'
+            sql(query, (key, value))
             setattr(self, key, value)
+
+        for key, value in METADATA.items():
+            query = 'INSERT OR IGNORE INTO Settings VALUES (?, ?)'
+            sql(query, (key, value))
+            delattr(self, key)
 
         self._page_size, = sql('PRAGMA page_size').fetchone()
 
@@ -407,12 +424,14 @@ class Cache(with_metaclass(CacheMeta, object)):
     @property
     def _sql(self):
         con = getattr(self._local, 'con', None)
+
         if con is None:
             con = self._local.con = sqlite3.connect(
-                op.join(self._dir, DATABASE_NAME),
-                timeout=TIMEOUT,
+                op.join(self._dir, self._dbname),
+                timeout=LIMITS[u'timeout'],
                 isolation_level=None,
             )
+
         return con.execute
 
 
@@ -786,7 +805,7 @@ class Cache(with_metaclass(CacheMeta, object)):
             error = set(paths) - filenames
 
             for full_path in error:
-                if DATABASE_NAME in full_path:
+                if self._dbname in full_path:
                     continue
 
                 warnings.warn('unreferenced file: %s' % full_path)
