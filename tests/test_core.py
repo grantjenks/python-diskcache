@@ -21,6 +21,7 @@ except:
 
 import diskcache as dc
 
+warnings.simplefilter('error')
 warnings.simplefilter('ignore', category=dc.EmptyDirWarning)
 
 if sys.hexversion < 0x03000000:
@@ -30,9 +31,8 @@ def setup_cache(func):
     @ft.wraps(func)
     def wrapper():
         shutil.rmtree('tmp', ignore_errors=True)
-        cache = dc.Cache('tmp')
-        func(cache)
-        cache.close()
+        with dc.Cache('tmp') as cache:
+            func(cache)
         shutil.rmtree('tmp', ignore_errors=True)
     return wrapper
 
@@ -76,8 +76,8 @@ def test_pragma(cache):
         cache.sqlite_mmap_size = 2 ** 28
 
 
-@nt.raises(sqlite3.OperationalError)
 @setup_cache
+@nt.raises(sqlite3.OperationalError)
 def test_pragma_error(cache):
     local = mock.Mock()
     con = mock.Mock()
@@ -91,16 +91,14 @@ def test_pragma_error(cache):
     cursor.fetchone = fetchone
     fetchone.side_effect = sqlite3.OperationalError
 
-    import diskcache.core
-
-    prev = diskcache.core.TIMEOUT
-    diskcache.core.TIMEOUT = 0.003
+    prev = dc.LIMITS[u'timeout']
+    dc.LIMITS[u'timeout'] = 0.003
 
     try:
         with mock.patch.object(cache, '_local', local):
             cache.sqlite_mmap_size = 2 ** 28
     finally:
-        diskcache.core.TIMEOUT = prev
+        dc.LIMITS[u'timeout'] = prev
 
 
 @setup_cache
@@ -235,7 +233,8 @@ def test_set_twice(cache):
     cache[0] = large_value
 
     assert cache[0] == large_value
-    assert cache.get(0, read=True).name is not None
+    with cache.get(0, read=True) as reader:
+        assert reader.name is not None
 
     cache[0] = 2
 
@@ -518,7 +517,7 @@ def test_integrity_check(cache):
 
     cache.close()
 
-    with io.open('tmp/cache.sqlite3', 'r+b') as writer:
+    with io.open('tmp/cache.db', 'r+b') as writer:
         writer.seek(52)
         writer.write(b'\x00\x01') # Should be 0, change it.
 
@@ -589,29 +588,61 @@ def test_tag(cache):
     assert cache.get(3, tag=True) == (None, b'three')
 
 
-if sys.hexversion < 0x03000000:
-    # GrantJ 2016-02-19 Test thread safety only on Python 2.7. On Python 3 this
-    # test will fail. But I can't reproduce it in a standalone file. I wonder
-    # if `nose` is somehow interfering.
-    @setup_cache
-    def test_thread_safe(cache):
-        def worker():
-            values = list(range(1000))
-            random.shuffle(values)
-            for index, value in enumerate(values):
-                try:
-                    cache[value] = value
-                except sqlite3.OperationalError:
-                    print('index:', index)
-                    raise
+@setup_cache
+def test_multiple_threads(cache):
+    values = list(range(100))
 
-        threads = [threading.Thread(target=worker) for _ in range(10)]
+    cache[0] = 0
+    cache[1] = 1
+    cache[2] = 2
 
-        for thread in threads:
-            thread.start()
+    cache = dc.Cache('tmp')
 
-        for thread in threads:
-            thread.join()
+    def worker():
+        sets = list(values)
+        random.shuffle(sets)
+
+        with dc.Cache('tmp') as thread_cache:
+            for value in sets:
+                thread_cache[value] = value
+
+    threads = [threading.Thread(target=worker) for _ in range(10)]
+
+    for thread in threads:
+        thread.start()
+
+    for thread in threads:
+        thread.join()
+
+    for value in values:
+        assert cache[value] == value
+
+    cache.check()
+
+
+@setup_cache
+def test_thread_safe(cache):
+    values = list(range(100))
+
+    def worker():
+        with cache:
+            sets = list(values)
+            random.shuffle(sets)
+            for value in sets:
+                cache[value] = value
+
+    threads = [threading.Thread(target=worker) for _ in range(10)]
+
+    for thread in threads:
+        thread.start()
+
+    for thread in threads:
+        thread.join()
+
+    for value in values:
+        assert cache[value] == value
+
+    cache.check()
 
 
 @setup_cache

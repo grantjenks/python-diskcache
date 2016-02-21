@@ -3,7 +3,7 @@
 from __future__ import print_function
 
 import collections as co
-from diskcache import Cache
+from diskcache import Cache, EmptyDirWarning
 import multiprocessing as mp
 import os
 import random
@@ -12,6 +12,10 @@ import statistics
 import sys
 import threading
 import time
+import warnings
+
+warnings.simplefilter('error')
+warnings.simplefilter('ignore', category=EmptyDirWarning)
 
 try:
     import Queue
@@ -219,7 +223,7 @@ def percentile(sequence, percent):
 
 
 def stress_test(create=True, delete=True):
-    shutil.rmtree('temp', ignore_errors=True)
+    shutil.rmtree('tmp', ignore_errors=True)
 
     if PROCESSES == 1:
         # Use threads.
@@ -228,7 +232,7 @@ def stress_test(create=True, delete=True):
         func = mp.Process
 
     processes = [
-        func(target=dispatch, args=(num, Cache, ('temp',)))
+        func(target=dispatch, args=(num, Cache, ('tmp',)))
         for num in range(PROCESSES)
     ]
 
@@ -248,6 +252,9 @@ def stress_test(create=True, delete=True):
 
     for process in processes:
         process.join()
+
+    with Cache('tmp') as cache:
+        cache.check()
 
     timings = {'get': [], 'set': [], 'del': [], 'self': 0.0}
 
@@ -288,9 +295,9 @@ def stress_test(create=True, delete=True):
         ))
 
     print('Total operations time: %.3f seconds' % total)
-    print('Total wall clock time: %.3f seconds.' % timings['self'])
+    print('Total process time:    %.3f seconds' % timings['self'])
 
-    shutil.rmtree('temp', ignore_errors=True)
+    shutil.rmtree('tmp', ignore_errors=True)
 
 
 if __name__ == '__main__':
@@ -355,4 +362,7 @@ if __name__ == '__main__':
 
     random.seed(args.seed)
 
+    start = time.time()
     stress_test(create=args.create, delete=args.delete)
+    end = time.time()
+    print('Total wall clock time: %.3f seconds' % (end - start))
