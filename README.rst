@@ -19,7 +19,7 @@ Features
 
 - Pure-Python
 - Developed on Python 2.7
-- Tested on CPython 2.6, 2.7, 3.3, 3.4, 3.5 and PyPy, PyPy3
+- Tested on CPython 2.7, 3.4, 3.5 and PyPy
 - Get full_path reference to value.
 - Allow storing raw data.
 - Small values stored in database.
