@@ -141,9 +141,9 @@ def all_ops():
         yield next(ops)
 
 
-def worker(queue, kind, args):
+def worker(queue, eviction_policy):
     timings = {'get': [], 'set': [], 'del': []}
-    cache = kind(*args)
+    cache = Cache('tmp', eviction_policy=eviction_policy)
 
     for index, (action, key, value) in enumerate(iter(queue.get, None)):
         start = time.time()
@@ -158,7 +158,7 @@ def worker(queue, kind, args):
 
         stop = time.time()
 
-        if action == 'get' and PROCESSES == 1 and THREADS == 1:
+        if action == 'get' and PROCESSES == 1 and THREADS == 1 and EXPIRE is None:
             assert result == value
 
         if index > WARMUP:
@@ -169,14 +169,14 @@ def worker(queue, kind, args):
     cache.close()
 
 
-def dispatch(num, kind, args):
+def dispatch(num, eviction_policy):
     with open('input-%s.pkl' % num, 'rb') as reader:
         process_queue = pickle.load(reader)
 
     thread_queues = [Queue.Queue() for _ in range(THREADS)]
     threads = [
         threading.Thread(
-            target=worker, args=(thread_queue, kind, args)
+            target=worker, args=(thread_queue, eviction_policy)
         ) for thread_queue in thread_queues
     ]
 
@@ -222,7 +222,7 @@ def percentile(sequence, percent):
     return values[pos]
 
 
-def stress_test(create=True, delete=True):
+def stress_test(create=True, delete=True, eviction_policy=u'least-recently-stored'):
     shutil.rmtree('tmp', ignore_errors=True)
 
     if PROCESSES == 1:
@@ -232,7 +232,7 @@ def stress_test(create=True, delete=True):
         func = mp.Process
 
     processes = [
-        func(target=dispatch, args=(num, Cache, ('tmp',)))
+        func(target=dispatch, args=(num, eviction_policy))
         for num in range(PROCESSES)
     ]
 
@@ -300,7 +300,31 @@ def stress_test(create=True, delete=True):
     shutil.rmtree('tmp', ignore_errors=True)
 
 
+def stress_test_lru():
+    "Stress test least-recently-used eviction policy."
+    stress_test(eviction_policy=u'least-recently-used')
+
+
+def stress_test_lfu():
+    "Stress test least-frequently-used eviction policy."
+    stress_test(eviction_policy=u'least-frequently-used')
+
+
+def stress_test_mp():
+    "Stress test multiple threads and processes."
+    global PROCESSES, THREADS
+
+    PROCESSES = THREADS = 4
+
+    stress_test()
+
+    PROCESSES = THREADS = 1
+
+
 if __name__ == '__main__':
+    warnings.simplefilter('default')
+    warnings.simplefilter('ignore', category=EmptyDirWarning)
+
     import argparse
 
     parser = argparse.ArgumentParser(
@@ -343,10 +367,16 @@ if __name__ == '__main__':
         help='Random seed',
     )
     parser.add_argument(
-        '--no-create', action='store_false', dest='create'
+        '--no-create', action='store_false', dest='create',
+        help='Do not create operations data',
     )
     parser.add_argument(
-        '--no-delete', action='store_false', dest='delete'
+        '--no-delete', action='store_false', dest='delete',
+        help='Do not delete operations data',
+    )
+    parser.add_argument(
+        '-v', '--eviction-policy', type=unicode,
+        default=u'least-recently-stored',
     )
 
     args = parser.parse_args()
@@ -363,6 +393,10 @@ if __name__ == '__main__':
     random.seed(args.seed)
 
     start = time.time()
-    stress_test(create=args.create, delete=args.delete)
+    stress_test(
+        create=args.create,
+        delete=args.delete,
+        eviction_policy=args.eviction_policy,
+    )
     end = time.time()
     print('Total wall clock time: %.3f seconds' % (end - start))

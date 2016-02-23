@@ -2,7 +2,13 @@
 
 from .core import Cache, Disk, EmptyDirWarning
 from .core import LIMITS, DEFAULT_SETTINGS, EVICTION_POLICY
-# from .djangocache import DjangoCache
+
+try:
+    from .djangocache import DjangoCache
+except ImportError:
+    # Django not installed so ignore.
+    pass
+
 
 __title__ = 'diskcache'
 __version__ = '0.6.0'

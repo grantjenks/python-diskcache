@@ -655,6 +655,15 @@ def test_with(cache):
     assert cache[u'b'] == 1
 
 
+@setup_cache
+def test_contains(cache):
+    assert 0 not in cache
+    cache[0] = 0
+    assert 0 in cache
+    cache._sql('UPDATE Cache SET store_time = NULL')
+    assert 0 not in cache
+
+
 if __name__ == '__main__':
     import nose
     nose.runmodule()

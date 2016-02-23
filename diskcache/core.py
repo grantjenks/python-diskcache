@@ -454,7 +454,7 @@ class Cache(with_metaclass(CacheMeta, object)):
 
         row = sql(
             'SELECT version, filename FROM Cache WHERE key = ? AND raw = ?',
-            (db_key, raw)
+            (db_key, raw),
         ).fetchone()
 
         if row:
@@ -642,6 +642,28 @@ class Cache(with_metaclass(CacheMeta, object)):
         if value is ENOVAL:
             raise KeyError(key)
         return value
+
+
+    def __contains__(self, key):
+        sql = self._sql
+
+        db_key, raw = self._disk.put(key)
+
+        row = sql(
+            'SELECT store_time, expire_time FROM Cache'
+            ' WHERE key = ? AND raw = ?',
+            (db_key, raw),
+        ).fetchone()
+
+        if row is None:
+            return False
+
+        store_time, expire_time = row
+
+        if store_time is None:
+            return False
+
+        return expire_time is None or time.time() < expire_time
 
 
     def __delitem__(self, key):

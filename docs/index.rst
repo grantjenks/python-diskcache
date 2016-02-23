@@ -62,21 +62,30 @@ TODO
 TODO
 ----
 
-0. If you use the cache in a thread, you need to close the cache in that thread
-1. Stress test eviction policies.
-2. Create and test Django interface.
-3. Create and test CLI interface.
+1. Create and test CLI interface.
 
    - get, set, store, delete, expire, clear, evict, path, check, stats, show
 
-4. Document SQLite database restore trick using dump command and
+2. Test and document stampede_barrier.
+3. Document SQLite database restore trick using dump command and
    cache.check(fix=True).
-5. Test and document stampede_barrier.
-6. Benchmark ``set`` with delete, then insert.
-7. Add DjangoCache to djangopackages/caching.
-8. Document: core.Cache objects cannot be pickled.
-9. Document: core.Cache objects do not survive os.fork.
-10. Dcoument: core.Cache objects are thread-safe.
+4. Add DjangoCache to djangopackages/caching.
+5. Document: core.Cache objects cannot be pickled.
+6. Document: core.Cache objects do not survive os.fork.
+7. Dcoument: core.Cache objects are thread-safe, but should be closed.
+8. Feature Request:: Use multiple caches and multiplexing to work around
+    SQLite one-writer limitation. Writes are distributed randomly or based on
+    key count and reads are distributed to all.
+9. Feature Request: Atomic increment and decrement.
+10. Cached things:
+    numbers (rankings),
+    processed text (8-128k),
+    list of labels (1-10 labels, 6-10 characters each)
+    cache html and javascript pages (60K, 300K)
+    list of settings (label, value pairs)
+    sets of numbers (dozens of integers)
+    QuerySets
+
 
 Reference and Indices
 ---------------------
