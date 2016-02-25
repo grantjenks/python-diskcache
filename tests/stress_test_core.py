@@ -28,6 +28,8 @@ if sys.hexversion < 0x03000000:
 else:
     import pickle
 
+from utils import percentile, secs
+
 OPERATIONS = int(1e4)
 GET_AVERAGE = 100
 KEY_COUNT = 10
@@ -36,20 +38,6 @@ WARMUP = 10
 EXPIRE = None
 THREADS = 1
 PROCESSES = 1
-
-
-def secs(value):
-    units = ['s ', 'ms', 'us', 'ns']
-    pos = 0
-
-    if value == 0:
-        return '  0.000ns'
-    else:
-        for unit in units:
-            if value > 1:
-                return '%7.3f' % value + unit
-            else:
-                value *= 1000
 
 
 def make_keys():
