@@ -62,18 +62,16 @@ TODO
 TODO
 ----
 
-0. Remove statistics dependency
-   Add new column "total" for each action in benchmarks
-   Output in RST format
-   Fanout should record count of timeouts
+0. Move db.sqlite3
    Publish benchmark results
      procs, range, limit, warmup options
      publish procs=1, procs=8
      publish Cache and FanoutCache
-   Move db.sqlite3
    Add FanoutCache / CacheShard
      Support TIMEOUT = 1 and have `set` and `delete` return True/False on success/failure
      Add try/except to `get`, `set`, `delete`
+     Fanout should record count of timeouts
+
 1. Create and test CLI interface.
 
    - get, set, store, delete, expire, clear, evict, path, check, stats, show

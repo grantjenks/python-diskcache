@@ -16,7 +16,7 @@ if sys.hexversion < 0x03000000:
 else:
     import pickle
 
-from utils import percentile, secs
+from utils import display
 
 PROCS = 1
 RANGE = 100
@@ -100,7 +100,7 @@ def worker(num, kind, args, kwargs):
 
     obj = kind(*args, **kwargs)
 
-    timings = {'get': [], 'set': [], 'del': []}
+    timings = {'get': [], 'set': [], 'delete': []}
 
     for count in range(LIMIT):
         key = str(random.randrange(RANGE)).encode('utf-8')
@@ -121,7 +121,7 @@ def worker(num, kind, args, kwargs):
             start = time.time()
             obj.delete(key)
             end = time.time()
-            action = 'del'
+            action = 'delete'
 
         if count > WARMUP:
             timings[action].append(end - start)
@@ -156,7 +156,7 @@ def dispatch():
         for process in processes:
             process.join()
 
-        timings = {'get': [], 'set': [], 'del': []}
+        timings = {'get': [], 'set': [], 'delete': []}
 
         for num in range(PROCS):
             filename = 'output-%d.pkl' % num
@@ -169,33 +169,7 @@ def dispatch():
 
             os.remove(filename)
 
-        template = '%10s,%10s,%10s,%10s,%10s,%10s,%10s,%10s'
-
-        print('Timings results for', name)
-
-        print(template % ('op', 'count', 'min', 'p50', 'p90', 'p99', 'p999', 'max'))
-
-        total = 0
-
-        for action in ['get', 'set', 'del']:
-            values = timings[action]
-            total += sum(values)
-
-            if len(values) == 0:
-                values = (0,)
-
-            print(template % (
-                action,
-                len(values),
-                secs(percentile(values, 0.0)),
-                secs(percentile(values, 0.5)),
-                secs(percentile(values, 0.9)),
-                secs(percentile(values, 0.99)),
-                secs(percentile(values, 0.999)),
-                secs(percentile(values, 1.0)),
-            ))
-
-        print('Total operations time: %.3f seconds' % total)
+        display(name, timings)
         print()
         time.sleep(1)
 

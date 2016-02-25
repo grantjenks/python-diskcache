@@ -77,3 +77,37 @@ def retry(sql, query):
 
     del error
 
+
+def display(name, timings):
+    cols = ('Action', 'Count', 'Min', 'P50', 'P90', 'P99', 'P999', 'Max', 'Total')
+    template = '  '.join(['%10s'] * len(cols))
+
+    print()
+    print('  '.join(['=' * 10] * len(cols)))
+    print('Timings for %s' % name)
+    print('--'.join(['-' * 10] * len(cols)))
+    print(template % cols)
+    print('  '.join(['=' * 10] * len(cols)))
+
+    len_total = sum_total = 0
+
+    for action in ['get', 'set', 'delete']:
+        values = timings[action]
+        len_total += len(values)
+        sum_total += sum(values)
+
+        print(template % (
+            action,
+            len(values),
+            secs(percentile(values, 0.0)),
+            secs(percentile(values, 0.5)),
+            secs(percentile(values, 0.9)),
+            secs(percentile(values, 0.99)),
+            secs(percentile(values, 0.999)),
+            secs(percentile(values, 1.0)),
+            secs(sum(values)),
+        ))
+
+    totals = ('Total', len_total, '', '', '', '', '', '', secs(sum_total))
+    print(template % totals)
+    print()

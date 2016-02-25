@@ -1,4 +1,3 @@
 mock==1.3.0
 nose==1.3.7
-statistics==1.0.3.5
 django==1.9.2

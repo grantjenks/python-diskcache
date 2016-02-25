@@ -8,7 +8,6 @@ import multiprocessing as mp
 import os
 import random
 import shutil
-import statistics
 import sys
 import threading
 import time
@@ -28,7 +27,7 @@ if sys.hexversion < 0x03000000:
 else:
     import pickle
 
-from utils import percentile, secs
+from utils import display
 
 OPERATIONS = int(1e4)
 GET_AVERAGE = 100
@@ -118,7 +117,7 @@ def key_ops():
         for _ in range(int(random.expovariate(1.0 / GET_AVERAGE))):
             yield 'get', key, value
         if random.random() < DEL_CHANCE:
-            yield 'del', key, None
+            yield 'delete', key, None
 
 
 def all_ops():
@@ -130,7 +129,7 @@ def all_ops():
 
 
 def worker(queue, eviction_policy):
-    timings = {'get': [], 'set': [], 'del': []}
+    timings = {'get': [], 'set': [], 'delete': []}
     cache = Cache('tmp', eviction_policy=eviction_policy)
 
     for index, (action, key, value) in enumerate(iter(queue.get, None)):
@@ -141,7 +140,7 @@ def worker(queue, eviction_policy):
         elif action == 'get':
             result = cache.get(key)
         else:
-            assert action == 'del'
+            assert action == 'delete'
             cache.delete(key)
 
         stop = time.time()
@@ -185,7 +184,7 @@ def dispatch(num, eviction_policy):
 
     stop = time.time()
 
-    timings = {'get': [], 'set': [], 'del': [], 'self': (stop - start)}
+    timings = {'get': [], 'set': [], 'delete': [], 'self': (stop - start)}
 
     for thread_queue in thread_queues:
         data = thread_queue.get()
@@ -244,7 +243,7 @@ def stress_test(create=True, delete=True, eviction_policy=u'least-recently-store
     with Cache('tmp') as cache:
         cache.check()
 
-    timings = {'get': [], 'set': [], 'del': [], 'self': 0.0}
+    timings = {'get': [], 'set': [], 'delete': [], 'self': 0.0}
 
     for num in range(PROCESSES):
         with open('output-%s.pkl' % num, 'rb') as reader:
@@ -257,33 +256,7 @@ def stress_test(create=True, delete=True, eviction_policy=u'least-recently-store
             os.remove('input-%s.pkl' % num)
             os.remove('output-%s.pkl' % num)
 
-    template = '%10s,%10s,%10s,%10s,%10s,%10s,%10s,%10s,%10s'
-
-    print(template % ('op', 'count', 'mean', 'std', 'min', 'p50', 'p90', 'p99', 'max'))
-
-    total = 0
-
-    for action in ['get', 'set', 'del']:
-        values = timings[action]
-        total += sum(values)
-
-        if len(values) == 0:
-            values = (0,)
-
-        print(template % (
-            action,
-            len(values),
-            secs(statistics.mean(values)),
-            secs(statistics.pstdev(values)),
-            secs(percentile(values, 0.0)),
-            secs(percentile(values, 0.5)),
-            secs(percentile(values, 0.9)),
-            secs(percentile(values, 0.99)),
-            secs(percentile(values, 1.0)),
-        ))
-
-    print('Total operations time: %.3f seconds' % total)
-    print('Total process time:    %.3f seconds' % timings['self'])
+    display(eviction_policy, timings)
 
     shutil.rmtree('tmp', ignore_errors=True)
 
