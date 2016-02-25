@@ -117,7 +117,7 @@ def test_getsetdel(cache):
     ]
 
     for key, (value, file_like) in enumerate(values):
-        cache.set(key, value, read=file_like)
+        assert cache.set(key, value, read=file_like)
 
     assert len(cache) == len(values)
 
@@ -262,14 +262,14 @@ def test_set_noupdate(cache):
     del cache.large_value_threshold
 
     with mock.patch.object(cache, '_local', local):
-        cache[0] = b'abcd' * 2 ** 12
+        assert not cache.set(0, b'abcd' * 2 ** 12)
 
     cache.check()
 
 
 @setup_cache
 def test_raw(cache):
-    cache.set(0, io.BytesIO(b'abcd'), read=True)
+    assert cache.set(0, io.BytesIO(b'abcd'), read=True)
     assert cache[0] == b'abcd'
 
 
@@ -280,7 +280,7 @@ def test_get(cache):
     assert cache.get(2, {}) == {}
     assert cache.get(0, expire_time=True, tag=True) == (None, None, None)
 
-    cache.set(0, 0, expire=None, tag=u'number')
+    assert cache.set(0, 0, expire=None, tag=u'number')
 
     assert cache.get(0, expire_time=True) == (0, None)
     assert cache.get(0, tag=True) == (0, u'number')
@@ -290,10 +290,10 @@ def test_get(cache):
 @setup_cache
 def test_delete(cache):
     cache[0] = 0
-    cache.delete(0)
+    assert cache.delete(0)
     assert len(cache) == 0
-    cache.delete(0)
-    cache.check()
+    assert not cache.delete(0)
+    assert cache.check() == 0
 
 
 @nt.raises(KeyError)
@@ -324,7 +324,7 @@ def test_stats(cache):
         cache.get(1)
 
     assert cache.stats() == (0, 0)
-    cache.check()
+    assert cache.check() == 0
 
 
 @setup_cache
@@ -344,25 +344,25 @@ def test_path(cache):
 
     assert value == large_value
 
-    cache.check()
+    assert cache.check() == 0
 
 
 @setup_cache
 def test_expire_rows(cache):
     for value in range(10):
-        cache.set(value, value, expire=0.1)
+        assert cache.set(value, value, expire=0.1)
 
     for value in range(10, 15):
-        cache.set(value, value)
+        assert cache.set(value, value)
 
     assert len(cache) == 15
 
     time.sleep(0.1)
 
-    cache.set(15, 15)
+    assert cache.set(15, 15)
 
     assert len(cache) == 6
-    cache.check()
+    assert cache.check() == 0
 
 
 @setup_cache
@@ -398,7 +398,7 @@ def test_least_recently_stored(cache):
     assert cache[12] == million * 3
     assert cache[13] == million * 4
 
-    cache.check()
+    assert cache.check() == 0
 
 
 @setup_cache
@@ -427,7 +427,7 @@ def test_least_recently_used(cache):
     for value in [0, 1, 7, 8, 9, 10]:
         assert cache[value] == million
 
-    cache.check()
+    assert cache.check() == 0
 
 
 @setup_cache
@@ -456,7 +456,7 @@ def test_least_frequently_used(cache):
     for value in [0, 1, 7, 8, 9, 10]:
         assert cache[value] == million
 
-    cache.check()
+    assert cache.check() == 0
 
 
 @nt.raises(OSError)
@@ -507,7 +507,7 @@ def test_check(cache):
         cache.check()
         cache.check(fix=True)
 
-    cache.check() # Should display no warnings.
+    assert cache.check() == 0 # Should display no warnings.
 
 
 @setup_cache
@@ -528,28 +528,28 @@ def test_integrity_check(cache):
         cache.check()
         cache.check(fix=True)
 
-    cache.check()
+    assert cache.check() == 0
 
 
 @setup_cache
 def test_expire(cache):
     cache.cull_limit = 0 # Disable expiring keys on `set`.
     now = time.time()
-    func = mock.Mock(return_value=now)
+    time_time = mock.Mock(return_value=now)
 
-    with mock.patch('time.time', func):
+    with mock.patch('time.time', time_time):
         for value in range(100):
-            cache.set(value, value, expire=value)
+            assert cache.set(value, value, expire=value)
 
     assert len(cache) == 100
 
-    func = mock.Mock(return_value=now + 10)
+    time_time = mock.Mock(return_value=now + 10)
     cache.cull_limit = 10
-    with mock.patch('time.time', func):
-        cache.expire()
+    with mock.patch('time.time', time_time):
+        assert cache.expire() == 10
 
     assert len(cache) == 90
-    cache.check()
+    assert cache.check() == 0
 
 
 @setup_cache
@@ -557,12 +557,12 @@ def test_evict(cache):
     colors = ('red', 'blue', 'yellow')
 
     for value in range(90):
-        cache.set(value, value, tag=colors[value % len(colors)])
+        assert cache.set(value, value, tag=colors[value % len(colors)])
 
     assert len(cache) == 90
-    cache.evict('red')
+    assert cache.evict('red') == 30
     assert len(cache) == 60
-    cache.check()
+    assert cache.check() == 0
 
 
 @setup_cache
@@ -570,17 +570,17 @@ def test_clear(cache):
     for value in range(100):
         cache[value] = value
     assert len(cache) == 100
-    cache.clear()
+    assert cache.clear() == 100
     assert len(cache) == 0
-    cache.check()
+    assert cache.check() == 0
 
 
 @setup_cache
 def test_tag(cache):
-    cache.set(0, None, tag=u'zero')
-    cache.set(1, None, tag=1234)
-    cache.set(2, None, tag=5.67)
-    cache.set(3, None, tag=b'three')
+    assert cache.set(0, None, tag=u'zero')
+    assert cache.set(1, None, tag=1234)
+    assert cache.set(2, None, tag=5.67)
+    assert cache.set(3, None, tag=b'three')
 
     assert cache.get(0, tag=True) == (None, u'zero')
     assert cache.get(1, tag=True) == (None, 1234)
@@ -617,7 +617,7 @@ def test_multiple_threads(cache):
     for value in values:
         assert cache[value] == value
 
-    cache.check()
+    assert cache.check() == 0
 
 
 @setup_cache
@@ -642,7 +642,7 @@ def test_thread_safe(cache):
     for value in values:
         assert cache[value] == value
 
-    cache.check()
+    assert cache.check() == 0
 
 
 @setup_cache

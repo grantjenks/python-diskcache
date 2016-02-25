@@ -515,7 +515,7 @@ class Cache(with_metaclass(CacheMeta, object)):
             # Another Cache wrote the value before us so abort.
             if filename is not None:
                 self._remove(filename)
-            return
+            return False
 
         # Evict expired keys.
 
@@ -534,7 +534,7 @@ class Cache(with_metaclass(CacheMeta, object)):
                 cull_limit -= 1
 
         if cull_limit == 0:
-            return
+            return True
 
         # Calculate total size.
 
@@ -543,7 +543,7 @@ class Cache(with_metaclass(CacheMeta, object)):
         total_size = self._page_size * page_count + self.size
 
         if total_size < self.size_limit:
-            return
+            return True
 
         # Evict keys by policy.
 
@@ -554,6 +554,8 @@ class Cache(with_metaclass(CacheMeta, object)):
 
             for rowid, version, filename in rows:
                 self._delete(rowid, version, filename)
+
+        return True
 
     __setitem__ = set
 
@@ -680,15 +682,15 @@ class Cache(with_metaclass(CacheMeta, object)):
         if row is None:
             raise KeyError(key)
         else:
-            self._delete(*row)
+            return self._delete(*row)
 
 
     def delete(self, key):
         "Delete key from cache. Missing keys are ignored."
         try:
-            del self[key]
+            return self.__delitem__(key)
         except KeyError:
-            pass
+            return False
 
 
     def _delete(self, rowid, version, filename):
@@ -738,111 +740,114 @@ class Cache(with_metaclass(CacheMeta, object)):
     def check(self, fix=False):
         "Check database and file system consistency."
         # pylint: disable=access-member-before-definition,W0201
-        sql = self._sql
+        with warnings.catch_warnings(record=True) as warns:
+            sql = self._sql
 
-        # Check integrity of database.
+            # Check integrity of database.
 
-        rows = sql('PRAGMA integrity_check').fetchall()
+            rows = sql('PRAGMA integrity_check').fetchall()
 
-        if len(rows) != 1 or rows[0][0] != u'ok':
-            for message, in rows:
-                warnings.warn(message)
-
-        if fix:
-            sql('VACUUM')
-
-        # Check Settings.count against count of Cache rows.
-
-        del self.count
-        self_count = self.count
-        count, = sql('SELECT COUNT(key) FROM Cache').fetchone()
-
-        if self_count != count:
-            message = 'Settings.count != COUNT(Cache.key); %d != %d'
-            warnings.warn(message % (self_count, count))
+            if len(rows) != 1 or rows[0][0] != u'ok':
+                for message, in rows:
+                    warnings.warn(message)
 
             if fix:
-                self.count = count
+                sql('VACUUM')
 
-        # Report uncommitted rows.
+            # Check Settings.count against count of Cache rows.
 
-        rows = sql(
-            'SELECT rowid, key, raw, version, filename FROM Cache'
-            ' WHERE store_time IS NULL'
-        ).fetchall()
+            del self.count
+            self_count = self.count
+            count, = sql('SELECT COUNT(key) FROM Cache').fetchone()
 
-        for rowid, key, raw, version, filename in rows:
-            warnings.warn('row %d partially commited with key %r' % (
-                rowid, self._disk.get(key, raw)
-            ))
-            if fix:
-                self._delete(rowid, version, filename)
+            if self_count != count:
+                message = 'Settings.count != COUNT(Cache.key); %d != %d'
+                warnings.warn(message % (self_count, count))
 
-        # Check Cache.filename against file system.
+                if fix:
+                    self.count = count
 
-        filenames = set()
-        chunk = self.cull_limit
-        rowid = 0
-        total_size = 0
+            # Report uncommitted rows.
 
-        while True:
             rows = sql(
-                'SELECT rowid, version, filename FROM Cache'
-                ' WHERE rowid > ? AND filename IS NOT NULL'
-                ' ORDER BY rowid LIMIT ?',
-                (rowid, chunk),
+                'SELECT rowid, key, raw, version, filename FROM Cache'
+                ' WHERE store_time IS NULL'
             ).fetchall()
 
-            if not rows:
-                break
-
-            for rowid, version, filename in rows:
-                full_path = op.join(self._dir, filename)
-                filenames.add(full_path)
-
-                if op.exists(full_path):
-                    total_size += op.getsize(full_path)
-                    continue
-
-                warnings.warn('file not found: %s' % full_path)
-
+            for rowid, key, raw, version, filename in rows:
+                warnings.warn('row %d partially commited with key %r' % (
+                    rowid, self._disk.get(key, raw)
+                ))
                 if fix:
                     self._delete(rowid, version, filename)
 
-        del self.size
-        self_size = self.size
-        size, = sql('SELECT COALESCE(SUM(size), 0) FROM Cache').fetchone()
+            # Check Cache.filename against file system.
 
-        if self_size != size:
-            message = 'Settings.size != SUM(Cache.size); %d != %d'
-            warnings.warn(message % (self_size, size))
+            filenames = set()
+            chunk = self.cull_limit
+            rowid = 0
+            total_size = 0
 
-            if fix:
-                self.size = size
+            while True:
+                rows = sql(
+                    'SELECT rowid, version, filename FROM Cache'
+                    ' WHERE rowid > ? AND filename IS NOT NULL'
+                    ' ORDER BY rowid LIMIT ?',
+                    (rowid, chunk),
+                ).fetchall()
 
-        # Check file system against Cache.filename.
+                if not rows:
+                    break
 
-        for dirpath, _, files in os.walk(self._dir):
-            paths = [op.join(dirpath, filename) for filename in files]
-            error = set(paths) - filenames
+                for rowid, version, filename in rows:
+                    full_path = op.join(self._dir, filename)
+                    filenames.add(full_path)
 
-            for full_path in error:
-                if self._dbname in full_path:
-                    continue
+                    if op.exists(full_path):
+                        total_size += op.getsize(full_path)
+                        continue
 
-                warnings.warn('unreferenced file: %s' % full_path)
+                    warnings.warn('file not found: %s' % full_path)
+
+                    if fix:
+                        self._delete(rowid, version, filename)
+
+            del self.size
+            self_size = self.size
+            size, = sql('SELECT COALESCE(SUM(size), 0) FROM Cache').fetchone()
+
+            if self_size != size:
+                message = 'Settings.size != SUM(Cache.size); %d != %d'
+                warnings.warn(message % (self_size, size))
 
                 if fix:
-                    os.remove(full_path)
+                    self.size = size
 
-        # Check for empty directories.
+            # Check file system against Cache.filename.
 
-        for dirpath, dirs, files in os.walk(self._dir):
-            if not (dirs or files):
-                warnings.warn('empty directory: %s' % dirpath, EmptyDirWarning)
+            for dirpath, _, files in os.walk(self._dir):
+                paths = [op.join(dirpath, filename) for filename in files]
+                error = set(paths) - filenames
 
-                if fix:
-                    os.rmdir(dirpath)
+                for full_path in error:
+                    if self._dbname in full_path:
+                        continue
+
+                    warnings.warn('unreferenced file: %s' % full_path)
+
+                    if fix:
+                        os.remove(full_path)
+
+            # Check for empty directories.
+
+            for dirpath, dirs, files in os.walk(self._dir):
+                if not (dirs or files):
+                    warnings.warn('empty directory: %s' % dirpath, EmptyDirWarning)
+
+                    if fix:
+                        os.rmdir(dirpath)
+
+            return len(warns)
 
 
     def expire(self):
@@ -852,6 +857,7 @@ class Cache(with_metaclass(CacheMeta, object)):
         sql = self._sql
         chunk = self.cull_limit
         expire_time = 0
+        count = 0
 
         while True:
             rows = sql(
@@ -865,7 +871,9 @@ class Cache(with_metaclass(CacheMeta, object)):
                 break
 
             for rowid, version, expire_time, filename in rows:
-                self._delete(rowid, version, filename)
+                count += self._delete(rowid, version, filename)
+
+        return count
 
 
     def evict(self, tag):
@@ -874,6 +882,7 @@ class Cache(with_metaclass(CacheMeta, object)):
         sql = self._sql
         chunk = self.cull_limit
         rowid = 0
+        count = 0
 
         sql('CREATE INDEX IF NOT EXISTS Cache_tag_rowid ON'
             ' Cache(tag, rowid)'
@@ -890,7 +899,9 @@ class Cache(with_metaclass(CacheMeta, object)):
                 break
 
             for rowid, version, filename in rows:
-                self._delete(rowid, version, filename)
+                count += self._delete(rowid, version, filename)
+
+        return count
 
 
     def clear(self):
@@ -899,6 +910,7 @@ class Cache(with_metaclass(CacheMeta, object)):
         sql = self._sql
         chunk = self.cull_limit
         rowid = 0
+        count = 0
 
         while True:
             rows = sql(
@@ -911,7 +923,9 @@ class Cache(with_metaclass(CacheMeta, object)):
                 break
 
             for rowid, version, filename in rows:
-                self._delete(rowid, version, filename)
+                count += self._delete(rowid, version, filename)
+
+        return count
 
 
     def stats(self, enable=True, reset=False):
