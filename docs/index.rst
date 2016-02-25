@@ -62,43 +62,33 @@ TODO
 TODO
 ----
 
-0. Move db.sqlite3
+0. Add FanoutCache / CacheShard
+     Support TIMEOUT = 1 and have `set` and `delete` return True/False on success/failure
+     Add try/except to `get`, `set`, `delete`
+     Fanout should record count of timeouts
    Publish benchmark results
      procs, range, limit, warmup options
      publish procs=1, procs=8
      publish Cache and FanoutCache
-   Add FanoutCache / CacheShard
-     Support TIMEOUT = 1 and have `set` and `delete` return True/False on success/failure
-     Add try/except to `get`, `set`, `delete`
-     Fanout should record count of timeouts
+1. Test and document stampede_barrier.
+2. Document SQLite database restore trick using dump command and
+   cache.check(fix=True).
+3. Add DjangoCache to djangopackages/caching.
+4. Document: core.Cache objects cannot be pickled.
+5. Document: core.Cache objects do not survive os.fork.
+6. Dcoument: core.Cache objects are thread-safe, but should be closed.
+
+Future Features
+...............
 
 1. Create and test CLI interface.
 
    - get, set, store, delete, expire, clear, evict, path, check, stats, show
 
-2. Test and document stampede_barrier.
-3. Document SQLite database restore trick using dump command and
-   cache.check(fix=True).
-4. Add DjangoCache to djangopackages/caching.
-5. Document: core.Cache objects cannot be pickled.
-6. Document: core.Cache objects do not survive os.fork.
-7. Dcoument: core.Cache objects are thread-safe, but should be closed.
-8. Feature Request:: Use multiple caches and multiplexing to work around
-    SQLite one-writer limitation. Writes are distributed randomly or based on
-    key count and reads are distributed to all.
-9. Feature Request: Atomic increment and decrement.
-10. Cached things:
-    numbers (rankings),
-    processed text (8-128k),
-    list of labels (1-10 labels, 6-10 characters each)
-    cache html and javascript pages (60K, 300K)
-    list of settings (label, value pairs)
-    sets of numbers (dozens of integers)
-    QuerySets
-11. Feature Request: Something like
-    https://github.com/bartTC/django-memcache-status that displays status of
-    diskcache.
-12. Feature Request: Networked version to move cache layer off host layer.
+2. Feature Request: Atomic increment and decrement.
+3. Feature Request: Something like
+   https://github.com/bartTC/django-memcache-status that displays status of
+   diskcache.
 
 Benchmarks
 ----------
@@ -123,6 +113,16 @@ Benchmarks
    strange... ignores timeout.
 10. https://pypi.python.org/pypi/cache-tagging Supports tagging cache entries.
 
+Cached Things
+.............
+
+1. numbers (rankings),
+2. processed text (8-128k),
+3. list of labels (1-10 labels, 6-10 characters each)
+4. cache html and javascript pages (60K, 300K)
+5. list of settings (label, value pairs)
+6. sets of numbers (dozens of integers)
+7. QuerySets
 
 Reference and Indices
 ---------------------
