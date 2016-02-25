@@ -32,7 +32,7 @@ MODE_TEXT = 3
 MODE_PICKLE = 4
 
 LIMITS = {
-    u'timeout': 60.0,
+    u'timeout': 60, # 60s
     u'min_int': -sys.maxsize - 1,
     u'max_int': sys.maxsize,
 }
@@ -46,7 +46,7 @@ DEFAULT_SETTINGS = {
     u'sqlite_synchronous': u'NORMAL',
     u'sqlite_journal_mode': u'WAL',
     u'sqlite_cache_size': 2 ** 13, # 8,192 pages
-    u'sqlite_mmap_size': 2 ** 27,  # 128mb
+    u'sqlite_mmap_size': 2 ** 26,  # 64mb
 }
 
 METADATA = {
