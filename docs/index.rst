@@ -62,6 +62,18 @@ TODO
 TODO
 ----
 
+0. Remove statistics dependency
+   Add new column "total" for each action in benchmarks
+   Output in RST format
+   Fanout should record count of timeouts
+   Publish benchmark results
+     procs, range, limit, warmup options
+     publish procs=1, procs=8
+     publish Cache and FanoutCache
+   Move db.sqlite3
+   Add FanoutCache / CacheShard
+     Support TIMEOUT = 1 and have `set` and `delete` return True/False on success/failure
+     Add try/except to `get`, `set`, `delete`
 1. Create and test CLI interface.
 
    - get, set, store, delete, expire, clear, evict, path, check, stats, show
@@ -85,6 +97,33 @@ TODO
     list of settings (label, value pairs)
     sets of numbers (dozens of integers)
     QuerySets
+11. Feature Request: Something like
+    https://github.com/bartTC/django-memcache-status that displays status of
+    diskcache.
+12. Feature Request: Networked version to move cache layer off host layer.
+
+Benchmarks
+----------
+
+1. https://pypi.python.org/pypi/django-redis Very popular.
+2. https://pypi.python.org/pypi/django-uwsgi-cache UWSGI cache backend.
+3. https://github.com/atodorov/django-s3-cache S3-backend cache
+   backend. Appears slow for large caches.
+4. https://pypi.python.org/pypi/django-mongodb-cash-backend Cache backend
+    support for MongoDB.
+5. https://github.com/Suor/django-cacheops Does not provide CACHES
+   backend. Custom file-based cache does no evictions on set. Relies instead on
+   cron job.
+6. http://django-cachalot.readthedocs.org/en/latest/benchmark.html Has
+   benchmarks. Not sure how to interpret them.
+7. http://pythonhosted.org/johnny-cache/localstore_cache.html Request-specific
+   cache.
+8. https://pypi.python.org/pypi/django-cacheback Solves stampede problem by
+   off-loading computation to Celery.
+9. https://pypi.python.org/pypi/django-newcache Claims to improve Django's
+   memcached backend. Pretty small project. Thundering herd solution is
+   strange... ignores timeout.
+10. https://pypi.python.org/pypi/cache-tagging Supports tagging cache entries.
 
 
 Reference and Indices
