@@ -2,6 +2,7 @@
 
 from .core import Cache, Disk, EmptyDirWarning
 from .core import LIMITS, DEFAULT_SETTINGS, EVICTION_POLICY
+from .fanout import FanoutCache
 
 try:
     from .djangocache import DjangoCache
