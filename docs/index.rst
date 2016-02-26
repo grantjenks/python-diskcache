@@ -62,21 +62,19 @@ TODO
 TODO
 ----
 
-0. Add FanoutCache / CacheShard
-     Support TIMEOUT = 1 and have `set` and `delete` return True/False on success/failure
-     Add try/except to `get`, `set`, `delete`
-     Fanout should record count of timeouts
-   Publish benchmark results
-     procs, range, limit, warmup options
+0. Test fanout, 100% coverage total
+1. Benchmark Django cache
+   Add shard count support
+2. Publish benchmark results
      publish procs=1, procs=8
      publish Cache and FanoutCache
-1. Test and document stampede_barrier.
-2. Document SQLite database restore trick using dump command and
+3. Test and document stampede_barrier.
+4. Document SQLite database restore trick using dump command and
    cache.check(fix=True).
-3. Add DjangoCache to djangopackages/caching.
-4. Document: core.Cache objects cannot be pickled.
-5. Document: core.Cache objects do not survive os.fork.
-6. Dcoument: core.Cache objects are thread-safe, but should be closed.
+5. Add DjangoCache to djangopackages/caching.
+6. Document: core.Cache objects cannot be pickled.
+7. Document: core.Cache objects do not survive os.fork.
+8. Dcoument: core.Cache objects are thread-safe, but should be closed.
 
 Future Features
 ...............
@@ -129,6 +127,7 @@ Reference and Indices
 
 .. toctree::
 
+   cache-benchmarks
    api
 
 * `DiskCache Documentation`_
