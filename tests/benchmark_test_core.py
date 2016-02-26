@@ -2,6 +2,7 @@
 
 from __future__ import print_function
 
+import collections as co
 import multiprocessing as mp
 import os
 import random
@@ -18,55 +19,38 @@ else:
 
 from utils import display
 
-PROCS = 1
+PROCS = 8
+OPS = int(1e5)
 RANGE = 100
-LIMIT = int(1e5)
-WARMUP = 100
+WARMUP = int(1e3)
 
 caches = []
 
+
+###############################################################################
+# Disk Cache Benchmarks
+###############################################################################
+
 import diskcache
 
+caches.append(('diskcache.Cache', diskcache.Cache, ('tmp',), {},))
 caches.append((
-    'diskcache.Cache',
-    diskcache.Cache,
+    'diskcache.FanoutCache(shards=4)',
+    diskcache.FanoutCache,
     ('tmp',),
-    {},
+    {'shards': 4}
+))
+caches.append((
+    'diskcache.FanoutCache(shards=16, timeout=0.025)',
+    diskcache.FanoutCache,
+    ('tmp',),
+    {'shards': 16, 'timeout': 0.025}
 ))
 
-class Cache(object):
-    def __init__(self, directory, count=1):
-        self._count = count
-        self._caches = [
-            diskcache.Cache('%s/%03d' % (directory, num))
-            for num in range(self._count)
-        ]
 
-    def set(self, key, value):
-        temp = hash(key)
-        index = temp % self._count
-        self._caches[index].set(key, value)
-
-    def get(self, key):
-        temp = hash(key)
-        index = temp % self._count
-        return self._caches[index].get(key)
-
-    def delete(self, key):
-        temp = hash(key)
-        index = temp % self._count
-        self._caches[index].delete(key)
-
-    def close(self):
-        for cache in self._caches:
-            cache.close()
-
-
-caches.append(('Cache(count=1)', Cache, ('tmp',), {'count': 1},))
-caches.append(('Cache(count=11)', Cache, ('tmp',), {'count': 11},))
-caches.append(('Cache(count=23)', Cache, ('tmp',), {'count': 23},))
-caches.append(('Cache(count=101)', Cache, ('tmp',), {'count': 101},))
-
+###############################################################################
+# PyLibMC Benchmarks
+###############################################################################
 
 try:
     import pylibmc
@@ -79,6 +63,11 @@ try:
     ))
 except ImportError:
     warnings.warn('skipping pylibmc')
+
+
+###############################################################################
+# Redis Benchmarks
+###############################################################################
 
 try:
     import redis
@@ -100,31 +89,37 @@ def worker(num, kind, args, kwargs):
 
     obj = kind(*args, **kwargs)
 
-    timings = {'get': [], 'set': [], 'delete': []}
+    timings = co.defaultdict(list)
 
-    for count in range(LIMIT):
+    for count in range(OPS):
         key = str(random.randrange(RANGE)).encode('utf-8')
         value = str(count).encode('utf-8') * random.randrange(1, 100)
         choice = random.random()
 
         if choice < 0.900:
             start = time.time()
-            obj.get(key)
+            result = obj.get(key)
             end = time.time()
+            miss = result is None
             action = 'get'
         elif choice < 0.990:
             start = time.time()
-            obj.set(key, value)
+            result = obj.set(key, value)
             end = time.time()
+            miss = result == False
             action = 'set'
         else:
             start = time.time()
-            obj.delete(key)
+            result = obj.delete(key)
             end = time.time()
+            miss = result == False
             action = 'delete'
 
         if count > WARMUP:
-            timings[action].append(end - start)
+            delta = end - start
+            timings[action].append(delta)
+            if miss:
+                timings[action + '-miss'].append(delta)
 
     with open('output-%d.pkl' % num, 'wb') as writer:
         pickle.dump(timings, writer, protocol=pickle.HIGHEST_PROTOCOL)
@@ -156,7 +151,7 @@ def dispatch():
         for process in processes:
             process.join()
 
-        timings = {'get': [], 'set': [], 'delete': []}
+        timings = co.defaultdict(list)
 
         for num in range(PROCS):
             filename = 'output-%d.pkl' % num
@@ -170,9 +165,36 @@ def dispatch():
             os.remove(filename)
 
         display(name, timings)
-        print()
-        time.sleep(1)
 
 
 if __name__ == '__main__':
+    import argparse
+
+    parser = argparse.ArgumentParser(
+        formatter_class=argparse.ArgumentDefaultsHelpFormatter,
+    )
+    parser.add_argument(
+        '-p', '--processes', type=int, default=PROCS,
+        help='Number of processes to start',
+    )
+    parser.add_argument(
+        '-n', '--operations', type=float, default=OPS,
+        help='Number of operations to perform',
+    )
+    parser.add_argument(
+        '-r', '--range', type=int, default=RANGE,
+        help='Range of keys',
+    )
+    parser.add_argument(
+        '-w', '--warmup', type=float, default=WARMUP,
+        help='Number of warmup operations before timings',
+    )
+
+    args = parser.parse_args()
+
+    PROCS = int(args.processes)
+    OPS = int(args.operations)
+    RANGE = int(args.range)
+    WARMUP = int(args.warmup)
+
     dispatch()
