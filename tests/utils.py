@@ -79,15 +79,15 @@ def retry(sql, query):
 
 
 def display(name, timings):
-    cols = ('Action', 'Count', 'Miss', 'Min', 'P50', 'P90', 'P99', 'P999', 'Max', 'Total')
-    template = '  '.join(['%10s'] * len(cols))
+    cols = ('Action', 'Count', 'Miss', 'Min', 'Median', 'P99', 'Max', 'Total')
+    template = ' '.join(['%9s'] * len(cols))
 
     print()
-    print('  '.join(['=' * 10] * len(cols)))
+    print(' '.join(['=' * 9] * len(cols)))
     print('Timings for %s' % name)
-    print('--'.join(['-' * 10] * len(cols)))
+    print('-'.join(['-' * 9] * len(cols)))
     print(template % cols)
-    print('  '.join(['=' * 10] * len(cols)))
+    print(' '.join(['=' * 9] * len(cols)))
 
     len_total = sum_total = 0
 
@@ -102,13 +102,12 @@ def display(name, timings):
             len(timings.get(action + '-miss', [])),
             secs(percentile(values, 0.0)),
             secs(percentile(values, 0.5)),
-            secs(percentile(values, 0.9)),
             secs(percentile(values, 0.99)),
-            secs(percentile(values, 0.999)),
             secs(percentile(values, 1.0)),
             secs(sum(values)),
         ))
 
-    totals = ('Total', len_total, '', '', '', '', '', '', '', secs(sum_total))
+    totals = ('Total', len_total, '', '', '', '', '', secs(sum_total))
     print(template % totals)
+    print(' '.join(['=' * 9] * len(cols)))
     print()
