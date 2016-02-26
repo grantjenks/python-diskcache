@@ -17,12 +17,14 @@ if sys.hexversion < 0x03000000:
     TextType = unicode
     BytesType = str
     INT_TYPES = int, long
+    range = xrange
 else:
     import pickle
     TextType = str
     BytesType = bytes
     INT_TYPES = int,
 
+DBNAME = 'cache.db'
 ENOVAL = object()
 
 MODE_NONE = 0
@@ -32,9 +34,9 @@ MODE_TEXT = 3
 MODE_PICKLE = 4
 
 LIMITS = {
-    u'timeout': 60, # 60s
     u'min_int': -sys.maxsize - 1,
     u'max_int': sys.maxsize,
+    u'pragma_timeout': 60,
 }
 
 DEFAULT_SETTINGS = {
@@ -248,7 +250,7 @@ class CachedAttr(object):
             pause = 0.001
             error = sqlite3.OperationalError
 
-            for _ in range(int(LIMITS[u'timeout'] / pause)):
+            for _ in range(int(LIMITS[u'pragma_timeout'] / pause)):
                 try:
                     sql('PRAGMA %s = %s' % (self._pragma, value)).fetchone()
                 except sqlite3.OperationalError as exc:
@@ -305,9 +307,9 @@ class EmptyDirWarning(UserWarning):
 class Cache(with_metaclass(CacheMeta, object)):
     "Disk and file-based cache."
     # pylint: disable=bad-continuation
-    def __init__(self, directory, dbname='cache.db', disk=Disk(), **settings):
+    def __init__(self, directory, timeout=60, disk=Disk(), **settings):
         self._dir = directory
-        self._dbname = dbname
+        self._timeout = 60    # Use 1 minute timeout for initialization.
         self._disk = disk
         self._local = threading.local()
 
@@ -420,6 +422,14 @@ class Cache(with_metaclass(CacheMeta, object)):
             ' WHERE key = "size"; END'
         )
 
+        # Close and re-open database connection with given timeout.
+
+        con = getattr(self._local, 'con')
+        con.close()
+        delattr(self._local, 'con')
+        self._timeout = timeout
+        self._sql
+
 
     @property
     def _sql(self):
@@ -427,8 +437,8 @@ class Cache(with_metaclass(CacheMeta, object)):
 
         if con is None:
             con = self._local.con = sqlite3.connect(
-                op.join(self._dir, self._dbname),
-                timeout=LIMITS[u'timeout'],
+                op.join(self._dir, DBNAME),
+                timeout=self._timeout,
                 isolation_level=None,
             )
 
@@ -830,7 +840,7 @@ class Cache(with_metaclass(CacheMeta, object)):
                 error = set(paths) - filenames
 
                 for full_path in error:
-                    if self._dbname in full_path:
+                    if DBNAME in full_path:
                         continue
 
                     warnings.warn('unreferenced file: %s' % full_path)
