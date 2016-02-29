@@ -92,7 +92,7 @@ class FanoutCache(object):
     def __delitem__(self, key):
         try:
             index = hash(key) % self._count
-            del self._shards[index][key]
+            return self._shards[index].__delitem__(key)
         except sqlite3.OperationalError:
             return False
 
@@ -134,7 +134,8 @@ class FanoutCache(object):
 
         """
         results = [shard.stats(enable, reset) for shard in self._shards]
-        return (sum(results[0]), sum(results[1]))
+        return (sum(result[0] for result in results),
+                sum(result[1] for result in results))
 
 
     def close(self):
