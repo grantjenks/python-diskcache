@@ -45,7 +45,18 @@ from django.utils.cache import (
 from django.utils.encoding import force_text
 from django.views.decorators.cache import cache_page
 
+################################################################################
+# Setup Django for models import.
+################################################################################
+
+os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'tests.settings')
+
+import django
+
+django.setup()
+
 from .models import Poll, expensive_calculation
+
 
 try:    # Use the same idiom as in cache backends
     from django.utils.six.moves import cPickle as pickle
@@ -844,3 +855,6 @@ class DiskCacheTests(BaseCacheTests, TestCase):
 
     def test_zero_cull(self):
         pass # DiskCache has its own cull strategy.
+
+    def test_invalid_keys(self):
+        pass # DiskCache supports any Pickleable value as a key.
