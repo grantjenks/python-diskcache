@@ -11,9 +11,6 @@ import sys
 import time
 import warnings
 
-import faulthandler
-faulthandler.enable()
-
 if sys.hexversion < 0x03000000:
     range = xrange
     import cPickle as pickle
