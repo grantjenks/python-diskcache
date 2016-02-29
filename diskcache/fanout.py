@@ -15,7 +15,7 @@ class FanoutCache(object):
             Cache(
                 '%s/%03d' % (directory, num),
                 timeout=timeout,
-                disk=Disk(),
+                disk=disk,
                 **settings
             )
             for num in range(shards)
