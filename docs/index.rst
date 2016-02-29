@@ -62,6 +62,11 @@ TODO
 TODO
 ----
 
+0. Docs: filebased checks length on every set, scales linearly
+   ~1000 files is 5ms, 1e5 files is 500ms.
+0. Replace uuid.uuid4().hex with:
+   random.seed(os.urandom(16))
+   '%032x' % random.getrandbits(128)
 0. Test fanout, 100% coverage total
 1. Benchmark Django cache
    Add shard count support
