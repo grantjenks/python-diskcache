@@ -27,7 +27,7 @@ if sys.hexversion < 0x03000000:
 else:
     import pickle
 
-from utils import display
+from .utils import display
 
 OPERATIONS = int(1e4)
 GET_AVERAGE = 100
