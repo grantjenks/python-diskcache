@@ -79,7 +79,7 @@ def retry(sql, query):
 
 
 def display(name, timings):
-    cols = ('Action', 'Count', 'Miss', 'Min', 'Median', 'P99', 'Max', 'Total')
+    cols = ('Action', 'Count', 'Miss', 'Median', 'P90', 'P99', 'Max', 'Total')
     template = ' '.join(['%9s'] * len(cols))
 
     print()
@@ -100,8 +100,8 @@ def display(name, timings):
             action,
             len(values),
             len(timings.get(action + '-miss', [])),
-            secs(percentile(values, 0.0)),
             secs(percentile(values, 0.5)),
+            secs(percentile(values, 0.9)),
             secs(percentile(values, 0.99)),
             secs(percentile(values, 1.0)),
             secs(sum(values)),
