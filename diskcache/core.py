@@ -17,7 +17,7 @@ if sys.hexversion < 0x03000000:
     TextType = unicode
     BytesType = str
     INT_TYPES = int, long
-    range = xrange
+    range = xrange # pylint: disable=redefined-builtin,invalid-name
 else:
     import pickle
     TextType = str
@@ -424,11 +424,10 @@ class Cache(with_metaclass(CacheMeta, object)):
 
         # Close and re-open database connection with given timeout.
 
-        con = getattr(self._local, 'con')
-        con.close()
+        self.close()
         delattr(self._local, 'con')
         self._timeout = timeout
-        self._sql
+        assert self._sql
 
 
     @property
@@ -455,6 +454,7 @@ class Cache(with_metaclass(CacheMeta, object)):
         expire -- seconds until the key expires (default None, no expiry)
         tag -- text to associate with key (default None)
         read -- read value as raw bytes from file (default False)
+
         """
         sql = self._sql
 
@@ -578,6 +578,7 @@ class Cache(with_metaclass(CacheMeta, object)):
         read -- if True, return open file handle to value (default False)
         expire_time -- if True, return expire_time in tuple (default False)
         tag -- if True, return tag in tuple (default False)
+
         """
         sql = self._sql
         cache_hit = 'UPDATE Settings SET value = value + 1 WHERE key = "hits"'
@@ -963,9 +964,8 @@ class Cache(with_metaclass(CacheMeta, object)):
 
     def close(self):
         "Close database connection."
-        con = getattr(self._local, 'con', None)
-        if con is not None:
-            con.close()
+        con = getattr(self._local, 'con')
+        con.close()
 
 
     def __enter__(self):
