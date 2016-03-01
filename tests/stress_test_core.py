@@ -63,7 +63,7 @@ def make_keys():
         return random.random()
 
     def make_object():
-        return [make_float()] * random.randint(1, 20)
+        return (make_float(),) * random.randint(1, 20)
 
     funcs = [make_int, make_long, make_unicode, make_bytes, make_float, make_object]
 
