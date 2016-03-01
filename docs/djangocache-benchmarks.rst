@@ -1,5 +1,33 @@
-DjangoCache Benchmarks
-======================
+DiskCache DjangoCache Benchmarks
+================================
+
+1. filebased checks length on every set, scales linearly
+   ~1000 files is 5ms, 1e5 files is 500ms.
+   Also purges randomly.
+   Show benchmark results.
+
+Alternatives
+------------
+
+1. https://pypi.python.org/pypi/django-redis Very popular.
+2. https://pypi.python.org/pypi/django-uwsgi-cache UWSGI cache backend.
+3. https://github.com/atodorov/django-s3-cache S3-backend cache
+   backend. Appears slow for large caches.
+4. https://pypi.python.org/pypi/django-mongodb-cash-backend Cache backend
+    support for MongoDB.
+5. https://github.com/Suor/django-cacheops Does not provide CACHES
+   backend. Custom file-based cache does no evictions on set. Relies instead on
+   cron job.
+6. http://django-cachalot.readthedocs.org/en/latest/benchmark.html Has
+   benchmarks. Not sure how to interpret them.
+7. http://pythonhosted.org/johnny-cache/localstore_cache.html Request-specific
+   cache.
+8. https://pypi.python.org/pypi/django-cacheback Solves stampede problem by
+   off-loading computation to Celery.
+9. https://pypi.python.org/pypi/django-newcache Claims to improve Django's
+   memcached backend. Pretty small project. Thundering herd solution is
+   strange... ignores timeout.
+10. https://pypi.python.org/pypi/cache-tagging Supports tagging cache entries.
 
 Processes = 8
 -------------

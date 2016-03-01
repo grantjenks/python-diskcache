@@ -1,5 +1,16 @@
-Cache Benchmarks
-================
+DiskCache Cache Benchmarks
+==========================
+
+Cached Things
+.............
+
+1. numbers (rankings),
+2. processed text (8-128k),
+3. list of labels (1-10 labels, 6-10 characters each)
+4. cache html and javascript pages (60K, 300K)
+5. list of settings (label, value pairs)
+6. sets of numbers (dozens of integers)
+7. QuerySets
 
 Processes = 1
 -------------

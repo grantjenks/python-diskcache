@@ -1,38 +1,70 @@
 DiskCache: Disk and File-based Cache
 ====================================
 
-Rationale: file-based cache in Django is essentially broken. Culling files is
-too costly. Large caches are forced to scan lots of files and do lots of
-deletes on some operations. Takes too long in the request/response cycle.
+`DiskCache`_ is an :ref:`Apache2 Licensed <apache2>` disk and file-based cache
+library, written in pure-Python, and compatible with Django.
 
-Solution: Each operation, "set" and "del" should delete at most two to ten
-expired keys.
+Rationale: the cloud-based computing of 2016 bills mainly for memory. Gigabytes
+of empty space is left on disks as processes vie for memory. Among these
+processes is Memcached (and sometimes Redis) which is used as a cache. Wouldn't
+it be nice to leverage empty disk space for caching?
 
-Each "get" needs only check expiry and delete if needed. Make it speedy.
+Django is Python's most popular web framework and ships with several caching
+backends. Unfortunately the file-based cache in Django is essentially
+broken. The culling method is random and large caches repeatedly scan a cache
+directory which slows linearly with growth. Should it really take ~60ms to
+store a key in a cache with a thousand items?
 
-If only we had some kind of file-based database... we do! It's called
-SQLite. For metadata and small stuff, use SQLite and for bigger things use
-files.
+In Python, we can do better. And we can do it in pure-Python!
+
+::
+
+   In [1]: import pylibmc
+   In [2]: client = pylibmc.Client(['127.0.0.1'], binary=True)
+   In [3]: client[b'key'] = b'value'
+   In [4]: %timeit client[b'key']
+
+   10000 loops, best of 3: 25.4 µs per loop
+
+   In [5]: import diskcache as dc
+   In [6]: cache = dc.Cache('tmp')
+   In [7]: cache[b'key'] = b'value'
+   In [8]: %timeit cache[b'key']
+
+   100000 loops, best of 3: 11.8 µs per loop
+
+**Note:** Micro-benchmarks have their place but are not a substitute for real
+measurements. DiskCache offers cache benchmarks to defend its performance
+claims. Micro-optimizations are avoided but your mileage may vary.
+
+DiskCache efficiently opens up gigabytes of storage space for caching. By
+leveraging rock-solid database libraries and memory-mapped files, cache
+performance can match and exceed industry standard solutions. There's no need
+for a C compiler or running another process. Performance is a feature and
+testing has 100% coverage with unit tests and hours of stress.
+
+.. _`DiskCache`: http://www.grantjenks.com/docs/diskcache/
+
+Testimonials
+------------
+
+Does your company or website use DiskCache? Send us a message and let us know.
 
 Features
 --------
 
 - Pure-Python
+- Fully Documented
+- Benchmark comparisons (alternatives, Django cache backends)
+- 100% test coverage
+- Hours of stress testing
+- Performance matters (often faster than C implementations)
+- Django compatible API
+- Thread-safe and process-safe
+- Supports multiple eviction policies (LRU and LFU included)
+- Keys support "tag" metadata and eviction
 - Developed on Python 2.7
 - Tested on CPython 2.7, 3.4, 3.5 and PyPy
-- Get full_path reference to value.
-- Allow storing raw data.
-- Small values stored in database.
-- Leverages SQLite native types: int, float, unicode, blob.
-- Thread-safe and process-safe.
-- Multiple eviction policies
-
-  - Least-Recently-Stored
-  - Least-Recently-Used
-  - Least-Frequently-Used
-
-- Stampede barrier decorator.
-- Metadata support for "tag" to evict a group of keys at once.
 
 Quickstart
 ----------
@@ -45,97 +77,29 @@ Installing DiskCache is simple with
 You can access documentation in the interpreter with Python's built-in help
 function::
 
-  >>> from diskcache import DjangoCache
+  >>> from diskcache import Cache, FanoutCache, DjangoCache
+  >>> help(Cache)
+  >>> help(FanoutCache)
   >>> help(DjangoCache)
 
-Caveats
--------
-
-* Types matter in key equality comparisons. Comparisons like ``1 == 1.0`` and
-  ``b'abc' == u'abc'`` return False.
-
-Tutorial
---------
-
-TODO
-
-TODO
-----
-
-0. Docs: filebased checks length on every set, scales linearly
-   ~1000 files is 5ms, 1e5 files is 500ms.
-
-0. Replace uuid.uuid4().hex with:
-   random.seed(os.urandom(16))
-   '%032x' % random.getrandbits(128)
-
-0. Test fanout, 100% coverage total
-1. Benchmark Django cache
-   Add shard count support
-2. Publish benchmark results
-     publish procs=1, procs=8
-     publish Cache and FanoutCache
-3. Test and document stampede_barrier.
-4. Document SQLite database restore trick using dump command and
-   cache.check(fix=True).
-5. Add DjangoCache to djangopackages/caching.
-6. Document: core.Cache objects cannot be pickled.
-7. Document: core.Cache objects do not survive os.fork.
-8. Dcoument: core.Cache objects are thread-safe, but should be closed.
-
-Future Features
-...............
-
-1. Create and test CLI interface.
-
-   - get, set, store, delete, expire, clear, evict, path, check, stats, show
-
-2. Feature Request: Atomic increment and decrement.
-3. Feature Request: Something like
-   https://github.com/bartTC/django-memcache-status that displays status of
-   diskcache.
-
-Benchmarks
+User Guide
 ----------
 
-1. https://pypi.python.org/pypi/django-redis Very popular.
-2. https://pypi.python.org/pypi/django-uwsgi-cache UWSGI cache backend.
-3. https://github.com/atodorov/django-s3-cache S3-backend cache
-   backend. Appears slow for large caches.
-4. https://pypi.python.org/pypi/django-mongodb-cash-backend Cache backend
-    support for MongoDB.
-5. https://github.com/Suor/django-cacheops Does not provide CACHES
-   backend. Custom file-based cache does no evictions on set. Relies instead on
-   cron job.
-6. http://django-cachalot.readthedocs.org/en/latest/benchmark.html Has
-   benchmarks. Not sure how to interpret them.
-7. http://pythonhosted.org/johnny-cache/localstore_cache.html Request-specific
-   cache.
-8. https://pypi.python.org/pypi/django-cacheback Solves stampede problem by
-   off-loading computation to Celery.
-9. https://pypi.python.org/pypi/django-newcache Claims to improve Django's
-   memcached backend. Pretty small project. Thundering herd solution is
-   strange... ignores timeout.
-10. https://pypi.python.org/pypi/cache-tagging Supports tagging cache entries.
+For those wanting more details, this part of the documentation describes
+introduction, benchmarks, implementation, and development.
 
-Cached Things
-.............
+.. toctree::
+   :maxdepth: 1
 
-1. numbers (rankings),
-2. processed text (8-128k),
-3. list of labels (1-10 labels, 6-10 characters each)
-4. cache html and javascript pages (60K, 300K)
-5. list of settings (label, value pairs)
-6. sets of numbers (dozens of integers)
-7. QuerySets
+   tutorial
+   cache-benchmarks
+   djangocache-benchmarks
+   implementation
+   development
+   api
 
 Reference and Indices
 ---------------------
-
-.. toctree::
-
-   cache-benchmarks
-   api
 
 * `DiskCache Documentation`_
 * `DiskCache at PyPI`_
@@ -149,7 +113,26 @@ Reference and Indices
 .. _`DiskCache at GitHub`: https://github.com/grantjenks/python-diskcache/
 .. _`DiskCache Issue Tracker`: https://github.com/grantjenks/python-diskcache/issues/
 
-License
--------
+.. _`apache2`:
+
+Apache2 License
+---------------
+
+A large number of open source projects you find today are `GPL Licensed`_.
+A project that is released as GPL cannot be used in any commercial product
+without the product itself also being offered as open source.
+
+The MIT, BSD, ISC, and Apache2 licenses are great alternatives to the GPL
+that allow your open-source software to be used freely in proprietary,
+closed-source software.
+
+SortedContainers is released under terms of the `Apache2 License`_.
+
+.. _`GPL Licensed`: http://www.opensource.org/licenses/gpl-license.php
+.. _`Apache2 License`: http://opensource.org/licenses/Apache-2.0
+
+
+DiskCache License
+-----------------
 
 .. include:: ../LICENSE
