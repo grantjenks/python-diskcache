@@ -1,5 +1,6 @@
 "Core disk and file-based cache API."
 
+import codecs
 import errno
 import functools as ft
 import io
@@ -9,7 +10,6 @@ import sqlite3
 import sys
 import threading
 import time
-import uuid
 import warnings
 
 if sys.hexversion < 0x03000000:
@@ -719,7 +719,7 @@ class Cache(with_metaclass(CacheMeta, object)):
 
 
     def _prep_file(self):
-        hex_name = uuid.uuid4().hex
+        hex_name = str(codecs.encode(os.urandom(16), 'hex'))
         sub_dir = op.join(hex_name[:2], hex_name[2:4])
         name = hex_name[4:] + '.val'
         directory = op.join(self._dir, sub_dir)
