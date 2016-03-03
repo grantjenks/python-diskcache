@@ -3,7 +3,7 @@
 from __future__ import print_function
 
 import collections as co
-from diskcache import FanoutCache, EmptyDirWarning
+from diskcache import FanoutCache, UnknownFileWarning, EmptyDirWarning
 import multiprocessing as mp
 import os
 import random
@@ -14,6 +14,7 @@ import time
 import warnings
 
 warnings.simplefilter('error')
+warnings.simplefilter('ignore', category=UnknownFileWarning)
 warnings.simplefilter('ignore', category=EmptyDirWarning)
 
 try:
