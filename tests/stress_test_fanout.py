@@ -285,6 +285,7 @@ def stress_test_mp():
 
 if __name__ == '__main__':
     warnings.simplefilter('default')
+    warnings.simplefilter('ignore', category=UnknownFileWarning)
     warnings.simplefilter('ignore', category=EmptyDirWarning)
 
     import argparse
