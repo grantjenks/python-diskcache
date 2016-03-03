@@ -299,6 +299,11 @@ def with_metaclass(meta, *bases):
     return type.__new__(DummyMetaclass, 'temporary_class', (), {})
 
 
+class UnknownFileWarning(UserWarning):
+    "Warning used by Cache.check for unknown files."
+    pass
+
+
 class EmptyDirWarning(UserWarning):
     "Warning used by Cache.check for empty directories."
     pass
@@ -719,7 +724,7 @@ class Cache(with_metaclass(CacheMeta, object)):
 
 
     def _prep_file(self):
-        hex_name = str(codecs.encode(os.urandom(16), 'hex'))
+        hex_name = codecs.encode(os.urandom(16), 'hex').decode('utf-8')
         sub_dir = op.join(hex_name[:2], hex_name[2:4])
         name = hex_name[4:] + '.val'
         directory = op.join(self._dir, sub_dir)
@@ -844,7 +849,8 @@ class Cache(with_metaclass(CacheMeta, object)):
                     if DBNAME in full_path:
                         continue
 
-                    warnings.warn('unreferenced file: %s' % full_path)
+                    message = 'unknown file: %s' % full_path
+                    warnings.warn(message, UnknownFileWarning)
 
                     if fix:
                         os.remove(full_path)
@@ -853,7 +859,8 @@ class Cache(with_metaclass(CacheMeta, object)):
 
             for dirpath, dirs, files in os.walk(self._dir):
                 if not (dirs or files):
-                    warnings.warn('empty directory: %s' % dirpath, EmptyDirWarning)
+                    message = 'empty directory: %s' % dirpath
+                    warnings.warn(message, EmptyDirWarning)
 
                     if fix:
                         os.rmdir(dirpath)
