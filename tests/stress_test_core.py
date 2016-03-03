@@ -242,6 +242,8 @@ def stress_test(create=True, delete=True, eviction_policy=u'least-recently-store
         process.join()
 
     with Cache('tmp') as cache:
+        warnings.simplefilter('ignore', category=UnknownFileWarning)
+        warnings.simplefilter('ignore', category=EmptyDirWarning)
         cache.check()
 
     timings = {'get': [], 'set': [], 'delete': [], 'self': 0.0}
