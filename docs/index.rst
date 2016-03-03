@@ -58,7 +58,7 @@ Features
 - Benchmark comparisons (alternatives, Django cache backends)
 - 100% test coverage
 - Hours of stress testing
-- Performance matters (often faster than C implementations)
+- Performance matters
 - Django compatible API
 - Thread-safe and process-safe
 - Supports multiple eviction policies (LRU and LFU included)
