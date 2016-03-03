@@ -1,4 +1,4 @@
-"Django-compatible disk and file-based cache."
+"Django-compatible disk and file backed cache."
 
 from django.core.cache.backends.base import DEFAULT_TIMEOUT, BaseCache
 
@@ -6,7 +6,7 @@ from .fanout import FanoutCache
 
 
 class DjangoCache(BaseCache):
-    "Django-compatible disk and file-based cache."
+    "Django-compatible disk and file backed cache."
     def __init__(self, directory, params):
         super(DjangoCache, self).__init__(params)
         shards = params.get('SHARDS', 8)

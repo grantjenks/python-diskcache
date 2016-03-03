@@ -1,4 +1,4 @@
-"DiskCache: disk and file-based cache."
+"DiskCache: disk and file backed cache."
 
 from .core import Cache, Disk, UnknownFileWarning, EmptyDirWarning
 from .core import LIMITS, DEFAULT_SETTINGS, EVICTION_POLICY

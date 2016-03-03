@@ -1,4 +1,4 @@
-"Core disk and file-based cache API."
+"Core disk and file backed cache API."
 
 import codecs
 import errno
@@ -310,7 +310,7 @@ class EmptyDirWarning(UserWarning):
 
 
 class Cache(with_metaclass(CacheMeta, object)):
-    "Disk and file-based cache."
+    "Disk and file backed cache."
     # pylint: disable=bad-continuation
     def __init__(self, directory, timeout=60, disk=Disk(), **settings):
         self._dir = directory

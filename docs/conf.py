@@ -288,7 +288,7 @@ man_pages = [
 #  dir menu entry, description, category)
 texinfo_documents = [
     (master_doc, 'DiskCache', u'DiskCache Documentation',
-     author, 'DiskCache', 'Disk and file-based cache.',
+     author, 'DiskCache', 'Disk and file backed cache.',
      'Miscellaneous'),
 ]
 

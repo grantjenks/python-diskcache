@@ -1,7 +1,7 @@
 DiskCache: Disk-based Cache
 ===========================
 
-`DiskCache`_ is an Apache2 licensed disk and file-based cache library, written
+`DiskCache`_ is an Apache2 licensed disk and file backed cache library, written
 in pure-Python, and compatible with Django.
 
 The cloud-based computing of 2016 bills mainly for memory. Gigabytes of empty
