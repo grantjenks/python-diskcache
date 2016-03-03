@@ -1,13 +1,13 @@
-DiskCache: Disk and File-based Cache
-====================================
+DiskCache: Disk-based Cache
+===========================
 
-`DiskCache`_ is an :ref:`Apache2 Licensed <apache2>` disk and file-based cache
-library, written in pure-Python, and compatible with Django.
+`DiskCache`_ is an Apache2 licensed disk and file-based cache library, written
+in pure-Python, and compatible with Django.
 
-Rationale: the cloud-based computing of 2016 bills mainly for memory. Gigabytes
-of empty space is left on disks as processes vie for memory. Among these
-processes is Memcached (and sometimes Redis) which is used as a cache. Wouldn't
-it be nice to leverage empty disk space for caching?
+The cloud-based computing of 2016 bills mainly for memory. Gigabytes of empty
+space is left on disks as processes vie for memory. Among these processes is
+Memcached (and sometimes Redis) which is used as a cache. Wouldn't it be nice
+to leverage empty disk space for caching?
 
 Django is Python's most popular web framework and ships with several caching
 backends. Unfortunately the file-based cache in Django is essentially
