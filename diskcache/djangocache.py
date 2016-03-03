@@ -9,9 +9,12 @@ class DjangoCache(BaseCache):
     "Django-compatible disk and file-based cache."
     def __init__(self, directory, params):
         super(DjangoCache, self).__init__(params)
-        shards = params.get('SHARDS', 15)
+        shards = params.get('SHARDS', 8)
         timeout = params.get('DATABASE_TIMEOUT', 0.025)
-        self._cache = FanoutCache(directory, shards=shards, timeout=timeout)
+        options = params.get('OPTIONS', {})
+        self._cache = FanoutCache(
+            directory, shards=shards, timeout=timeout, **options
+        )
 
 
     def add(self, key, value, timeout=DEFAULT_TIMEOUT, version=None):

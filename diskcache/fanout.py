@@ -6,7 +6,7 @@ from .core import Cache, Disk, ENOVAL
 
 class FanoutCache(object):
     "Cache that shards keys and values."
-    def __init__(self, directory, shards=15, timeout=0.025, disk=Disk(),
+    def __init__(self, directory, shards=8, timeout=0.025, disk=Disk(),
                  **settings):
 
         object.__setattr__(self, '_count', shards)

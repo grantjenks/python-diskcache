@@ -35,16 +35,16 @@ import diskcache
 
 caches.append(('diskcache.Cache', diskcache.Cache, ('tmp',), {},))
 caches.append((
-    'diskcache.FanoutCache(shards=3, timeout=1.0)',
+    'diskcache.FanoutCache(shards=4, timeout=1.0)',
     diskcache.FanoutCache,
     ('tmp',),
-    {'shards': 3, 'timeout': 1.0}
+    {'shards': 4, 'timeout': 1.0}
 ))
 caches.append((
-    'diskcache.FanoutCache(shards=15, timeout=0.025)',
+    'diskcache.FanoutCache(shards=8, timeout=0.025)',
     diskcache.FanoutCache,
     ('tmp',),
-    {'shards': 15, 'timeout': 0.025}
+    {'shards': 8, 'timeout': 0.025}
 ))
 
 
