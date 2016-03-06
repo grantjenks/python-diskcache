@@ -103,7 +103,7 @@ with open('LICENSE') as reader:
 setup(
     name='diskcache',
     version=diskcache.__version__,
-    description='Disk and file-based cache',
+    description='Disk and file backed cache.',
     long_description=readme,
     author='Grant Jenks',
     author_email='contact@grantjenks.com',
