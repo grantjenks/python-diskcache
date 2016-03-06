@@ -349,15 +349,17 @@ def test_path(cache):
 
 @setup_cache
 def test_expire_rows(cache):
+    cache.cull_limit = 0
+
     for value in range(10):
-        assert cache.set(value, value, expire=0.1)
+        assert cache.set(value, value, expire=0)
 
     for value in range(10, 15):
         assert cache.set(value, value)
 
     assert len(cache) == 15
 
-    time.sleep(0.1)
+    cache.cull_limit = 10
 
     assert cache.set(15, 15)
 
