@@ -1,10 +1,10 @@
-DiskCache: Disk-based Cache
-===========================
+DiskCache: Disk Backed Cache
+============================
 
 `DiskCache`_ is an Apache2 licensed disk and file backed cache library, written
 in pure-Python, and compatible with Django.
 
-The cloud-based computing of 2016 bills mainly for memory. Gigabytes of empty
+The cloud-based computing of 2016 puts a premium on memory. Gigabytes of empty
 space is left on disks as processes vie for memory. Among these processes is
 Memcached (and sometimes Redis) which is used as a cache. Wouldn't it be nice
 to leverage empty disk space for caching?
@@ -86,7 +86,7 @@ User Guide
 ----------
 
 For those wanting more details, this part of the documentation describes
-introduction, benchmarks, implementation, and development.
+introduction, benchmarks, development, and API.
 
 .. toctree::
    :maxdepth: 1
@@ -94,9 +94,8 @@ introduction, benchmarks, implementation, and development.
    tutorial
    cache-benchmarks
    djangocache-benchmarks
-   implementation
-   development
    api
+   development
 
 Reference and Indices
 ---------------------

@@ -1,45 +1,33 @@
 DiskCache Development
 =====================
 
-Collaborators are welcome!
+:doc:`DiskCache <index>` development is lead by Grant Jenks
+<contact@grantjenks.com>.
 
-#. Check for open issues or open a fresh issue to start a discussion around a
-   bug.  There is a Contributor Friendly tag for issues that should be used by
-   people who are not very familiar with the codebase yet.
-#. Fork `the repository <https://github.com/grantjenks/python-diskcache>`_ on
-   GitHub and start making your changes to a new branch.
-#. Write a test which shows that the bug was fixed.
-#. Send a pull request and bug the maintainer until it gets merged and
-   published. :)
+Collaborators Welcome
+---------------------
 
-Development Lead
-----------------
+#. Search issues or open a new issue to start a discussion around a bug.
+#. Fork the `GitHub repository`_ and make your changes in a new branch.
+#. Write a test which shows the bug was fixed.
+#. Send a pull request and message the development lead until its merged and
+   published.
 
-* Grant Jenks <contact@grantjenks.com>
+.. _`GitHub repository`: https://github.com/grantjenks/python-diskcache
 
 Requests for Contributions
 --------------------------
 
-0. Django cache should pass on SQLite-specific settings like mmap size, etc.
-
-1. Create and test CLI interface.
-
-   - get, set, store, delete, expire, clear, evict, path, check, stats, show
-
-2. Feature Request: Atomic increment and decrement.
-3. Feature Request: Something like
-   https://github.com/bartTC/django-memcache-status that displays status of
-   diskcache.
-
-4. Test and document stampede_barrier.
-
-5. Add DjangoCache to djangopackages/caching.
+#. Create and test a new command-line interface. Operations to support: get,
+   set, store, delete, expire, evict, clear, path, check, stats.
+#. Support atomic increment and decrement.
+#. Create Django admin interface for cache stats and interaction.
+#. Test and document cache stampede barrier.
 
 Get the Code
 ------------
 
-DiskCache is actively developed on GitHub, where the code is
-`always available <https://github.com/grantjenks/python-diskcache>`_.
+:doc:`DiskCache <index>` is actively developed in a `GitHub repository`_.
 
 You can either clone the public repository::
 
@@ -53,20 +41,27 @@ Or, download the `zipball <https://github.com/grantjenks/python-diskcache/zipbal
 
     $ curl -OL https://github.com/grantjenks/python-diskcache/zipball/master
 
-Development Dependencies
-------------------------
+Installing Dependencies
+-----------------------
 
 Install development dependencies with `pip <http://www.pip-installer.org/>`_::
 
     $ pip install -r requirements.txt
 
-This includes everything for building/running tests and benchmarks.
+All packages for running tests will be installed.
 
 Additional packages like ``pylibmc`` and ``redis`` along with their server
 counterparts are necessary for some benchmarks.
 
 Testing
 -------
+
+:doc:`DiskCache <index>` currently tests against four versions of Python:
+
+* CPython 2.7
+* CPython 3.4
+* CPython 3.5
+* PyPy2
 
 Testing uses `tox <https://pypi.python.org/pypi/tox>`_. If you don't want to
 install all the development requirements, then, after downloading, you can
@@ -135,8 +130,8 @@ runtime.
 
 Stress testing is also based on nose but can be run independently as a
 module. Stress tests are kept in the tests directory and prefixed with
-``stress_test_``. Stress tests accept many arguments. The help is displayed
-below.
+``stress_test_``. Stress tests accept many arguments. Read the help for
+details.
 
 ::
 
@@ -181,22 +176,27 @@ Running Benchmarks
 ------------------
 
 Running and plotting benchmarks is a two step process. Each is a Python script
-in the tests directory. To run the benchmarks for SortedList, plot the results,
-and save the resulting graphs, run::
+in the tests directory. Benchmark scripts are prefixed with ``benchmark_``. For
+example:
 
-    python -m tests.benchmark_sortedlist --bare > tests/results_sortedlist.txt
-    python -m tests.benchmark_plot tests/results_sortedlist.txt SortedList --save
+::
 
-Each script has a handful of useful arguments. Use --help for a display of
-these. Consult the source for details. The file tests/benchmark_plot.py
-contains notes about benchmarking different Python runtimes against each other.
+    $ python tests/benchmark_core.py --help
+    usage: benchmark_core.py [-h] [-p PROCESSES] [-n OPERATIONS] [-r RANGE]
+                             [-w WARMUP]
 
-Tested Runtimes
----------------
+    optional arguments:
+      -h, --help            show this help message and exit
+      -p PROCESSES, --processes PROCESSES
+                            Number of processes to start (default: 8)
+      -n OPERATIONS, --operations OPERATIONS
+                            Number of operations to perform (default: 100000)
+      -r RANGE, --range RANGE
+                            Range of keys (default: 100)
+      -w WARMUP, --warmup WARMUP
+                            Number of warmup operations before timings (default:
+                            1000)
 
-DiskCache currently supports the following versions of Python:
-
-* CPython 2.7
-* CPython 3.4
-* CPython 3.5
-* PyPy2 2.6
+Benchmark output is stored in text files prefixed with ``timings_`` in the
+`tests` directory. Plotting the benchmarks is done by passing the timings file
+as an argument to ``plot.py``.
