@@ -1,36 +1,70 @@
-DiskCache: Disk and File-based Cache
-====================================
+DiskCache: Disk Backed Cache
+============================
 
-Rationale: file-based cache in Django is essentially broken. Culling files is
-too costly. Large caches are forced to scan lots of files and do lots of
-deletes on some operations. Takes too long in the request/response cycle.
+`DiskCache`_ is an Apache2 licensed disk and file backed cache library, written
+in pure-Python, and compatible with Django.
 
-Solution: Each operation, "set" and "del" should delete at most two to ten
-expired keys.
+The cloud-based computing of 2016 puts a premium on memory. Gigabytes of empty
+space is left on disks as processes vie for memory. Among these processes is
+Memcached (and sometimes Redis) which is used as a cache. Wouldn't it be nice
+to leverage empty disk space for caching?
 
-Each "get" needs only check expiry and delete if needed. Make it speedy.
+Django is Python's most popular web framework and ships with several caching
+backends. Unfortunately the file-based cache in Django is essentially
+broken. The culling method is random and large caches repeatedly scan a cache
+directory which slows linearly with growth. Should it really take ~60ms to
+store a key in a cache with a thousand items?
 
-If only we had some kind of file-based database... we do! It's called
-SQLite. For metadata and small stuff, use SQLite and for bigger things use
-files.
+In Python, we can do better. And we can do it in pure-Python!
+
+::
+
+   In [1]: import pylibmc
+   In [2]: client = pylibmc.Client(['127.0.0.1'], binary=True)
+   In [3]: client[b'key'] = b'value'
+   In [4]: %timeit client[b'key']
+
+   10000 loops, best of 3: 25.4 µs per loop
+
+   In [5]: import diskcache as dc
+   In [6]: cache = dc.Cache('tmp')
+   In [7]: cache[b'key'] = b'value'
+   In [8]: %timeit cache[b'key']
+
+   100000 loops, best of 3: 11.8 µs per loop
+
+**Note:** Micro-benchmarks have their place but are not a substitute for real
+measurements. DiskCache offers cache benchmarks to defend its performance
+claims. Micro-optimizations are avoided but your mileage may vary.
+
+DiskCache efficiently opens up gigabytes of storage space for caching. By
+leveraging rock-solid database libraries and memory-mapped files, cache
+performance can match and exceed industry standard solutions. There's no need
+for a C compiler or running another process. Performance is a feature and
+testing has 100% coverage with unit tests and hours of stress.
+
+.. _`DiskCache`: http://www.grantjenks.com/docs/diskcache/
+
+Testimonials
+------------
+
+Does your company or website use DiskCache? Send us a message and let us know.
 
 Features
 --------
 
 - Pure-Python
+- Fully Documented
+- Benchmark comparisons (alternatives, Django cache backends)
+- 100% test coverage
+- Hours of stress testing
+- Performance matters
+- Django compatible API
+- Thread-safe and process-safe
+- Supports multiple eviction policies (LRU and LFU included)
+- Keys support "tag" metadata and eviction
 - Developed on Python 2.7
 - Tested on CPython 2.7, 3.4, 3.5 and PyPy
-- Get full_path reference to value.
-- Allow storing raw data.
-- Small values stored in database.
-- Leverages SQLite native types: int, float, unicode, blob.
-- Thread-safe and process-safe.
-- Multiple eviction policies
-  - Least-Recently-Stored
-  - Least-Recently-Used
-  - Least-Frequently-Used
-- Stampede barrier decorator.
-- Metadata support for "tag" to evict a group of keys at once.
 
 Quickstart
 ----------
@@ -43,19 +77,28 @@ Installing DiskCache is simple with
 You can access documentation in the interpreter with Python's built-in help
 function::
 
-  >>> from diskcache import DjangoCache
+  >>> from diskcache import Cache, FanoutCache, DjangoCache
+  >>> help(Cache)
+  >>> help(FanoutCache)
   >>> help(DjangoCache)
 
-Caveats
--------
+User Guide
+----------
 
-* Types matter in key equality comparisons. Comparisons like ``1 == 1.0`` and
-  ``b'abc' == u'abc'`` return False.
+For those wanting more details, this part of the documentation describes
+introduction, benchmarks, development, and API.
 
-Tutorial
---------
+* `DiskCache Tutorial`_
+* `DiskCache Cache Benchmarks`_
+* `DiskCache DjangoCache Benchmarks`_
+* `DiskCache API Reference`_
+* `DiskCache Development`_
 
-TODO
+.. _`DiskCache Tutorial`: http://www.grantjenks.com/docs/diskcache/tutorial.html
+.. _`DiskCache Cache Benchmarks`: http://www.grantjenks.com/docs/diskcache/cache-benchmarks.html
+.. _`DiskCache DjangoCache Benchmarks`: http://www.grantjenks.com/docs/diskcache/djangocache-benchmarks.html
+.. _`DiskCache API Reference`: http://www.grantjenks.com/docs/diskcache/api.html
+.. _`DiskCache Development`: http://www.grantjenks.com/docs/diskcache/development.html
 
 Reference and Indices
 ---------------------
@@ -64,14 +107,16 @@ Reference and Indices
 * `DiskCache at PyPI`_
 * `DiskCache at GitHub`_
 * `DiskCache Issue Tracker`_
+* :ref:`search`
+* :ref:`genindex`
 
 .. _`DiskCache Documentation`: http://www.grantjenks.com/docs/diskcache/
 .. _`DiskCache at PyPI`: https://pypi.python.org/pypi/diskcache/
 .. _`DiskCache at GitHub`: https://github.com/grantjenks/python-diskcache/
 .. _`DiskCache Issue Tracker`: https://github.com/grantjenks/python-diskcache/issues/
 
-License
--------
+DiskCache License
+-----------------
 
 Copyright 2016 Grant Jenks
 
