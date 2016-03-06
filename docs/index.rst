@@ -112,8 +112,6 @@ Reference and Indices
 .. _`DiskCache at GitHub`: https://github.com/grantjenks/python-diskcache/
 .. _`DiskCache Issue Tracker`: https://github.com/grantjenks/python-diskcache/issues/
 
-.. _`apache2`:
-
 Apache2 License
 ---------------
 
