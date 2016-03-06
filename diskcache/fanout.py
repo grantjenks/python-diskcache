@@ -8,7 +8,15 @@ class FanoutCache(object):
     "Cache that shards keys and values."
     def __init__(self, directory, shards=8, timeout=0.025, disk=Disk(),
                  **settings):
+        """Initialize FanoutCache instance.
 
+        :param str directory: cache directory
+        :param int shards: number of shards to distribute writes
+        :param float timeout: SQLite connection timeout
+        :param disk: `Disk` instance for serialization
+        :param settings: any of `DEFAULT_SETTINGS`
+
+        """
         object.__setattr__(self, '_count', shards)
 
         object.__setattr__(self, '_shards', tuple(
@@ -37,10 +45,12 @@ class FanoutCache(object):
         When `read` is `True`, `value` should be a file-like object opened
         for reading in binary mode.
 
-        Keyword arguments:
-        expire -- seconds until the key expires (default None, no expiry)
-        tag -- text to associate with key (default None)
-        read -- read value as raw bytes from file (default False)
+        :param key: Python key to store
+        :param value: Python value to store
+        :param expire: seconds until the key expires (default None, no expiry)
+        :param bool read: read value as raw bytes from file (default False)
+        :param tag: text to associate with key (default None)
+        :return: True if item was successfully committed
 
         """
         try:
@@ -57,11 +67,14 @@ class FanoutCache(object):
     def get(self, key, default=None, read=False, expire_time=False, tag=False):
         """Get key from cache. If key is missing, return default.
 
-        Keyword arguments:
-        default -- value to return if key is missing (default None)
-        read -- if True, return open file handle to value (default False)
-        expire_time -- if True, return expire_time in tuple (default False)
-        tag -- if True, return tag in tuple (default False)
+        :param key: Python key to retrieve
+        :param default: value to return if key is missing (default None)
+        :param bool read: if True, return file handle to value
+            (default False)
+        :param float expire_time: if True, return expire_time in tuple
+            (default False)
+        :param tag: if True, return tag in tuple (default False)
+        :return: key or `default` if not found
 
         """
         try:
@@ -75,6 +88,7 @@ class FanoutCache(object):
 
 
     def __getitem__(self, key):
+        "Return corresponding value for `key` from Cache."
         value = self.get(key, default=ENOVAL)
         if value is ENOVAL:
             raise KeyError(key)
@@ -82,6 +96,7 @@ class FanoutCache(object):
 
 
     def __contains__(self, key):
+        "Return True if `key` in Cache."
         try:
             index = hash(key) % self._count
             return key in self._shards[index]
@@ -90,6 +105,7 @@ class FanoutCache(object):
 
 
     def __delitem__(self, key):
+        "Delete corresponding item for `key` from Cache."
         try:
             index = hash(key) % self._count
             return self._shards[index].__delitem__(key)
@@ -98,7 +114,11 @@ class FanoutCache(object):
 
 
     def delete(self, key):
-        "Delete key from cache. Missing keys are ignored."
+        """Delete corresponding item for `key` from Cache.
+
+        Missing keys are ignored.
+
+        """
         try:
             return self.__delitem__(key)
         except KeyError:
@@ -106,7 +126,11 @@ class FanoutCache(object):
 
 
     def check(self):
-        "Check database and file system consistency."
+        """Check database and file system consistency.
+
+        :return: count of warnings
+
+        """
         return sum(shard.check() for shard in self._shards)
 
 
@@ -116,7 +140,7 @@ class FanoutCache(object):
 
 
     def evict(self, tag):
-        "Remove items with matching tag from Cache."
+        "Remove items with matching `tag` from Cache."
         return sum(shard.evict(tag) for shard in self._shards)
 
 
@@ -126,11 +150,11 @@ class FanoutCache(object):
 
 
     def stats(self, enable=True, reset=False):
-        """Return cache statistics pair: hits, misses.
+        """Return cache statistics pair: (hits, misses).
 
-        Keyword arguments:
-        enable -- enable collecting statistics (default True)
-        reset -- reset hits and misses to 0 (default False)
+        :param bool enable: enable collecting statistics (default True)
+        :param bool reset: reset hits and misses to 0 (default False)
+        :return: (hits, misses)
 
         """
         results = [shard.stats(enable, reset) for shard in self._shards]

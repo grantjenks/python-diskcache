@@ -104,13 +104,23 @@ EVICTION_POLICY = {
 
 
 class Disk(object):
-    "Cache key and value serialization for disk and file."
+    "Cache key and value serialization for SQLite database and files."
     def __init__(self, pickle_protocol=pickle.HIGHEST_PROTOCOL):
+        """Initialize `Disk` instance.
+
+        :param int pickle_protocol: ``pickle.HIGHEST_PROTOCOL``
+
+        """
         self._protocol = pickle_protocol
 
 
     def put(self, key):
-        "Convert key to fields (key, raw) for Cache table."
+        """Convert key to fields (key, raw) for Cache table.
+
+        :param key: key to convert
+        :return: (database key, raw boolean) pair
+
+        """
         # pylint: disable=bad-continuation,unidiomatic-typecheck
         type_key = type(key)
 
@@ -127,7 +137,13 @@ class Disk(object):
 
 
     def get(self, key, raw):
-        "Convert fields (key, raw) from Cache table to key."
+        """Convert fields (key, raw) from Cache table to key.
+
+        :param key: database key to convert
+        :param bool raw: flag indicating raw database storage
+        :return: corresponding Python key
+
+        """
         # pylint: disable=no-self-use,unidiomatic-typecheck
         if raw:
             return BytesType(key) if type(key) is sqlite3.Binary else key
@@ -138,11 +154,11 @@ class Disk(object):
     def store(self, value, read, threshold, prep_file):
         """Return fields (size, mode, filename, value) for Cache table.
 
-        Arguments:
-        value -- value to convert
-        read -- True iff value is file-like object
-        threshold -- size threshold for large values
-        prep_file -- callable returning (filename, full_path) pair
+        :param value: value to convert
+        :param bool read: True when value is file-like object
+        :param int threshold: size threshold for large values
+        :param callable prep_file: initialize (filename, full_path) pair
+        :return: (size, mode, filename, value) tuple for Cache table.
 
         """
         # pylint: disable=unidiomatic-typecheck
@@ -198,7 +214,16 @@ class Disk(object):
 
 
     def fetch(self, directory, mode, filename, value, read):
-        "Convert fields (mode, filename, value) from Cache table to value."
+        """Convert fields (mode, filename, value) from Cache table to value.
+
+        :param str directory: cache directory
+        :param int mode: value mode raw, binary, text, or pickle
+        :param str filename: filename of corresponding value
+        :param value: database value
+        :param bool read: when True, return an open file handle
+        :return: corresponding Python value
+
+        """
         # pylint: disable=no-self-use,unidiomatic-typecheck
         if mode == MODE_RAW:
             return BytesType(value) if type(value) is sqlite3.Binary else value
@@ -313,6 +338,14 @@ class Cache(with_metaclass(CacheMeta, object)):
     "Disk and file backed cache."
     # pylint: disable=bad-continuation
     def __init__(self, directory, timeout=60, disk=Disk(), **settings):
+        """Initialize Cache instance.
+
+        :param str directory: cache directory
+        :param float timeout: SQLite connection timeout
+        :param disk: `Disk` instance for serialization
+        :param settings: any of `DEFAULT_SETTINGS`
+
+        """
         self._dir = directory
         self._timeout = 60    # Use 1 minute timeout for initialization.
         self._disk = disk
@@ -449,16 +482,18 @@ class Cache(with_metaclass(CacheMeta, object)):
         return con.execute
 
 
-    def set(self, key, value, read=False, expire=None, tag=None):
+    def set(self, key, value, expire=None, read=False, tag=None):
         """Store key, value pair in cache.
 
         When `read` is `True`, `value` should be a file-like object opened
         for reading in binary mode.
 
-        Keyword arguments:
-        expire -- seconds until the key expires (default None, no expiry)
-        tag -- text to associate with key (default None)
-        read -- read value as raw bytes from file (default False)
+        :param key: Python key to store
+        :param value: Python value to store
+        :param expire: seconds until the key expires (default None, no expiry)
+        :param bool read: read value as raw bytes from file (default False)
+        :param tag: text to associate with key (default None)
+        :return: True if item was successfully committed
 
         """
         sql = self._sql
@@ -536,6 +571,9 @@ class Cache(with_metaclass(CacheMeta, object)):
 
         cull_limit = self.cull_limit
 
+        if cull_limit == 0:
+            return True
+
         rows = sql(
             'SELECT rowid, version, filename FROM Cache'
             ' WHERE expire_time IS NOT NULL AND expire_time < ?'
@@ -578,11 +616,14 @@ class Cache(with_metaclass(CacheMeta, object)):
     def get(self, key, default=None, read=False, expire_time=False, tag=False):
         """Get key from cache. If key is missing, return default.
 
-        Keyword arguments:
-        default -- value to return if key is missing (default None)
-        read -- if True, return open file handle to value (default False)
-        expire_time -- if True, return expire_time in tuple (default False)
-        tag -- if True, return tag in tuple (default False)
+        :param key: Python key to retrieve
+        :param default: value to return if key is missing (default None)
+        :param bool read: if True, return file handle to value
+            (default False)
+        :param float expire_time: if True, return expire_time in tuple
+            (default False)
+        :param tag: if True, return tag in tuple (default False)
+        :return: key or `default` if not found
 
         """
         sql = self._sql
@@ -656,6 +697,7 @@ class Cache(with_metaclass(CacheMeta, object)):
 
 
     def __getitem__(self, key):
+        "Return corresponding value for `key` from Cache."
         value = self.get(key, default=ENOVAL)
         if value is ENOVAL:
             raise KeyError(key)
@@ -663,6 +705,7 @@ class Cache(with_metaclass(CacheMeta, object)):
 
 
     def __contains__(self, key):
+        "Return True if `key` in Cache."
         sql = self._sql
 
         db_key, raw = self._disk.put(key)
@@ -685,6 +728,7 @@ class Cache(with_metaclass(CacheMeta, object)):
 
 
     def __delitem__(self, key):
+        "Delete corresponding item for `key` from Cache."
         sql = self._sql
 
         db_key, raw = self._disk.put(key)
@@ -702,7 +746,11 @@ class Cache(with_metaclass(CacheMeta, object)):
 
 
     def delete(self, key):
-        "Delete key from cache. Missing keys are ignored."
+        """Delete corresponding item for `key` from Cache.
+
+        Missing keys are ignored.
+
+        """
         try:
             return self.__delitem__(key)
         except KeyError:
@@ -754,7 +802,11 @@ class Cache(with_metaclass(CacheMeta, object)):
 
 
     def check(self, fix=False):
-        "Check database and file system consistency."
+        """Check database and file system consistency.
+
+        :return: count of warnings
+
+        """
         # pylint: disable=access-member-before-definition,W0201
         with warnings.catch_warnings(record=True) as warns:
             sql = self._sql
@@ -895,7 +947,7 @@ class Cache(with_metaclass(CacheMeta, object)):
 
 
     def evict(self, tag):
-        "Remove items with matching tag from Cache."
+        "Remove items with matching `tag` from Cache."
 
         sql = self._sql
         chunk = self.cull_limit
@@ -947,11 +999,11 @@ class Cache(with_metaclass(CacheMeta, object)):
 
 
     def stats(self, enable=True, reset=False):
-        """Return cache statistics pair: hits, misses.
+        """Return cache statistics pair: (hits, misses).
 
-        Keyword arguments:
-        enable -- enable collecting statistics (default True)
-        reset -- reset hits and misses to 0 (default False)
+        :param bool enable: enable collecting statistics (default True)
+        :param bool reset: reset hits and misses to 0 (default False)
+        :return: (hits, misses)
 
         """
         # pylint: disable=E0203,W0201

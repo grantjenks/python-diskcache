@@ -8,6 +8,12 @@ from .fanout import FanoutCache
 class DjangoCache(BaseCache):
     "Django-compatible disk and file backed cache."
     def __init__(self, directory, params):
+        """Initialize DjangoCache instance.
+
+        :param str directory: cache directory
+        :param dict params: cache parameters
+
+        """
         super(DjangoCache, self).__init__(params)
         shards = params.get('SHARDS', 8)
         timeout = params.get('DATABASE_TIMEOUT', 0.025)
@@ -68,7 +74,11 @@ class DjangoCache(BaseCache):
 
 
     def get_backend_timeout(self, timeout=DEFAULT_TIMEOUT):
-        "Return seconds to expiration."
+        """Return seconds to expiration.
+
+        :param float timeout: seconds to expire (default `DEFAULT_TIMEOUT`)
+
+        """
         if timeout == DEFAULT_TIMEOUT:
             timeout = self.default_timeout
         elif timeout == 0:
