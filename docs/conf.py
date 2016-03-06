@@ -124,6 +124,7 @@ html_theme_options = {
     'travis_button': True,
     'analytics_id': 'UA-19364636-2',
     'show_powered_by': False,
+    'show_related': True,
     'github_user': 'grantjenks',
     'github_repo': 'python-diskcache',
 }
