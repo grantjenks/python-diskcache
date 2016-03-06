@@ -13,10 +13,6 @@ import threading
 import time
 import warnings
 
-warnings.simplefilter('error')
-warnings.simplefilter('ignore', category=UnknownFileWarning)
-warnings.simplefilter('ignore', category=EmptyDirWarning)
-
 try:
     import Queue
 except ImportError:
@@ -242,6 +238,7 @@ def stress_test(create=True, delete=True, eviction_policy=u'least-recently-store
         process.join()
 
     with FanoutCache('tmp') as cache:
+        warnings.simplefilter('error')
         warnings.simplefilter('ignore', category=UnknownFileWarning)
         warnings.simplefilter('ignore', category=EmptyDirWarning)
         cache.check()
@@ -286,10 +283,6 @@ def stress_test_mp():
 
 
 if __name__ == '__main__':
-    warnings.simplefilter('default')
-    warnings.simplefilter('ignore', category=UnknownFileWarning)
-    warnings.simplefilter('ignore', category=EmptyDirWarning)
-
     import argparse
 
     parser = argparse.ArgumentParser(
