@@ -107,8 +107,6 @@ Reference and Indices
 * `DiskCache at PyPI`_
 * `DiskCache at GitHub`_
 * `DiskCache Issue Tracker`_
-* :ref:`search`
-* :ref:`genindex`
 
 .. _`DiskCache Documentation`: http://www.grantjenks.com/docs/diskcache/
 .. _`DiskCache at PyPI`: https://pypi.python.org/pypi/diskcache/
