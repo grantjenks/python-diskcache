@@ -463,7 +463,6 @@ class Cache(with_metaclass(CacheMeta, object)):
         # Close and re-open database connection with given timeout.
 
         self.close()
-        delattr(self._local, 'con')
         self._timeout = timeout
         assert self._sql
 
@@ -1023,8 +1022,17 @@ class Cache(with_metaclass(CacheMeta, object)):
 
     def close(self):
         "Close database connection."
-        con = getattr(self._local, 'con')
+        con = getattr(self._local, 'con', None)
+
+        if con is None:
+            return
+
         con.close()
+
+        try:
+            delattr(self._local, 'con')
+        except AttributeError:
+            pass
 
 
     def __enter__(self):

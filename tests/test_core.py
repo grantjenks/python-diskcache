@@ -43,6 +43,7 @@ def test_init(cache):
         assert getattr(cache, key) == value
     cache.check()
     cache.close()
+    cache.close()
 
 
 @nt.raises(EnvironmentError)
@@ -99,6 +100,22 @@ def test_pragma_error(cache):
             cache.sqlite_mmap_size = 2 ** 28
     finally:
         dc.LIMITS[u'pragma_timeout'] = prev
+
+
+@setup_cache
+def test_close_error(cache):
+    class LocalTest(object):
+        def __init__(self):
+            self._calls = 0
+        def __getattr__(self, name):
+            if self._calls:
+                raise AttributeError
+            else:
+                self._calls += 1
+                return mock.Mock()
+
+    with mock.patch.object(cache, '_local', LocalTest()):
+        cache.close()
 
 
 @setup_cache
