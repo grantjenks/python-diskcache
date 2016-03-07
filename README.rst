@@ -43,12 +43,11 @@ performance can match and exceed industry standard solutions. There's no need
 for a C compiler or running another process. Performance is a feature and
 testing has 100% coverage with unit tests and hours of stress.
 
-.. _`DiskCache`: http://www.grantjenks.com/docs/diskcache/
-
 Testimonials
 ------------
 
-Does your company or website use DiskCache? Send us a message and let us know.
+Does your company or website use `DiskCache`_? Send us a message and let us
+know.
 
 Features
 --------
@@ -129,3 +128,5 @@ distributed under the License is distributed on an "AS IS" BASIS,
 WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
+
+.. _`DiskCache`: http://www.grantjenks.com/docs/diskcache/
