@@ -23,26 +23,35 @@ class DjangoCache(BaseCache):
         )
 
 
-    def add(self, key, value, timeout=DEFAULT_TIMEOUT, version=None):
+    def add(self, key, value, timeout=DEFAULT_TIMEOUT, version=None,
+            read=False, tag=None):
+        # pylint: disable=arguments-differ
         if self.has_key(key, version):
             return False
-        self.set(key, value, timeout, version)
-        return True
+        return self.set(
+            key, value, timeout=timeout, version=version, read=read, tag=tag
+        )
 
     add.__doc__ = BaseCache.add.__doc__
 
 
-    def get(self, key, default=None, version=None):
+    def get(self, key, default=None, version=None, read=False,
+            expire_time=False, tag=False):
+        # pylint: disable=arguments-differ
         key = self.make_key(key, version=version)
-        return self._cache.get(key, default=default)
+        return self._cache.get(
+            key, default=default, read=read, expire_time=expire_time, tag=tag
+        )
 
     get.__doc__ = BaseCache.get.__doc__
 
 
-    def set(self, key, value, timeout=DEFAULT_TIMEOUT, version=None):
+    def set(self, key, value, timeout=DEFAULT_TIMEOUT, version=None,
+            read=False, tag=None):
+        # pylint: disable=arguments-differ
         key = self.make_key(key, version=version)
         timeout = self.get_backend_timeout(timeout=timeout)
-        self._cache.set(key, value, expire=timeout)
+        return self._cache.set(key, value, expire=timeout, read=read, tag=tag)
 
     set.__doc__ = BaseCache.set.__doc__
 
