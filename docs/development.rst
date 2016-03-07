@@ -18,11 +18,22 @@ Collaborators Welcome
 Requests for Contributions
 --------------------------
 
-#. Create and test a new command-line interface. Operations to support: get,
-   set, store, delete, expire, evict, clear, path, check, stats.
-#. Support atomic increment and decrement.
-#. Create Django admin interface for cache stats and interaction.
-#. Test and document cache stampede barrier.
+#. Command-line interface. Operations to support: get, set, store, delete,
+   expire, evict, clear, path, check, stats.
+#. Atomic increment and decrement methods.
+#. Django admin interface for cache stats and interaction.
+#. Cache stampede barrier (source prototype in repo).
+#. API Compatibility
+
+   #. `lru_cache-like decorator <https://docs.python.org/3/library/functools.html#functools.lru_cache>`_
+   #. `Shelf interface <https://docs.python.org/2/library/shelve.html>`_
+   #. `DBM interface <https://docs.python.org/2/library/anydbm.html>`_
+
+#. Backend Compatibility
+
+   #. `Flask-Cache <https://pythonhosted.org/Flask-Cache/>`_
+   #. `Beaker <http://beaker.readthedocs.org/en/latest/>`_
+   #. `dogpile.cache <http://dogpilecache.readthedocs.org/en/latest/>`_
 
 Get the Code
 ------------
