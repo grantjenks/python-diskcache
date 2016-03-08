@@ -6,8 +6,8 @@ from .fanout import FanoutCache
 
 try:
     from .djangocache import DjangoCache
-except ImportError:
-    # Django not installed so ignore.
+except Exception:
+    # Django not installed or not setup so ignore.
     pass
 
 
