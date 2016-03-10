@@ -65,13 +65,13 @@ def test_pragma(cache):
     con = mock.Mock()
     execute = mock.Mock()
     cursor = mock.Mock()
-    fetchone = mock.Mock()
+    fetchall = mock.Mock()
 
     local.con = con
     con.execute = execute
     execute.return_value = cursor
-    cursor.fetchone = fetchone
-    fetchone.side_effect = [sqlite3.OperationalError, None]
+    cursor.fetchall = fetchall
+    fetchall.side_effect = [sqlite3.OperationalError, None]
 
     with mock.patch.object(cache, '_local', local):
         cache.sqlite_mmap_size = 2 ** 28
@@ -84,13 +84,13 @@ def test_pragma_error(cache):
     con = mock.Mock()
     execute = mock.Mock()
     cursor = mock.Mock()
-    fetchone = mock.Mock()
+    fetchall = mock.Mock()
 
     local.con = con
     con.execute = execute
     execute.return_value = cursor
-    cursor.fetchone = fetchone
-    fetchone.side_effect = sqlite3.OperationalError
+    cursor.fetchall = fetchall
+    fetchall.side_effect = sqlite3.OperationalError
 
     prev = dc.LIMITS[u'pragma_timeout']
     dc.LIMITS[u'pragma_timeout'] = 0.003
@@ -179,13 +179,13 @@ def test_get_keyerror2(cache):
     con = mock.Mock()
     execute = mock.Mock()
     cursor = mock.Mock()
-    fetchone = mock.Mock()
+    fetchall = mock.Mock()
 
     local.con = con
     con.execute = execute
     execute.return_value = cursor
-    cursor.fetchone = fetchone
-    fetchone.return_value = (0, None, None, None, 0, None, 0)
+    cursor.fetchall = fetchall
+    fetchall.return_value = [(0, None, None, None, 0, None, 0)]
 
     cache.statistics = True
 
@@ -201,13 +201,13 @@ def test_get_keyerror3(cache):
     con = mock.Mock()
     execute = mock.Mock()
     cursor = mock.Mock()
-    fetchone = mock.Mock()
+    fetchall = mock.Mock()
 
     local.con = con
     con.execute = execute
     execute.return_value = cursor
-    cursor.fetchone = fetchone
-    fetchone.return_value = (0, 0, 0, None, 0, None, 0)
+    cursor.fetchall = fetchall
+    fetchall.return_value = [(0, 0, 0, None, 0, None, 0)]
 
     cache.statistics = True
 
@@ -267,14 +267,14 @@ def test_set_noupdate(cache):
     con = mock.Mock()
     execute = mock.Mock()
     cursor = mock.Mock()
-    fetchone = mock.Mock()
+    fetchall = mock.Mock()
 
     local.con = con
     con.execute = execute
     execute.return_value = cursor
     cursor.rowcount = 0
-    cursor.fetchone = fetchone
-    fetchone.return_value = None
+    cursor.fetchall = fetchall
+    fetchall.return_value = None
 
     del cache.large_value_threshold
 

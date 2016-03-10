@@ -277,7 +277,7 @@ class CachedAttr(object):
 
             for _ in range(int(LIMITS[u'pragma_timeout'] / pause)):
                 try:
-                    sql('PRAGMA %s = %s' % (self._pragma, value)).fetchone()
+                    sql('PRAGMA %s = %s' % (self._pragma, value)).fetchall()
                 except sqlite3.OperationalError as exc:
                     error = exc
                     time.sleep(pause)
@@ -294,7 +294,7 @@ class CachedAttr(object):
         "Update descriptor value from database."
         # pylint: disable=protected-access,attribute-defined-outside-init
         query = 'SELECT value FROM Settings WHERE key = ?'
-        value, = cache._sql(query, (self._key,)).fetchone()
+        (value,), = cache._sql(query, (self._key,)).fetchall()
         setattr(cache, self._value, value)
 
 
@@ -394,7 +394,7 @@ class Cache(with_metaclass(CacheMeta, object)):
             sql(query, (key, value))
             delattr(self, key)
 
-        self._page_size, = sql('PRAGMA page_size').fetchone()
+        (self._page_size,), = sql('PRAGMA page_size').fetchall()
 
         # Setup Cache table.
 
@@ -501,13 +501,13 @@ class Cache(with_metaclass(CacheMeta, object)):
 
         # Lookup filename for existing key.
 
-        row = sql(
+        rows = sql(
             'SELECT version, filename FROM Cache WHERE key = ? AND raw = ?',
             (db_key, raw),
-        ).fetchone()
+        ).fetchall()
 
-        if row:
-            version, filename = row
+        if rows:
+            (version, filename), = rows
         else:
             sql('INSERT OR IGNORE INTO Cache(key, raw) VALUES (?, ?)',
                 (db_key, raw)
@@ -632,20 +632,20 @@ class Cache(with_metaclass(CacheMeta, object)):
 
         db_key, raw = self._disk.put(key)
 
-        row = sql(
+        rows = sql(
             'SELECT rowid, store_time, expire_time, tag,'
             ' mode, filename, value'
             ' FROM Cache WHERE key = ? AND raw = ?',
             (db_key, raw),
-        ).fetchone()
+        ).fetchall()
 
-        if row is None:
+        if not rows:
             if self.statistics:
                 sql(cache_miss)
             return default
 
         (rowid, store_time, db_expire_time, db_tag,
-            mode, filename, db_value) = row
+            mode, filename, db_value), = rows
 
         if store_time is None:
             if self.statistics:
@@ -702,16 +702,16 @@ class Cache(with_metaclass(CacheMeta, object)):
 
         db_key, raw = self._disk.put(key)
 
-        row = sql(
+        rows = sql(
             'SELECT store_time, expire_time FROM Cache'
             ' WHERE key = ? AND raw = ?',
             (db_key, raw),
-        ).fetchone()
+        ).fetchall()
 
-        if row is None:
+        if not rows:
             return False
 
-        store_time, expire_time = row
+        (store_time, expire_time), = rows
 
         if store_time is None:
             return False
@@ -725,16 +725,17 @@ class Cache(with_metaclass(CacheMeta, object)):
 
         db_key, raw = self._disk.put(key)
 
-        row = sql(
+        rows = sql(
             'SELECT rowid, version, filename'
             ' FROM Cache WHERE key = ? AND raw = ?',
             (db_key, raw),
-        ).fetchone()
+        ).fetchall()
 
-        if row is None:
-            raise KeyError(key)
+        if rows:
+            (rowid, version, filename), = rows
+            return self._delete(rowid, version, filename)
         else:
-            return self._delete(*row)
+            raise KeyError(key)
 
 
     def delete(self, key):
@@ -819,7 +820,7 @@ class Cache(with_metaclass(CacheMeta, object)):
 
             del self.count
             self_count = self.count
-            count, = sql('SELECT COUNT(key) FROM Cache').fetchone()
+            (count,), = sql('SELECT COUNT(key) FROM Cache').fetchall()
 
             if self_count != count:
                 message = 'Settings.count != COUNT(Cache.key); %d != %d'
@@ -875,7 +876,9 @@ class Cache(with_metaclass(CacheMeta, object)):
 
             del self.size
             self_size = self.size
-            size, = sql('SELECT COALESCE(SUM(size), 0) FROM Cache').fetchone()
+            (size,), = sql(
+                'SELECT COALESCE(SUM(size), 0) FROM Cache'
+            ).fetchall()
 
             if self_size != size:
                 message = 'Settings.size != SUM(Cache.size); %d != %d'
@@ -1020,7 +1023,7 @@ class Cache(with_metaclass(CacheMeta, object)):
         :return: size in bytes
 
         """
-        page_count, = self._sql('PRAGMA page_count').fetchone()
+        (page_count,), = self._sql('PRAGMA page_count').fetchall()
         del self.size # Update value from database.
         total_size = self._page_size * page_count + self.size
         return total_size
