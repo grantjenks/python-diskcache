@@ -163,6 +163,15 @@ class FanoutCache(object):
                 sum(result[1] for result in results))
 
 
+    def volume(self):
+        """Return estimated total size of cache on disk.
+
+        :return: size in bytes
+
+        """
+        return sum(shard.volume() for shard in self._shards)
+
+
     def close(self):
         "Close database connection."
         for shard in self._shards:

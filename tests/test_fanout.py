@@ -102,6 +102,8 @@ def test_operationalerror():
     assert (0 in cache) == False
     assert cache.__delitem__(0) == False
 
+    shutil.rmtree('tmp')
+
 
 @nt.raises(KeyError)
 @setup_cache
@@ -170,6 +172,12 @@ def test_stats(cache):
 
     assert cache.stats() == (0, 0)
     assert len(cache.check()) == 0
+
+
+@setup_cache
+def test_volume(cache):
+    volume = sum(shard.volume() for shard in cache._shards)
+    assert volume == cache.volume()
 
 
 if __name__ == '__main__':

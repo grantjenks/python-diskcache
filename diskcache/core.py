@@ -582,19 +582,12 @@ class Cache(with_metaclass(CacheMeta, object)):
 
         for rowid, version, filename in rows:
             deleted = self._delete(rowid, version, filename)
-            if deleted:
-                cull_limit -= 1
+            cull_limit -= deleted
 
         if cull_limit == 0:
             return True
 
-        # Calculate total size.
-
-        page_count, = sql('PRAGMA page_count').fetchone()
-        del self.size # Update value from database.
-        total_size = self._page_size * page_count + self.size
-
-        if total_size < self.size_limit:
+        if self.volume() < self.size_limit:
             return True
 
         # Evict keys by policy.
@@ -1019,6 +1012,18 @@ class Cache(with_metaclass(CacheMeta, object)):
         self.statistics = enable
 
         return result
+
+
+    def volume(self):
+        """Return estimated total size of cache on disk.
+
+        :return: size in bytes
+
+        """
+        page_count, = self._sql('PRAGMA page_count').fetchone()
+        del self.size # Update value from database.
+        total_size = self._page_size * page_count + self.size
+        return total_size
 
 
     def close(self):

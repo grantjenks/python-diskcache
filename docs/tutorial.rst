@@ -134,8 +134,15 @@ string, bytes and None.
 cache. Each of these methods is designed to work concurrent to others. None of
 them lock or freeze the cache while operating.
 
-Lastly, two methods support metadata about the cache. The first is :meth:`stats
-<diskcache.Cache.stats>` which returns cache hits and misses.
+Lastly, three methods support metadata about the cache. The first is
+:meth:`volume <diskcache.Cache.volume>` which returns the estimated total size
+in bytes of the cache directory on disk.
+
+    >>> cache.volume()
+    9216
+
+The second is :meth:`stats <diskcache.Cache.stats>` which returns cache hits
+and misses. Cache statistics must first be enabled.
 
     >>> cache.stats(enable=True)
     >>> for num in range(100):
@@ -149,8 +156,8 @@ Cache statistics are useful when evaluating different eviction policies as
 discussed below. By default, statistics are disabled as they incur an extra
 overhead on cache retrieval.
 
-The second is :meth:`check <diskcache.Cache.check>` which verifies cache
-consistency and warns about discrepancies. It can also fix found issues.
+The third is :meth:`check <diskcache.Cache.check>` which verifies cache
+consistency. It can also fix inconsistencies and reclaimed unused space.
 
     >>> cache.check(fix=True)
     []
