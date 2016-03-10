@@ -125,13 +125,14 @@ class FanoutCache(object):
             return False
 
 
-    def check(self):
+    def check(self, fix=False):
         """Check database and file system consistency.
 
-        :return: count of warnings
+        :param bool fix: fix inconsistencies
+        :return: list of warnings
 
         """
-        return sum(shard.check() for shard in self._shards)
+        return sum((shard.check(fix=fix) for shard in self._shards), [])
 
 
     def expire(self):

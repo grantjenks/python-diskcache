@@ -153,10 +153,10 @@ The second is :meth:`check <diskcache.Cache.check>` which verifies cache
 consistency and warns about discrepancies. It can also fix found issues.
 
     >>> cache.check(fix=True)
-    0
+    []
 
-The value returned is a count of warnings emitted. As such it is useful in
-assert statements as ``assert cache.check() == 0``.
+The value returned is a list of warnings. As such it is useful in assert
+statements as ``assert len(cache.check()) == 0``.
 
 FanoutCache
 -----------

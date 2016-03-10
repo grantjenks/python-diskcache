@@ -310,7 +310,7 @@ def test_delete(cache):
     assert cache.delete(0)
     assert len(cache) == 0
     assert not cache.delete(0)
-    assert cache.check() == 0
+    assert len(cache.check()) == 0
 
 
 @nt.raises(KeyError)
@@ -341,7 +341,7 @@ def test_stats(cache):
         cache.get(1)
 
     assert cache.stats() == (0, 0)
-    assert cache.check() == 0
+    assert len(cache.check()) == 0
 
 
 @setup_cache
@@ -361,7 +361,7 @@ def test_path(cache):
 
     assert value == large_value
 
-    assert cache.check() == 0
+    assert len(cache.check()) == 0
 
 
 @setup_cache
@@ -381,7 +381,7 @@ def test_expire_rows(cache):
     assert cache.set(15, 15)
 
     assert len(cache) == 6
-    assert cache.check() == 0
+    assert len(cache.check()) == 0
 
 
 @setup_cache
@@ -417,7 +417,7 @@ def test_least_recently_stored(cache):
     assert cache[12] == million * 3
     assert cache[13] == million * 4
 
-    assert cache.check() == 0
+    assert len(cache.check()) == 0
 
 
 @setup_cache
@@ -446,7 +446,7 @@ def test_least_recently_used(cache):
     for value in [0, 1, 7, 8, 9, 10]:
         assert cache[value] == million
 
-    assert cache.check() == 0
+    assert len(cache.check()) == 0
 
 
 @setup_cache
@@ -475,7 +475,7 @@ def test_least_frequently_used(cache):
     for value in [0, 1, 7, 8, 9, 10]:
         assert cache[value] == million
 
-    assert cache.check() == 0
+    assert len(cache.check()) == 0
 
 
 @nt.raises(OSError)
@@ -526,7 +526,7 @@ def test_check(cache):
         cache.check()
         cache.check(fix=True)
 
-    assert cache.check() == 0 # Should display no warnings.
+    assert len(cache.check()) == 0 # Should display no warnings.
 
 
 @setup_cache
@@ -547,7 +547,7 @@ def test_integrity_check(cache):
         cache.check()
         cache.check(fix=True)
 
-    assert cache.check() == 0
+    assert len(cache.check()) == 0
 
 
 @setup_cache
@@ -568,7 +568,7 @@ def test_expire(cache):
         assert cache.expire() == 10
 
     assert len(cache) == 90
-    assert cache.check() == 0
+    assert len(cache.check()) == 0
 
 
 @setup_cache
@@ -581,7 +581,7 @@ def test_evict(cache):
     assert len(cache) == 90
     assert cache.evict('red') == 30
     assert len(cache) == 60
-    assert cache.check() == 0
+    assert len(cache.check()) == 0
 
 
 @setup_cache
@@ -591,7 +591,7 @@ def test_clear(cache):
     assert len(cache) == 100
     assert cache.clear() == 100
     assert len(cache) == 0
-    assert cache.check() == 0
+    assert len(cache.check()) == 0
 
 
 @setup_cache
@@ -636,7 +636,7 @@ def test_multiple_threads(cache):
     for value in values:
         assert cache[value] == value
 
-    assert cache.check() == 0
+    assert len(cache.check()) == 0
 
 
 @setup_cache
@@ -661,7 +661,7 @@ def test_thread_safe(cache):
     for value in values:
         assert cache[value] == value
 
-    assert cache.check() == 0
+    assert len(cache.check()) == 0
 
 
 @setup_cache

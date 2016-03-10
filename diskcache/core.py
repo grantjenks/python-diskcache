@@ -803,7 +803,8 @@ class Cache(with_metaclass(CacheMeta, object)):
     def check(self, fix=False):
         """Check database and file system consistency.
 
-        :return: count of warnings
+        :param bool fix: fix inconsistencies
+        :return: list of warnings
 
         """
         # pylint: disable=access-member-before-definition,W0201
@@ -916,7 +917,7 @@ class Cache(with_metaclass(CacheMeta, object)):
                     if fix:
                         os.rmdir(dirpath)
 
-            return len(warns)
+            return warns
 
 
     def expire(self):

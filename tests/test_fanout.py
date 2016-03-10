@@ -133,7 +133,7 @@ def test_evict(cache):
     assert len(cache) == 90
     assert cache.evict('red') == 30
     assert len(cache) == 60
-    assert cache.check() == 0
+    assert len(cache.check()) == 0
 
 
 @setup_cache
@@ -143,7 +143,7 @@ def test_clear(cache):
     assert len(cache) == 100
     assert cache.clear() == 100
     assert len(cache) == 0
-    assert cache.check() == 0
+    assert len(cache.check()) == 0
 
 
 @setup_cache
@@ -169,7 +169,7 @@ def test_stats(cache):
         cache.get(value)
 
     assert cache.stats() == (0, 0)
-    assert cache.check() == 0
+    assert len(cache.check()) == 0
 
 
 if __name__ == '__main__':
