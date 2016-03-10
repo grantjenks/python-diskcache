@@ -1,6 +1,12 @@
 "Django-compatible disk and file backed cache."
 
-from django.core.cache.backends.base import DEFAULT_TIMEOUT, BaseCache
+from django.core.cache.backends.base import BaseCache
+
+try:
+    from django.core.cache.backends.base import DEFAULT_TIMEOUT
+except ImportError:
+    # For older versions of Django simply use 300 seconds.
+    DEFAULT_TIMEOUT = 300
 
 from .fanout import FanoutCache
 
@@ -25,6 +31,13 @@ class DjangoCache(BaseCache):
 
     def add(self, key, value, timeout=DEFAULT_TIMEOUT, version=None,
             read=False, tag=None):
+        """Set a value in the cache if the key does not already exist. If timeout is
+        given, that timeout will be used for the key; otherwise the default
+        cache timeout will be used.
+
+        Return True if the value was stored, False otherwise.
+
+        """
         # pylint: disable=arguments-differ
         if self.has_key(key, version):
             return False
@@ -32,54 +45,52 @@ class DjangoCache(BaseCache):
             key, value, timeout=timeout, version=version, read=read, tag=tag
         )
 
-    add.__doc__ = BaseCache.add.__doc__
-
 
     def get(self, key, default=None, version=None, read=False,
             expire_time=False, tag=False):
+        """Fetch a given key from the cache. If the key does not exist, return
+        default, which itself defaults to None.
+
+        """
         # pylint: disable=arguments-differ
         key = self.make_key(key, version=version)
         return self._cache.get(
             key, default=default, read=read, expire_time=expire_time, tag=tag
         )
 
-    get.__doc__ = BaseCache.get.__doc__
-
 
     def set(self, key, value, timeout=DEFAULT_TIMEOUT, version=None,
             read=False, tag=None):
+        """Set a value in the cache. If timeout is given, that timeout will be used
+        for the key; otherwise the default cache timeout will be used.
+
+        """
         # pylint: disable=arguments-differ
         key = self.make_key(key, version=version)
         timeout = self.get_backend_timeout(timeout=timeout)
         return self._cache.set(key, value, expire=timeout, read=read, tag=tag)
 
-    set.__doc__ = BaseCache.set.__doc__
-
 
     def delete(self, key, version=None):
+        "Delete a key from the cache, failing silently."
         key = self.make_key(key, version=version)
         self._cache.delete(key)
 
-    delete.__doc__ = BaseCache.delete.__doc__
-
 
     def has_key(self, key, version=None):
+        "Returns True if the key is in the cache and has not expired."
         key = self.make_key(key, version=version)
         return key in self._cache
 
-    has_key.__doc__ = BaseCache.has_key.__doc__
-
 
     def clear(self):
+        "Remove *all* values from the cache at once."
         self._cache.clear()
-
-    clear.__doc__ = BaseCache.clear.__doc__
 
 
     def close(self):
+        "Close the cache connection."
         self._cache.close()
-
-    close.__doc__ = BaseCache.close.__doc__
 
 
     def get_backend_timeout(self, timeout=DEFAULT_TIMEOUT):
