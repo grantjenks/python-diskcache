@@ -234,7 +234,8 @@ class Disk(object):
                 with io.open(op.join(directory, filename), 'rb') as reader:
                     return reader.read()
         elif mode == MODE_TEXT:
-            with io.open(op.join(directory, filename), 'rt') as reader:
+            full_path = op.join(directory, filename)
+            with io.open(full_path, 'r', encoding='UTF-8') as reader:
                 return reader.read()
         elif mode == MODE_PICKLE:
             if value is None:
