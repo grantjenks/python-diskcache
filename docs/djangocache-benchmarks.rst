@@ -46,9 +46,9 @@ impractical for testing.
 Other caching related projects worth mentioning:
 
 5. | Request-specific in-memory cache.
-   | http://pythonhosted.org/johnny-cache/localstore_cache.html -
+   | http://pythonhosted.org/johnny-cache/localstore_cache.html
 6. | Cacheback moves all cache store operations to background Celery tasks.
-   | https://pypi.python.org/pypi/django-cacheback -
+   | https://pypi.python.org/pypi/django-cacheback
 7. | Newcache claims to improve Django's Memcached backend.
    | https://pypi.python.org/pypi/django-newcache
 8. | Supports tagging cache entries.
