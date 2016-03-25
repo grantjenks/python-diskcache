@@ -85,11 +85,13 @@ class DjangoCache(BaseCache):
 
     def clear(self, **kwargs):
         "Remove *all* values from the cache at once."
+        # pylint: disable=unused-argument
         self._cache.clear()
 
 
     def close(self, **kwargs):
         "Close the cache connection."
+        # pylint: disable=unused-argument
         self._cache.close()
 
 
