@@ -1,87 +1,7 @@
-from __future__ import print_function
-
-import ftplib
-import getpass
-import os
-import os.path as op
+import diskcache
 from setuptools import setup, find_packages
 from setuptools.command.test import test as TestCommand
-import shutil
-import subprocess as sp
 import sys
-
-import diskcache
-
-if sys.argv[-1] == 'release':
-    def run(command):
-        print('setup.py$', command)
-        sp.check_call(command.split())
-
-    version = b'v%s' % diskcache.__version__
-
-    shutil.rmtree(op.join('docs', '_build'), ignore_errors=True)
-
-    run('git checkout master')
-
-    if version in sp.check_output(['git', 'tag']):
-        print('Error: Version already tagged.')
-        sys.exit(1)
-
-    if sp.check_output(['git', 'status', '--porcelain']):
-        print('Error: Commit files in working directory before release.')
-        run('git status')
-        sys.exit(1)
-
-    run('git pull')
-    run('pylint diskcache')
-    run('tox')
-    run('git tag -a %s -m %s' % (version, version))
-    run('git push')
-    run('git push --tags')
-    run('python setup.py sdist')
-    run('twine upload dist/diskcache-%s.tar.gz' % diskcache.__version__)
-
-    root = os.getcwd()
-    os.chdir(op.join(root, 'docs'))
-
-    print('setup.py$ building docs')
-
-    run('make clean')
-    run('make html')
-
-    print('setup.py$ uploading docs')
-
-    ftps = ftplib.FTP_TLS(
-        'grantjenks.com',
-        user='grant',
-        passwd=getpass.getpass()
-    )
-    ftps.prot_p()
-
-    base = '/domains/grantjenks.com/docs/diskcache'
-
-    try:
-        ftps.mkd(base)
-    except ftplib.error_perm:
-        pass
-
-    os.chdir(op.join('_build', 'html'))
-
-    for root, dirs, files in os.walk('.'):
-        for directory in dirs:
-            print('Creating directory', op.join(root, directory))
-            try:
-                ftps.mkd('/'.join([base, root, directory]))
-            except ftplib.error_perm:
-                pass
-
-        for filename in files:
-            print('Uploading file', op.join(root, filename))
-            with open(op.join(root, filename), 'rb') as reader:
-                command = 'STOR %s/%s/%s' % (base, root, filename)
-                ftps.storbinary(command, reader)
-
-    sys.exit()
 
 
 class Tox(TestCommand):
@@ -93,6 +13,7 @@ class Tox(TestCommand):
         import tox
         errno = tox.cmdline(self.test_args)
         sys.exit(errno)
+
 
 with open('README.rst') as reader:
     readme = reader.read()
