@@ -83,12 +83,12 @@ class DjangoCache(BaseCache):
         return key in self._cache
 
 
-    def clear(self):
+    def clear(self, **kwargs):
         "Remove *all* values from the cache at once."
         self._cache.clear()
 
 
-    def close(self):
+    def close(self, **kwargs):
         "Close the cache connection."
         self._cache.close()
 
