@@ -59,7 +59,7 @@ represents a disk and file backed cache. As a Cache it supports a familiar
 Python Mapping interface with additional cache and performance parameters.
 
     >>> from diskcache import Cache
-    >>> cache = Cache('tmp')
+    >>> cache = Cache('mycache')
 
 Initialization requires a directory path reference. If the directory path does
 not exist, it will be created. Additional keyword parameters are discussed
@@ -75,12 +75,12 @@ the cache if used. You can use a Cache reference in a `with` statement to
 safeguard calling :meth:`close <diskcache.Cache.close>`.
 
     >>> cache.close()
-    >>> with Cache('tmp') as reference:
+    >>> with Cache('mycache') as reference:
     ...     pass
 
 Set an item, get a value, and delete a key using the usual operators:
 
-    >>> cache = Cache('tmp')
+    >>> cache = Cache('mycache')
     >>> cache[b'key'] = b'value'
     >>> cache[b'key']
     'value'
@@ -101,7 +101,7 @@ file-like object, and tag metadata is stored with the key. Another method,
 `default`, `read`, `expire_time`, and `tag` keyword parameters.
 
     >>> cache.get(b'key', default=b'', read=True, expire_time=True, tag=True)
-    (<_io.BufferedReader name=u'tmp/1d/6e/128a921c3b8a9027c1f69989f3ac.val'>,
+    (<_io.BufferedReader name=u'mycache/1d/6e/128a921c3b8a9027c1f69989f3ac.val'>,
      1457066214.784396,
      u'data')
 
@@ -184,9 +184,9 @@ timeout errors and aborts the operation. This means that a :meth:`set
 operation could fail to complete. The default value is 0.025 (25 milliseconds).
 
     >>> from diskcache import FanoutCache
-    >>> cache = FanoutCache('tmp', shards=4, timeout=1)
+    >>> cache = FanoutCache('mycache', shards=4, timeout=1)
 
-The example above creates a cache in the local ``tmp`` directory with four
+The example above creates a cache in the local ``mycache`` directory with four
 shards and a one second timeout. The `get`, `set`, and `delete` operations will
 attempt to abort if they'll take longer than one second.
 
@@ -212,7 +212,7 @@ DjangoCache
             'SHARDS': 4,
             'DATABASE_TIMEOUT': 1.0,
             'OPTIONS': {
-                size_limit: 2 ** 32 # 4 gigabytes
+                'size_limit': 2 ** 32  # 4 gigabytes
             },
         },
     }
@@ -245,7 +245,7 @@ passed as keyword arguments.
   stored in a file on disk rather than in the cache database.
 * `eviction_policy`, see section below.
 
-    >>> cache = Cache('tmp', size_limit=int(4e9), cull_limit=2)
+    >>> cache = Cache('mycache', size_limit=int(4e9), cull_limit=2)
     >>> cache.size_limit
     4000000000
     >>> cache.cull_limit
@@ -293,7 +293,7 @@ All clients accessing the cache are expected to use the same eviction
 policy. The policy can be set during initialization via keyword argument and
 changed by attribute.
 
-    >>> cache = Cache('tmp', eviction_policy=u'least-recently-used')
+    >>> cache = Cache('mycache', eviction_policy=u'least-recently-used')
     >>> cache.eviction_policy
     u'least-recently-used'
     >>> cache.eviction_policy = u'least-frequently-used'
