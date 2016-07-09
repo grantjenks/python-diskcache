@@ -15,7 +15,7 @@ class Tox(TestCommand):
         sys.exit(errno)
 
 
-with open('README.rst') as reader:
+with open('README.rst', encoding='utf-8') as reader:
     readme = reader.read()
 
 setup(
