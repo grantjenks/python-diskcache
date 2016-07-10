@@ -1,4 +1,5 @@
 import diskcache
+import io
 from setuptools import setup, find_packages
 from setuptools.command.test import test as TestCommand
 import sys
@@ -15,7 +16,7 @@ class Tox(TestCommand):
         sys.exit(errno)
 
 
-with open('README.rst') as reader:
+with io.open('README.rst', encoding='UTF-8') as reader:
     readme = reader.read()
 
 setup(
