@@ -239,6 +239,20 @@ def test_get_keyerror5(cache):
 
 
 @setup_cache
+def test_read(cache):
+    cache.set(0, b'abcd' * 2 ** 12)
+    with cache.read(0) as reader:
+        assert reader is not None
+
+
+@nt.raises(KeyError)
+@setup_cache
+def test_read_keyerror(cache):
+    with cache.read(0) as reader:
+        pass
+
+
+@setup_cache
 def test_set_twice(cache):
     large_value = b'abcd' * 2 ** 12
 

@@ -59,6 +59,18 @@ class DjangoCache(BaseCache):
         )
 
 
+    def read(self, key, version=None):
+        """Return file handle corresponding to `key` from Cache.
+
+        :param key: Python key to retrieve
+        :return: file open for reading in binary mode
+        :raises KeyError: if key is not found
+
+        """
+        key = self.make_key(key, version=version)
+        return self._cache.read(key)
+
+
     def set(self, key, value, timeout=DEFAULT_TIMEOUT, version=None,
             read=False, tag=None):
         """Set a value in the cache. If timeout is given, that timeout will be used

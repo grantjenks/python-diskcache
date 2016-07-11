@@ -607,16 +607,16 @@ class Cache(with_metaclass(CacheMeta, object)):
 
 
     def get(self, key, default=None, read=False, expire_time=False, tag=False):
-        """Get key from cache. If key is missing, return default.
+        """Retrieve value from cache. If key is missing, return default.
 
         :param key: Python key to retrieve
         :param default: value to return if key is missing (default None)
         :param bool read: if True, return file handle to value
             (default False)
-        :param float expire_time: if True, return expire_time in tuple
+        :param bool expire_time: if True, return expire_time in tuple
             (default False)
-        :param tag: if True, return tag in tuple (default False)
-        :return: key or `default` if not found
+        :param bool tag: if True, return tag in tuple (default False)
+        :return: corresponding value or `default` if not found
 
         """
         sql = self._sql
@@ -695,6 +695,20 @@ class Cache(with_metaclass(CacheMeta, object)):
         if value is ENOVAL:
             raise KeyError(key)
         return value
+
+
+    def read(self, key):
+        """Return file handle corresponding to `key` from Cache.
+
+        :param key: Python key to retrieve
+        :return: file open for reading in binary mode
+        :raises KeyError: if key is not found
+
+        """
+        handle = self.get(key, default=ENOVAL, read=True)
+        if handle is ENOVAL:
+            raise KeyError(key)
+        return handle
 
 
     def __contains__(self, key):

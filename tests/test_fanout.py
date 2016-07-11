@@ -89,6 +89,20 @@ def test_set_get_delete(cache):
     cache.check()
 
 
+@setup_cache
+def test_read(cache):
+    cache.set(0, b'abcd' * 2 ** 12)
+    with cache.read(0) as reader:
+        assert reader is not None
+
+
+@nt.raises(KeyError)
+@setup_cache
+def test_read_keyerror(cache):
+    with cache.read(0) as reader:
+        pass
+
+
 def test_operationalerror():
     cache = dc.FanoutCache('tmp', shards=1)
 
