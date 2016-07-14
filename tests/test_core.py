@@ -277,42 +277,15 @@ def test_set_twice(cache):
 
 
 @setup_cache
-def test_set_noupdate(cache):
-    local = mock.Mock()
-    con = mock.Mock()
-    execute = mock.Mock()
-    cursor = mock.Mock()
-    fetchall = mock.Mock()
-
-    local.con = con
-    con.execute = execute
-    execute.return_value = cursor
-    cursor.rowcount = 0
-    cursor.fetchall = fetchall
-    fetchall.return_value = None
-
-    del cache.large_value_threshold
-
-    with mock.patch.object(cache, '_local', local):
-        assert not cache.set(0, b'abcd' * 2 ** 12)
-
-    cache.check()
-
-
-@setup_cache
 @nt.raises(sqlite3.OperationalError)
 def test_set_timeout(cache):
     local = mock.Mock()
     con = mock.Mock()
     execute = mock.Mock()
-    cursor = mock.Mock()
-    fetchall = mock.Mock()
 
     local.con = con
     con.execute = execute
-    execute.side_effect = [cursor, sqlite3.OperationalError]
-    cursor.fetchall = fetchall
-    fetchall.return_value = [(0, None)]
+    execute.side_effect = sqlite3.OperationalError
 
     try:
         with mock.patch.object(cache, '_local', local):

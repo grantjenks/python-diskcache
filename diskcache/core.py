@@ -497,39 +497,28 @@ class Cache(with_metaclass(CacheMeta, object)):
 
         """
         sql = self._sql
-
+        now = time.time()
         db_key, raw = self._disk.put(key)
-
-        # Lookup filename for existing key.
-
-        rows = sql(
-            'SELECT version, filename FROM Cache WHERE key = ? AND raw = ?',
-            (db_key, raw),
-        ).fetchall()
-
-        if rows:
-            (old_version, old_filename), = rows
-        else:
-            sql('INSERT OR IGNORE INTO Cache(key, raw) VALUES (?, ?)',
-                (db_key, raw)
-            )
-            old_version, old_filename = 0, None
-
-        # Prepare value for disk storage.
-
+        expire_time = None if expire is None else now + expire
         size, mode, filename, db_value = self._disk.store(
             value, read, self.large_value_threshold, self._prep_file
         )
 
-        next_version = old_version + 1
-        now = time.time()
-        expire_time = None if expire is None else now + expire
-
-        # Update the row. Two step process so that all files remain tracked.
-
         try:
-            cursor = sql(
-                'UPDATE Cache SET'
+            sql('BEGIN IMMEDIATE')
+        except sqlite3.OperationalError:
+            self._remove(filename)
+            raise
+
+        rows = sql(
+            'SELECT rowid, filename FROM Cache WHERE key = ? AND raw = ?',
+            (db_key, raw),
+        ).fetchall()
+
+        if rows:
+            (old_rowid, old_filename), = rows
+
+            sql('UPDATE Cache SET'
                 ' version = ?,'
                 ' store_time = ?,'
                 ' expire_time = ?,'
@@ -540,8 +529,8 @@ class Cache(with_metaclass(CacheMeta, object)):
                 ' mode = ?,'
                 ' filename = ?,'
                 ' value = ?'
-                ' WHERE key = ? AND raw = ? AND version = ?', (
-                    next_version,
+                ' WHERE rowid = ?', (
+                    0,            # version
                     now,          # store_time
                     expire_time,
                     now,          # access_time
@@ -551,24 +540,34 @@ class Cache(with_metaclass(CacheMeta, object)):
                     mode,
                     filename,
                     db_value,
-                    db_key,
-                    raw,
-                    old_version,
+                    old_rowid,
                 ),
             )
-        except sqlite3.OperationalError:
-            # Most likely a connection timeout occurred.
-            self._remove(filename)
-            raise
-
-        if cursor.rowcount == 1:
-            self._remove(old_filename)
         else:
-            # Another client wrote the value before us so abort.
-            assert cursor.rowcount == 0
-            self._remove(filename)
-            return False
+            old_filename = None
 
+            sql('INSERT INTO Cache('
+                ' key, raw, version, store_time, expire_time, access_time,'
+                ' access_count, tag, size, mode, filename, value'
+                ') VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)', (
+                    db_key,
+                    raw,
+                    0,           # version
+                    now,         # store_time
+                    expire_time,
+                    now,         # access_time
+                    0,           # access_count
+                    tag,
+                    size,
+                    mode,
+                    filename,
+                    db_value,
+                ),
+            )
+
+        sql('COMMIT')
+
+        self._remove(old_filename)
         self._evict_expired_keys()
 
         return True
