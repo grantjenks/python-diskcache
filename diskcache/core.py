@@ -510,6 +510,24 @@ class Cache(with_metaclass(CacheMeta, object)):
             self._remove(filename)
             raise
 
+        # The order of SELECT, UPDATE, and INSERT is important below.
+        #
+        # Typical cache usage pattern is:
+        #
+        # value = cache.get(key)
+        # if value is None:
+        #     value = expensive_calculation()
+        #     cache.set(key, value)
+        #
+        # Cache.get does not evict expired keys to avoid writes during lookups.
+        # Commonly used/expired keys will therefore remain in the cache making
+        # an UPDATE the preferred path.
+        #
+        # The alternative is to assume the key is not present by first trying
+        # to INSERT and then handling the IntegrityError that occurs from
+        # violating the UNIQUE constraint. This optimistic approach was
+        # rejected based on the common cache usage pattern.
+
         rows = sql(
             'SELECT rowid, filename FROM Cache WHERE key = ? AND raw = ?',
             (db_key, raw),
