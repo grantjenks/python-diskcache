@@ -483,7 +483,7 @@ class Cache(with_metaclass(CacheMeta, object)):
 
 
     def set(self, key, value, expire=None, read=False, tag=None):
-        """Store key, value pair in cache.
+        """Set key, value pair in cache.
 
         When `read` is `True`, `value` should be a file-like object opened
         for reading in binary mode.
@@ -493,7 +493,7 @@ class Cache(with_metaclass(CacheMeta, object)):
         :param expire: seconds until the key expires (default None, no expiry)
         :param bool read: read value as raw bytes from file (default False)
         :param tag: text to associate with key (default None)
-        :return: True if item was successfully committed
+        :return: True if item was successfully set
 
         """
         sql = self._sql
@@ -508,17 +508,12 @@ class Cache(with_metaclass(CacheMeta, object)):
         ).fetchall()
 
         if rows:
-            (version, filename), = rows
+            (old_version, old_filename), = rows
         else:
             sql('INSERT OR IGNORE INTO Cache(key, raw) VALUES (?, ?)',
                 (db_key, raw)
             )
-            version, filename = 0, None
-
-        # Remove existing file if present.
-
-        if filename is not None:
-            self._remove(filename)
+            old_version, old_filename = 0, None
 
         # Prepare value for disk storage.
 
@@ -526,53 +521,71 @@ class Cache(with_metaclass(CacheMeta, object)):
             value, read, self.large_value_threshold, self._prep_file
         )
 
-        next_version = version + 1
+        next_version = old_version + 1
         now = time.time()
         expire_time = None if expire is None else now + expire
 
         # Update the row. Two step process so that all files remain tracked.
 
-        cursor = sql(
-            'UPDATE Cache SET'
-            ' version = ?,'
-            ' store_time = ?,'
-            ' expire_time = ?,'
-            ' access_time = ?,'
-            ' access_count = ?,'
-            ' tag = ?,'
-            ' size = ?,'
-            ' mode = ?,'
-            ' filename = ?,'
-            ' value = ?'
-            ' WHERE key = ? AND raw = ? AND version = ?', (
-                next_version,
-                now,          # store_time
-                expire_time,
-                now,          # access_time
-                0,            # access_count
-                tag,
-                size,
-                mode,
-                filename,
-                db_value,
-                db_key,
-                raw,
-                version,
-            ),
-        )
+        try:
+            cursor = sql(
+                'UPDATE Cache SET'
+                ' version = ?,'
+                ' store_time = ?,'
+                ' expire_time = ?,'
+                ' access_time = ?,'
+                ' access_count = ?,'
+                ' tag = ?,'
+                ' size = ?,'
+                ' mode = ?,'
+                ' filename = ?,'
+                ' value = ?'
+                ' WHERE key = ? AND raw = ? AND version = ?', (
+                    next_version,
+                    now,          # store_time
+                    expire_time,
+                    now,          # access_time
+                    0,            # access_count
+                    tag,
+                    size,
+                    mode,
+                    filename,
+                    db_value,
+                    db_key,
+                    raw,
+                    old_version,
+                ),
+            )
+        except sqlite3.OperationalError:
+            # Most likely a connection timeout occurred.
+            self._remove(filename)
+            raise
 
-        if cursor.rowcount == 0:
-            # Another Cache wrote the value before us so abort.
-            if filename is not None:
-                self._remove(filename)
+        if cursor.rowcount == 1:
+            self._remove(old_filename)
+        else:
+            # Another client wrote the value before us so abort.
+            assert cursor.rowcount == 0
+            self._remove(filename)
             return False
 
-        # Evict expired keys.
+        self._evict_expired_keys()
 
+        return True
+
+
+    __setitem__ = set
+
+
+    def _evict_expired_keys(self):
+        "Evict expired keys."
         cull_limit = self.cull_limit
 
         if cull_limit == 0:
-            return True
+            return
+
+        sql = self._sql
+        now = time.time()
 
         rows = sql(
             'SELECT rowid, version, filename FROM Cache'
@@ -586,10 +599,10 @@ class Cache(with_metaclass(CacheMeta, object)):
             cull_limit -= deleted
 
         if cull_limit == 0:
-            return True
+            return
 
         if self.volume() < self.size_limit:
-            return True
+            return
 
         # Evict keys by policy.
 
@@ -601,9 +614,84 @@ class Cache(with_metaclass(CacheMeta, object)):
             for rowid, version, filename in rows:
                 self._delete(rowid, version, filename)
 
-        return True
 
-    __setitem__ = set
+    def add(self, key, value, expire=None, read=False, tag=None):
+        """Add key, value pair to cache.
+
+        Similar to `set`, but only set in cache if key not present.
+
+        This operation is atomic. Only one concurrent add operation for given
+        key from separate threads or processes will succeed.
+
+        When `read` is `True`, `value` should be a file-like object opened
+        for reading in binary mode.
+
+        :param key: Python key to store
+        :param value: Python value to store
+        :param float expire: seconds until the key expires
+            (default None, no expiry)
+        :param bool read: read value as bytes from file (default False)
+        :param str tag: text to associate with key (default None)
+        :return: True if item was successfully added
+
+        """
+        sql = self._sql
+        now = time.time()
+        db_key, raw = self._disk.put(key)
+        expire_time = None if expire is None else now + expire
+        size, mode, filename, db_value = self._disk.store(
+            value, read, self.large_value_threshold, self._prep_file
+        )
+
+        try:
+            sql('BEGIN IMMEDIATE')
+        except sqlite3.OperationalError:
+            self._remove(filename)
+            raise
+
+        rows = sql(
+            'SELECT rowid, filename, expire_time FROM Cache'
+            ' WHERE key = ? AND raw = ?',
+            (db_key, raw),
+        ).fetchall()
+
+        if rows:
+            (old_rowid, old_filename, old_expire_time), = rows
+
+            if old_expire_time is not None and old_expire_time < now:
+                sql('DELETE FROM Cache WHERE rowid = ?', (old_rowid,))
+            else:
+                sql('COMMIT')
+                self._remove(filename)
+                return False
+        else:
+            old_filename = None
+
+        sql('INSERT INTO Cache('
+            ' key, raw, version, store_time, expire_time, access_time,'
+            ' access_count, tag, size, mode, filename, value'
+            ') VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)', (
+                db_key,
+                raw,
+                0,           # version
+                now,         # store_time
+                expire_time,
+                now,         # access_time
+                0,           # access_count
+                tag,
+                size,
+                mode,
+                filename,
+                db_value,
+            ),
+        )
+
+        sql('COMMIT')
+
+        self._remove(old_filename)
+        self._evict_expired_keys()
+
+        return True
 
 
     def get(self, key, default=None, read=False, expire_time=False, tag=False):
@@ -773,7 +861,7 @@ class Cache(with_metaclass(CacheMeta, object)):
 
         deleted = cursor.rowcount == 1
 
-        if deleted and filename is not None:
+        if deleted:
             self._remove(filename)
 
         return deleted
@@ -798,6 +886,9 @@ class Cache(with_metaclass(CacheMeta, object)):
 
 
     def _remove(self, filename):
+        if filename is None:
+            return
+
         full_path = op.join(self._dir, filename)
 
         try:

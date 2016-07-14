@@ -1,5 +1,6 @@
 "Test diskcache.core.Cache."
 
+import collections as co
 import errno
 import functools as ft
 import io
@@ -296,6 +297,28 @@ def test_set_noupdate(cache):
         assert not cache.set(0, b'abcd' * 2 ** 12)
 
     cache.check()
+
+
+@setup_cache
+@nt.raises(sqlite3.OperationalError)
+def test_set_timeout(cache):
+    local = mock.Mock()
+    con = mock.Mock()
+    execute = mock.Mock()
+    cursor = mock.Mock()
+    fetchall = mock.Mock()
+
+    local.con = con
+    con.execute = execute
+    execute.side_effect = [cursor, sqlite3.OperationalError]
+    cursor.fetchall = fetchall
+    fetchall.return_value = [(0, None)]
+
+    try:
+        with mock.patch.object(cache, '_local', local):
+            cache.set(0, 0)
+    finally:
+        cache.check()
 
 
 @setup_cache
@@ -695,6 +718,73 @@ def test_contains(cache):
     assert 0 in cache
     cache._sql('UPDATE Cache SET store_time = NULL')
     assert 0 not in cache
+
+
+@setup_cache
+def test_add(cache):
+    assert cache.add(1, 1)
+    assert cache.get(1) == 1
+    assert not cache.add(1, 2)
+    assert cache.get(1) == 1
+    cache.check()
+
+@setup_cache
+def test_add_large_value(cache):
+    value = b'abcd' * 2 ** 12
+    assert cache.add(b'test-key', value)
+    assert cache.get(b'test-key') == value
+    assert not cache.add(b'test-key', value * 2)
+    assert cache.get(b'test-key') == value
+    cache.check()
+
+results = co.deque()
+
+
+def stress_add(cache, limit):
+    total = 0
+    for num in xrange(limit):
+        if cache.add(num, num):
+            total += 1
+            # Stop one thread from running ahead of others.
+            time.sleep(0.001)
+    results.append(total)
+
+
+@setup_cache
+def test_add_concurrent(cache):
+    limit = 1000
+
+    threads = [
+        threading.Thread(target=stress_add, args=(cache, limit))
+        for _ in range(16)
+    ]
+
+    for thread in threads:
+        thread.start()
+
+    for thread in threads:
+        thread.join()
+
+    assert sum(results) == limit
+    cache.check()
+
+
+@setup_cache
+@nt.raises(sqlite3.OperationalError)
+def test_add_timeout(cache):
+    local = mock.Mock()
+    con = mock.Mock()
+    execute = mock.Mock()
+
+    local.con = con
+    con.execute = execute
+    execute.side_effect = sqlite3.OperationalError
+
+    try:
+        with mock.patch.object(cache, '_local', local):
+            cache.add(0, 0)
+    finally:
+        cache.check()
 
 
 if __name__ == '__main__':

@@ -39,8 +39,8 @@ class FanoutCache(object):
             setattr(shard, name, value)
 
 
-    def set(self, key, value, read=False, expire=None, tag=None):
-        """Store key, value pair in cache.
+    def set(self, key, value, expire=None, read=False, tag=None):
+        """Set key, value pair in cache.
 
         When `read` is `True`, `value` should be a file-like object opened
         for reading in binary mode.
@@ -50,18 +50,48 @@ class FanoutCache(object):
         :param expire: seconds until the key expires (default None, no expiry)
         :param bool read: read value as raw bytes from file (default False)
         :param tag: text to associate with key (default None)
-        :return: True if item was successfully committed
+        :return: True if item was successfully set
 
         """
         try:
             index = hash(key) % self._count
             return self._shards[index].set(
-                key, value, read=read, expire=expire, tag=tag,
+                key, value, expire=expire, read=read, tag=tag,
             )
         except sqlite3.OperationalError:
             return False
 
+
     __setitem__ = set
+
+
+    def add(self, key, value, expire=None, read=False, tag=None):
+        """Add key, value pair to cache.
+
+        Similar to `set`, but only set in cache if key not present.
+
+        This operation is atomic. Only one concurrent add operation for given
+        key from separate threads or processes will succeed.
+
+        When `read` is `True`, `value` should be a file-like object opened
+        for reading in binary mode.
+
+        :param key: Python key to store
+        :param value: Python value to store
+        :param float expire: seconds until the key expires
+            (default None, no expiry)
+        :param bool read: read value as bytes from file (default False)
+        :param str tag: text to associate with key (default None)
+        :return: True if item was successfully added
+
+        """
+        try:
+            index = hash(key) % self._count
+            return self._shards[index].add(
+                key, value, expire=expire, read=read, tag=tag,
+            )
+        except sqlite3.OperationalError:
+            return False
 
 
     def get(self, key, default=None, read=False, expire_time=False, tag=False):

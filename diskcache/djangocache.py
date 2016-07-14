@@ -39,11 +39,9 @@ class DjangoCache(BaseCache):
 
         """
         # pylint: disable=arguments-differ
-        if self.has_key(key, version):
-            return False
-        return self.set(
-            key, value, timeout=timeout, version=version, read=read, tag=tag
-        )
+        key = self.make_key(key, version=version)
+        timeout = self.get_backend_timeout(timeout=timeout)
+        return self._cache.add(key, value, expire=timeout, read=read, tag=tag)
 
 
     def get(self, key, default=None, version=None, read=False,
