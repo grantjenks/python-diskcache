@@ -52,24 +52,34 @@ def test_init(cache):
 
 @setup_cache
 def test_set_get(cache):
-    from = 0
-    to = 100
+    start = 0
+    end = 100
 
-    for value in range(from, to):
+    for value in range(start, end + 1):
         cache.set(value, value)
 
     cache.check()
 
-    assert cache.first() == from
-    assert cache.last() == to
+    assert cache.first() == start
+    assert cache.last() == end
 
-    cache.delete(from)
-    cache.delete(to)
+    assert cache.first(key=True)[0] == start
+    assert cache.last(key=True)[0] == end
 
     cache.check()
 
-    assert cache.first() == from+1
-    assert cache.last() == to-1
+    cache.delete(start)
+    cache.delete(end)
+
+    cache.check()
+
+    assert cache.first() == start + 1
+    assert cache.last() == end - 1
+
+    assert cache.first(key=True)[0] == start + 1
+    assert cache.last(key=True)[0] == end - 1
+
+    cache.check()
 
 
 if __name__ == '__main__':

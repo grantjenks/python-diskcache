@@ -10,7 +10,7 @@ class OrderedCache(Cache):
                  **settings):
         """Initialize OrderedCache instance.
 
-        :param str filename: cache file
+        :param str directory: cache directory
         :param float timeout: SQLite connection timeout
         :param disk: `Disk`: instance for serialization
         :param settings: any of `DEFAULT_SETTINGS`
@@ -20,7 +20,7 @@ class OrderedCache(Cache):
         super(self.__class__, self).__init__(directory, timeout, disk)
 
 
-    def first(self, default=None):
+    def first(self, default=None, key=False, read=False, expire_time=False, tag=False):
         """ Return the first entry in cache """
         sql = self._sql
 
@@ -29,14 +29,17 @@ class OrderedCache(Cache):
         if not row:
             return default
 
-        (key), = row
+        (cache_key), = row
 
-        print key
+        value = self.get(cache_key, default=default, read=read, expire_time=expire_time, tag=tag)
 
-        return self.get(key, default=default)
+        if key:
+            return (cache_key, value)
+        else:
+            return value
 
 
-    def last(self, default=None):
+    def last(self, default=None, key=False, read=False, expire_time=False, tag=False):
         """ Return the last entry in cache """
         sql = self._sql
 
@@ -45,6 +48,11 @@ class OrderedCache(Cache):
         if not row:
             return default
 
-        (key), = row
+        (cache_key), = row
 
-        return self.get(key, default=default)
+        value = self.get(cache_key, default=default, read=read, expire_time=expire_time, tag=tag)
+
+        if key:
+            return (cache_key, value)
+        else:
+            return value
