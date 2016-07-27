@@ -16,43 +16,26 @@ class OrderedCache(Cache):
         :param settings: any of `DEFAULT_SETTINGS`
 
         """
-
         super(self.__class__, self).__init__(directory, timeout, disk)
+        
 
+    def first(self, default=ENOVAL):
+        """Retrieve the first key in the cache based on age
 
-    def first(self, default=None, key=False, read=False, expire_time=False, tag=False):
-        """ Return the first entry in cache """
-        sql = self._sql
-
-        row = sql('SELECT key FROM Cache ORDER BY rowid ASC').fetchone()
-
-        if not row:
+        :param key default: default value if cache is empty
+        """
+        try:
+            return next(iter(self))
+        except StopIteration:
             return default
 
-        (cache_key), = row
 
-        value = self.get(cache_key, default=default, read=read, expire_time=expire_time, tag=tag)
+    def last(self, default=ENOVAL):
+        """Retrieve the last key in the cache based on age
 
-        if key:
-            return (cache_key, value)
-        else:
-            return value
-
-
-    def last(self, default=None, key=False, read=False, expire_time=False, tag=False):
-        """ Return the last entry in cache """
-        sql = self._sql
-
-        row = sql('SELECT key FROM Cache ORDER BY rowid DESC').fetchone()
-
-        if not row:
+        :param key default: default value if cache is empty
+        """
+        try:
+            return next(reversed(self))
+        except StopIteration:
             return default
-
-        (cache_key), = row
-
-        value = self.get(cache_key, default=default, read=read, expire_time=expire_time, tag=tag)
-
-        if key:
-            return (cache_key, value)
-        else:
-            return value

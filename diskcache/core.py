@@ -482,6 +482,20 @@ class Cache(with_metaclass(CacheMeta, object)):
         return con.execute
 
 
+    def __iter__(self):
+        sql = self._sql
+
+        for (key,) in sql('SELECT key FROM Cache ORDER BY rowid ASC').fetchall():
+            yield key
+
+
+    def __reversed__(self):
+        sql = self._sql
+
+        for (key,) in sql('SELECT key FROM Cache ORDER BY rowid DESC').fetchall():
+            yield key
+
+
     def set(self, key, value, expire=None, read=False, tag=None):
         """Store key, value pair in cache.
 

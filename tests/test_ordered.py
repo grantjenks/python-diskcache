@@ -20,6 +20,7 @@ except:
     import pickle
 
 import diskcache as dc
+from diskcache.core import ENOVAL
 
 warnings.simplefilter('error')
 warnings.simplefilter('ignore', category=dc.EmptyDirWarning)
@@ -51,7 +52,17 @@ def test_init(cache):
 
 
 @setup_cache
-def test_set_get(cache):
+def test_first_last(cache):
+    assert cache.first() == ENOVAL
+    assert cache.last() == ENOVAL
+
+    cache.check()
+
+    assert cache.first(default=1) == 1
+    assert cache.last(default=1) == 1
+
+    cache.check()
+
     start = 0
     end = 100
 
@@ -63,8 +74,8 @@ def test_set_get(cache):
     assert cache.first() == start
     assert cache.last() == end
 
-    assert cache.first(key=True)[0] == start
-    assert cache.last(key=True)[0] == end
+    assert cache.first(default=True) == start
+    assert cache.last(default=True) == end
 
     cache.check()
 
@@ -75,9 +86,6 @@ def test_set_get(cache):
 
     assert cache.first() == start + 1
     assert cache.last() == end - 1
-
-    assert cache.first(key=True)[0] == start + 1
-    assert cache.last(key=True)[0] == end - 1
 
     cache.check()
 
