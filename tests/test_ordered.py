@@ -74,8 +74,8 @@ def test_first_last(cache):
     assert cache.first() == start
     assert cache.last() == end
 
-    assert cache.first(default=True) == start
-    assert cache.last(default=True) == end
+    assert cache.first(default=500) == start
+    assert cache.last(default=600) == end
 
     cache.check()
 
