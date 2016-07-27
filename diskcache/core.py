@@ -484,16 +484,28 @@ class Cache(with_metaclass(CacheMeta, object)):
 
     def __iter__(self):
         sql = self._sql
+        chunk = self.cull_limit
 
-        for (key,) in sql('SELECT key FROM Cache ORDER BY rowid ASC').fetchall():
-            yield key
+        rows = sql(
+            'SELECT key, raw FROM Cache ORDER BY rowid ASC LIMIT ?', 
+            (chunk,)
+        ).fetchall()
+
+        for (key, raw) in rows:
+            yield self._disk.get(key, raw)
 
 
     def __reversed__(self):
         sql = self._sql
+        chunk = self.cull_limit
 
-        for (key,) in sql('SELECT key FROM Cache ORDER BY rowid DESC').fetchall():
-            yield key
+        rows = sql(
+            'SELECT key, raw FROM Cache ORDER BY rowid DESC LIMIT ?', 
+            (chunk,)
+        ).fetchall();
+
+        for (key, raw) in rows:
+            yield self._disk.get(key, raw)
 
 
     def set(self, key, value, expire=None, read=False, tag=None):
