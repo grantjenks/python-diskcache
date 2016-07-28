@@ -27,13 +27,6 @@ else:
     BytesType = bytes
     INT_TYPES = int,
 
-if (2, 7) <= sys.version_info < (2, 7, 4):
-    # work around 
-    from StringIO import StringIO as BytesIO
-else:
-    from io import BytesIO
-
-
 DBNAME = 'cache.db'
 ENOVAL = object()
 
