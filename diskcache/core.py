@@ -17,7 +17,9 @@ if sys.hexversion < 0x03000000:
     TextType = unicode
     BytesType = str
     INT_TYPES = int, long
-    range = xrange # pylint: disable=redefined-builtin,invalid-name
+    range = xrange  # pylint: disable=redefined-builtin,invalid-name
+    class TimeoutError(OSError):
+        "Timeout expired."
 else:
     import pickle
     TextType = str
@@ -40,15 +42,15 @@ LIMITS = {
 }
 
 DEFAULT_SETTINGS = {
-    u'statistics': 0, # False
+    u'statistics': 0,  # False
     u'eviction_policy': u'least-recently-stored',
-    u'size_limit': 2 ** 30, # 1gb
+    u'size_limit': 2 ** 30,  # 1gb
     u'cull_limit': 10,
-    u'large_value_threshold': 2 ** 10, # 1kb, min 8
+    u'large_value_threshold': 2 ** 10,  # 1kb, min 8
     u'sqlite_synchronous': u'NORMAL',
     u'sqlite_journal_mode': u'WAL',
-    u'sqlite_cache_size': 2 ** 13, # 8,192 pages
-    u'sqlite_mmap_size': 2 ** 26,  # 64mb
+    u'sqlite_cache_size': 2 ** 13,  # 8,192 pages
+    u'sqlite_mmap_size': 2 ** 26,   # 64mb
 }
 
 METADATA = {
@@ -65,10 +67,13 @@ EVICTION_POLICY = {
             ' Cache (store_time)'
         ),
         'get': None,
-        'set': (
-            'SELECT rowid, version, filename FROM Cache'
-            ' ORDER BY store_time LIMIT ?'
-        ),
+        'set': {
+            'select': 'SELECT filename FROM Cache ORDER BY store_time LIMIT ?',
+            'delete': (
+                'DELETE FROM Cache WHERE rowid IN ('
+                ' SELECT rowid FROM Cache ORDER BY store_time LIMIT ? )'
+            ),
+        },
     },
     'least-recently-used': {
         'init': (
@@ -80,10 +85,13 @@ EVICTION_POLICY = {
             ' access_time = ((julianday("now") - 2440587.5) * 86400.0)'
             ' WHERE rowid = ?'
         ),
-        'set': (
-            'SELECT rowid, version, filename FROM Cache'
-            ' ORDER BY access_time LIMIT ?'
-        ),
+        'set': {
+            'select': 'SELECT filename FROM Cache ORDER BY access_time LIMIT ?',
+            'delete': (
+                'DELETE FROM Cache WHERE rowid IN ('
+                ' SELECT rowid FROM Cache ORDER BY access_time LIMIT ? )'
+            ),
+        },
     },
     'least-frequently-used': {
         'init': (
@@ -95,10 +103,13 @@ EVICTION_POLICY = {
             ' access_count = access_count + 1'
             ' WHERE rowid = ?'
         ),
-        'set': (
-            'SELECT rowid, version, filename FROM Cache'
-            ' ORDER BY access_count LIMIT ?'
-        ),
+        'set': {
+            'select': 'SELECT filename FROM Cache ORDER BY access_count LIMIT ?',
+            'delete': (
+                'DELETE FROM Cache WHERE rowid IN ('
+                ' SELECT rowid FROM Cache ORDER BY access_count LIMIT ? )'
+            ),
+        },
     },
 }
 
@@ -335,6 +346,37 @@ class EmptyDirWarning(UserWarning):
     pass
 
 
+class Transaction(object):
+    def __init__(self, cache):
+        self._cache = cache
+        self._filenames = []
+
+
+    def __enter__(self):
+        sql = self._cache._sql
+
+        try:
+            sql('BEGIN IMMEDIATE')
+        except sqlite3.OperationalError:
+            raise TimeoutError
+
+        return sql, self._filenames.append
+
+
+    def __exit__(self, exc_type, exc_value, traceback):
+        sql = self._cache._sql
+
+        if exc_type is None:
+            sql('COMMIT')
+            remove = self._cache._remove
+            for filename in self._filenames:
+                remove(filename)
+        else:
+            sql('ROLLBACK')
+
+        del self._filenames[:]
+
+
 class Cache(with_metaclass(CacheMeta, object)):
     "Disk and file backed cache."
     # pylint: disable=bad-continuation
@@ -482,6 +524,26 @@ class Cache(with_metaclass(CacheMeta, object)):
         return con.execute
 
 
+    @contextmanager
+    def _transact(self):
+        sql = self._sql
+        filenames = []
+
+        try:
+            sql('BEGIN IMMEDIATE')
+        except sqlite3.OperationalError:
+            raise TimeoutError
+
+        try:
+            yield sql, filenames.append
+        except BaseException:
+            sql('ROLLBACK')
+        else:
+            sql('COMMIT')
+            for filename in filenames:
+                self._remove(filename)
+
+
     def set(self, key, value, expire=None, read=False, tag=None):
         """Set key, value pair in cache.
 
@@ -490,25 +552,29 @@ class Cache(with_metaclass(CacheMeta, object)):
 
         :param key: Python key to store
         :param value: Python value to store
-        :param expire: seconds until the key expires (default None, no expiry)
-        :param bool read: read value as raw bytes from file (default False)
-        :param tag: text to associate with key (default None)
-        :return: True if item was successfully set
+        :param float expire: seconds until the key expires
+            (default None, no expiry)
+        :param bool read: read value as bytes from file (default False)
+        :param str tag: text to associate with key (default None)
+        :return: True if key was successfully set
 
         """
         sql = self._sql
-        now = time.time()
         db_key, raw = self._disk.put(key)
         expire_time = None if expire is None else now + expire
         size, mode, filename, db_value = self._disk.store(
-            value, read, self.large_value_threshold, self._prep_file
+            value, read, self.large_value_threshold, self._filename
         )
+        columns = (expire_time, tag, size, mode, filename, db_value)
+        removes = []
 
         try:
             sql('BEGIN IMMEDIATE')
         except sqlite3.OperationalError:
             self._remove(filename)
-            raise
+            return False
+
+        now = time.time()
 
         # The order of SELECT, UPDATE, and INSERT is important below.
         #
@@ -528,65 +594,22 @@ class Cache(with_metaclass(CacheMeta, object)):
         # violating the UNIQUE constraint. This optimistic approach was
         # rejected based on the common cache usage pattern.
 
-        rows = sql(
-            'SELECT rowid, filename FROM Cache WHERE key = ? AND raw = ?',
-            (db_key, raw),
-        ).fetchall()
+        select = 'SELECT rowid, filename FROM Cache WHERE key = ? AND raw = ?'
+        rows = sql(select, (key, raw)).fetchall()
 
         if rows:
-            (old_rowid, old_filename), = rows
-
-            sql('UPDATE Cache SET'
-                ' version = ?,'
-                ' store_time = ?,'
-                ' expire_time = ?,'
-                ' access_time = ?,'
-                ' access_count = ?,'
-                ' tag = ?,'
-                ' size = ?,'
-                ' mode = ?,'
-                ' filename = ?,'
-                ' value = ?'
-                ' WHERE rowid = ?', (
-                    0,            # version
-                    now,          # store_time
-                    expire_time,
-                    now,          # access_time
-                    0,            # access_count
-                    tag,
-                    size,
-                    mode,
-                    filename,
-                    db_value,
-                    old_rowid,
-                ),
-            )
+            (rowid, old_filename), = rows
+            removes.append(old_filename)
+            self._row_update(rowid, now, columns)
         else:
-            old_filename = None
+            self._row_insert(db_key, raw, now, columns)
 
-            sql('INSERT INTO Cache('
-                ' key, raw, version, store_time, expire_time, access_time,'
-                ' access_count, tag, size, mode, filename, value'
-                ') VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)', (
-                    db_key,
-                    raw,
-                    0,           # version
-                    now,         # store_time
-                    expire_time,
-                    now,         # access_time
-                    0,           # access_count
-                    tag,
-                    size,
-                    mode,
-                    filename,
-                    db_value,
-                ),
-            )
+        removes.extend(self._cull(now))
 
         sql('COMMIT')
 
-        self._remove(old_filename)
-        self._evict_expired_keys()
+        for reference in removes:
+            self._remove(reference)
 
         return True
 
@@ -594,50 +617,105 @@ class Cache(with_metaclass(CacheMeta, object)):
     __setitem__ = set
 
 
-    def _evict_expired_keys(self):
-        "Evict expired keys."
+    def _row_update(self, rowid, now, columns):
+        sql = self._sql
+        expire_time, tag, size, mode, filename, value = columns
+        sql('UPDATE Cache SET'
+            ' version = ?,'
+            ' store_time = ?,'
+            ' expire_time = ?,'
+            ' access_time = ?,'
+            ' access_count = ?,'
+            ' tag = ?,'
+            ' size = ?,'
+            ' mode = ?,'
+            ' filename = ?,'
+            ' value = ?'
+            ' WHERE rowid = ?', (
+                0,            # version
+                now,          # store_time
+                expire_time,
+                now,          # access_time
+                0,            # access_count
+                tag,
+                size,
+                mode,
+                filename,
+                value,
+                rowid,
+            ),
+        )
+
+
+    def _row_insert(self, key, raw, now, columns):
+        sql = self._sql
+        expire_time, tag, size, mode, filename, value = columns
+        sql('INSERT INTO Cache('
+            ' key, raw, version, store_time, expire_time, access_time,'
+            ' access_count, tag, size, mode, filename, value'
+            ') VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)', (
+                key,
+                raw,
+                0,           # version
+                now,         # store_time
+                expire_time,
+                now,         # access_time
+                0,           # access_count
+                tag,
+                size,
+                mode,
+                filename,
+                value,
+            ),
+        )
+
+
+    def _cull(self, now):
         cull_limit = self.cull_limit
 
         if cull_limit == 0:
-            return
+            return []
 
         sql = self._sql
-        now = time.time()
 
-        rows = sql(
-            'SELECT rowid, version, filename FROM Cache'
+        select_expired = (
+            'SELECT filename FROM Cache'
             ' WHERE expire_time IS NOT NULL AND expire_time < ?'
-            ' ORDER BY expire_time LIMIT ?',
-            (now, cull_limit),
-        ).fetchall()
+            ' ORDER BY expire_time LIMIT ?'
+        )
+        delete_expired = (
+            'DELETE FROM Cache WHERE rowid IN ( '
+            + select_expired
+            + ' )'
+        )
 
-        for rowid, version, filename in rows:
-            deleted = self._delete(rowid, version, filename)
-            cull_limit -= deleted
+        rows = sql(select_expired, (now, cull_limit)).fetchall()
+        sql(delete_expired, (now, cull_limit))
+        cull_limit -= len(rows)
+        filenames = [filename for filename, in rows]
 
-        if cull_limit == 0:
-            return
-
-        if self.volume() < self.size_limit:
-            return
+        if cull_limit == 0 or self.volume() < self.size_limit:
+            return filenames
 
         # Evict keys by policy.
 
-        query = EVICTION_POLICY[self.eviction_policy]['set']
+        policy = EVICTION_POLICY[self.eviction_policy]['set']
+        select = policy['select']
+        delete = policy['delete']
 
-        if query is not None:
-            rows = sql(query, (cull_limit,))
+        rows = sql(select, (cull_limit,)).fetchall()
+        sql(delete, (cull_limit,))
+        filenames.extend(filename for filename, in rows)
 
-            for rowid, version, filename in rows:
-                self._delete(rowid, version, filename)
+        return filenames
 
 
     def add(self, key, value, expire=None, read=False, tag=None):
         """Add key, value pair to cache.
 
-        Similar to `set`, but only set in cache if key not present.
+        Similar to `set`, but only add to cache if key not present.
 
-        This operation is atomic. Only one concurrent add operation for given
+        This operation is atomic. Only one concurrent add operation for a given
         key from separate threads or processes will succeed.
 
         When `read` is `True`, `value` should be a file-like object opened
@@ -649,22 +727,25 @@ class Cache(with_metaclass(CacheMeta, object)):
             (default None, no expiry)
         :param bool read: read value as bytes from file (default False)
         :param str tag: text to associate with key (default None)
-        :return: True if item was successfully added
+        :return: True if key was successfully added
 
         """
         sql = self._sql
-        now = time.time()
         db_key, raw = self._disk.put(key)
         expire_time = None if expire is None else now + expire
         size, mode, filename, db_value = self._disk.store(
-            value, read, self.large_value_threshold, self._prep_file
+            value, read, self.large_value_threshold, self._filename
         )
+        columns = (expire_time, tag, size, mode, filename, db_value)
+        removes = []
 
         try:
             sql('BEGIN IMMEDIATE')
         except sqlite3.OperationalError:
             self._remove(filename)
-            raise
+            raise DatabaseTimeout
+
+        now = time.time()
 
         rows = sql(
             'SELECT rowid, filename, expire_time FROM Cache'
@@ -673,40 +754,24 @@ class Cache(with_metaclass(CacheMeta, object)):
         ).fetchall()
 
         if rows:
-            (old_rowid, old_filename, old_expire_time), = rows
+            (rowid, old_filename, old_expire_time), = rows
 
-            if old_expire_time is not None and old_expire_time < now:
-                sql('DELETE FROM Cache WHERE rowid = ?', (old_rowid,))
-            else:
+            if old_expire_time is None or old_expire_time >= now:
                 sql('COMMIT')
                 self._remove(filename)
                 return False
-        else:
-            old_filename = None
 
-        sql('INSERT INTO Cache('
-            ' key, raw, version, store_time, expire_time, access_time,'
-            ' access_count, tag, size, mode, filename, value'
-            ') VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)', (
-                db_key,
-                raw,
-                0,           # version
-                now,         # store_time
-                expire_time,
-                now,         # access_time
-                0,           # access_count
-                tag,
-                size,
-                mode,
-                filename,
-                db_value,
-            ),
-        )
+            removes.append(old_filename)
+            self._row_update(rowid, now, columns)
+        else:
+            self._row_insert(db_key, raw, now, columns)
+
+        removes.extend(self._cull(now))
 
         sql('COMMIT')
 
-        self._remove(old_filename)
-        self._evict_expired_keys()
+        for reference in removes:
+            self._remove(reference)
 
         return True
 
@@ -819,42 +884,43 @@ class Cache(with_metaclass(CacheMeta, object)):
     def __contains__(self, key):
         "Return True if `key` in Cache."
         sql = self._sql
-
         db_key, raw = self._disk.put(key)
+        now = time.time()
 
         rows = sql(
-            'SELECT store_time, expire_time FROM Cache'
-            ' WHERE key = ? AND raw = ?',
+            'SELECT expire_time FROM Cache WHERE key = ? AND raw = ?',
             (db_key, raw),
         ).fetchall()
 
         if not rows:
             return False
 
-        (store_time, expire_time), = rows
-
-        if store_time is None:
-            return False
-
-        return expire_time is None or time.time() < expire_time
+        return expire_time is None or now < expire_time
 
 
     def __delitem__(self, key):
         "Delete corresponding item for `key` from Cache."
         sql = self._sql
-
         db_key, raw = self._disk.put(key)
 
-        rows = sql(
-            'SELECT rowid, version, filename'
-            ' FROM Cache WHERE key = ? AND raw = ?',
-            (db_key, raw),
-        ).fetchall()
+        try:
+            sql('BEGIN IMMEDIATE')
+        except sqlite3.OperationalError:
+            raise DatabaseTimeout
+
+        now = time.time()
+
+        select = 'SELECT rowid, filename FROM Cache WHERE key = ? AND raw = ?'
+        rows = sql(select, (db_key, raw)).fetchall()
 
         if rows:
-            (rowid, version, filename), = rows
-            return self._delete(rowid, version, filename)
+            (rowid, filename), = rows
+            sql('DELETE FROM Cache WHERE rowid = ?', (rowid,))
+            sql('COMMIT')
+            self._remove(filename)
+            return True
         else:
+            sql('COMMIT')
             raise KeyError(key)
 
 
@@ -870,21 +936,7 @@ class Cache(with_metaclass(CacheMeta, object)):
             return False
 
 
-    def _delete(self, rowid, version, filename):
-        cursor = self._sql(
-            'DELETE FROM Cache WHERE rowid = ? AND version = ?',
-            (rowid, version),
-        )
-
-        deleted = cursor.rowcount == 1
-
-        if deleted:
-            self._remove(filename)
-
-        return deleted
-
-
-    def _prep_file(self):
+    def _filename(self):
         hex_name = codecs.encode(os.urandom(16), 'hex').decode('utf-8')
         sub_dir = op.join(hex_name[:2], hex_name[2:4])
         name = hex_name[4:] + '.val'
@@ -938,6 +990,10 @@ class Cache(with_metaclass(CacheMeta, object)):
 
             if fix:
                 sql('VACUUM')
+                try:
+                    sql('BEGIN IMMEDIATE')
+                except sqlite3.OperationalError:
+                    raise DatabaseTimeout
 
             # Check Settings.count against count of Cache rows.
 
@@ -951,20 +1007,6 @@ class Cache(with_metaclass(CacheMeta, object)):
 
                 if fix:
                     self.count = count
-
-            # Report uncommitted rows.
-
-            rows = sql(
-                'SELECT rowid, key, raw, version, filename FROM Cache'
-                ' WHERE store_time IS NULL'
-            ).fetchall()
-
-            for rowid, key, raw, version, filename in rows:
-                warnings.warn('row %d partially commited with key %r' % (
-                    rowid, self._disk.get(key, raw)
-                ))
-                if fix:
-                    self._delete(rowid, version, filename)
 
             # Check Cache.filename against file system.
 
@@ -995,7 +1037,7 @@ class Cache(with_metaclass(CacheMeta, object)):
                     warnings.warn('file not found: %s' % full_path)
 
                     if fix:
-                        self._delete(rowid, version, filename)
+                        sql('DELETE FROM Cache WHERE rowid = ?', (rowid,))
 
             del self.size
             self_size = self.size
@@ -1036,85 +1078,148 @@ class Cache(with_metaclass(CacheMeta, object)):
                     if fix:
                         os.rmdir(dirpath)
 
+            if fix:
+                sql('COMMIT')
+
             return warns
 
 
-    def expire(self):
-        "Remove expired items from Cache."
+    def expire(self, now=None):
+        """Remove expired items from Cache.
 
-        now = time.time()
-        sql = self._sql
-        chunk = self.cull_limit
+        TODO: docs
+
+        """
+        now = now or time.time()
+        cull_limit = self.cull_limit
         expire_time = 0
         count = 0
 
-        while True:
-            rows = sql(
-                'SELECT rowid, version, expire_time, filename FROM Cache'
-                ' WHERE ? < expire_time AND expire_time < ?'
-                ' ORDER BY expire_time LIMIT ?',
-                (expire_time, now, chunk),
-            ).fetchall()
+        select_template = (
+            'SELECT %s FROM Cache'
+            ' WHERE ? < expire_time AND expire_time < ?'
+            ' ORDER BY expire_time LIMIT ?'
+        )
+        select = select_template % 'expire_time, filename'
+        delete = (
+            'DELETE FROM Cache WHERE rowid IN (%s)'
+            % (select_template % 'rowid')
+        )
 
-            if not rows:
-                break
+        try:
+            while True:
+                with self._transact() as (sql, cleanup):
+                    args = expire_time, now, cull_limit
+                    rows = sql(select, args).fetchall()
 
-            for rowid, version, expire_time, filename in rows:
-                count += self._delete(rowid, version, filename)
+                    if not rows:
+                        break
 
-        return count
+                    count += len(rows)
+                    sql(delete, args)
+                    for expire_time, filename in rows:
+                        cleanup(filename)
+        except TimeoutError:
+            status = False
+        else:
+            status = True
+
+        return status, count
 
 
-    def evict(self, tag):
-        "Remove items with matching `tag` from Cache."
-
+    def _create_tag_index(self):
+        # TODO: Add FanoutCache keyword arg for tag_index.
         sql = self._sql
-        chunk = self.cull_limit
-        rowid = 0
-        count = 0
-
         sql('CREATE INDEX IF NOT EXISTS Cache_tag_rowid ON'
             ' Cache(tag, rowid)'
         )
 
-        while True:
-            rows = sql(
-                'SELECT rowid, version, filename FROM Cache'
-                ' WHERE tag = ? AND rowid > ? ORDER BY rowid LIMIT ?',
-                (tag, rowid, chunk),
-            ).fetchall()
+    def _drop_tag_index(self):
+        sql = self._sql
+        sql('DROP INDEX IF EXISTS Cache_tag_rowid')
 
-            if not rows:
-                break
+    def evict(self, tag):
+        "Remove items with matching `tag` from Cache."
 
-            for rowid, version, filename in rows:
-                count += self._delete(rowid, version, filename)
+        # TODO: docs notes about _create_tag_index
+        # TODO: How to limit max rowid?
 
-        return count
+        sql = self._sql
+        rowid = 0
+        cull_limit = self.cull_limit
+        count = 0
+
+        select_template = (
+            'SELECT %s FROM Cache'
+            ' WHERE tag = ? AND rowid > ?'
+            ' ORDER BY rowid LIMIT ?'
+        )
+        select = select_template % 'rowid, filename'
+        delete = (
+            'DELETE FROM Cache WHERE rowid IN (%s)'
+            % (select_template % 'rowid')
+        )
+
+        try:
+            while True:
+                with self._transact(sql) as transaction:
+                    args = tag, rowid, cull_limit
+                    rows = sql(select, args).fetchall()
+
+                    if not rows:
+                        break
+
+                    count += len(rows)
+                    sql(delete, args)
+                    for rowid, filename in rows:
+                        transaction.remove(filename)
+        except TimeoutError:
+            status = False
+        else:
+            status = True
+
+        return status, count
 
 
     def clear(self):
         "Remove all items from Cache."
 
         sql = self._sql
-        chunk = self.cull_limit
         rowid = 0
+        cull_limit = self.cull_limit
         count = 0
 
-        while True:
-            rows = sql(
-                'SELECT rowid, version, filename FROM Cache'
-                ' WHERE rowid > ? ORDER BY rowid LIMIT ?',
-                (rowid, chunk),
-            ).fetchall()
+        select_template = (
+            'SELECT %s FROM Cache'
+            ' WHERE rowid > ?'
+            ' ORDER BY rowid LIMIT ?'
+        )
+        select = select_template % 'rowid, filename'
+        delete = (
+            'DELETE FROM Cache WHERE rowid IN (%s)'
+            % (select_template % 'rowid')
+        )
 
-            if not rows:
-                break
 
-            for rowid, version, filename in rows:
-                count += self._delete(rowid, version, filename)
+        try:
+            while True:
+                with self._transact(sql) as transaction:
+                    args = rowid, cull_limit
+                    rows = sql(select, args).fetchall()
 
-        return count
+                    if not rows:
+                        break
+
+                    count += len(rows)
+                    sql(delete, args)
+                    for rowid, filename in rows:
+                        transaction.remove(filename)
+        except TimeoutError:
+            status = False
+        else:
+            status = True
+
+        return status, count
 
 
     def stats(self, enable=True, reset=False):
@@ -1147,7 +1252,7 @@ class Cache(with_metaclass(CacheMeta, object)):
 
         """
         (page_count,), = self._sql('PRAGMA page_count').fetchall()
-        del self.size # Update value from database.
+        del self.size  # Update value from database.
         total_size = self._page_size * page_count + self.size
         return total_size
 

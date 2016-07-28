@@ -2,7 +2,7 @@
 
 import sqlite3
 
-from .core import Cache, Disk, ENOVAL
+from .core import Cache, Disk, ENOVAL, DatabaseTimeout
 
 class FanoutCache(object):
     "Cache that shards keys and values."
@@ -53,13 +53,8 @@ class FanoutCache(object):
         :return: True if item was successfully set
 
         """
-        try:
-            index = hash(key) % self._count
-            return self._shards[index].set(
-                key, value, expire=expire, read=read, tag=tag,
-            )
-        except sqlite3.OperationalError:
-            return False
+        index = hash(key) % self._count
+        return self._shards[index].set(key, value, expire, read, tag)
 
 
     __setitem__ = set
@@ -87,10 +82,8 @@ class FanoutCache(object):
         """
         try:
             index = hash(key) % self._count
-            return self._shards[index].add(
-                key, value, expire=expire, read=read, tag=tag,
-            )
-        except sqlite3.OperationalError:
+            return self._shards[index].add(key, value, expire, read, tag)
+        except DatabaseTimeout:
             return False
 
 
@@ -180,8 +173,40 @@ class FanoutCache(object):
 
 
     def expire(self):
-        "Remove expired items from Cache."
-        return sum(shard.expire() for shard in self._shards)
+        """Remove expired items from Cache.
+
+        """
+        total = 0
+        index = 0
+        shards = self._shards
+
+        while len(shards):
+            shard = shards[index % len(shards)]
+            try:
+                total += shard.expire()
+            except DatabaseTimeout:
+                index += 1
+            else:
+                del shards[index]
+
+        return total
+
+    def expire(self):
+        """Remove expired items from Cache.
+
+        Return number of rows expired.
+
+        """
+        now = time.time()
+        total = 0
+        sentinel = (True, 0)
+
+        for shard in self._shards:
+            shard_expire = partial(shard.expire, now)
+            for status, count in iter(shard_expire, sentinel):
+                total += count
+
+        return total
 
 
     def evict(self, tag):
