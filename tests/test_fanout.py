@@ -112,6 +112,7 @@ def test_operationalerror():
     object.__setattr__(cache, '_shards', shards)
 
     assert cache.set(0, 0) == False
+    assert cache.add(0, 0) == False
     assert cache.get(0) == None
     assert (0 in cache) == False
     assert cache.__delitem__(0) == False
