@@ -489,6 +489,32 @@ class Cache(with_metaclass(CacheMeta, object)):
         return con.execute
 
 
+    def __iter__(self):
+        sql = self._sql
+        chunk = self.cull_limit
+
+        rows = sql(
+            'SELECT key, raw FROM Cache ORDER BY rowid ASC LIMIT ?', 
+            (chunk,)
+        ).fetchall()
+
+        for (key, raw) in rows:
+            yield self._disk.get(key, raw)
+
+
+    def __reversed__(self):
+        sql = self._sql
+        chunk = self.cull_limit
+
+        rows = sql(
+            'SELECT key, raw FROM Cache ORDER BY rowid DESC LIMIT ?', 
+            (chunk,)
+        ).fetchall();
+
+        for (key, raw) in rows:
+            yield self._disk.get(key, raw)
+
+
     def set(self, key, value, expire=None, read=False, tag=None):
         """Store key, value pair in cache.
 

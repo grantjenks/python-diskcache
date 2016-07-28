@@ -3,6 +3,7 @@
 from .core import Cache, Disk, UnknownFileWarning, EmptyDirWarning
 from .core import LIMITS, DEFAULT_SETTINGS, EVICTION_POLICY
 from .fanout import FanoutCache
+from .ordered import OrderedCache
 
 try:
     from .djangocache import DjangoCache
