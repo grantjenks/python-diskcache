@@ -715,7 +715,7 @@ results = co.deque()
 
 def stress_add(cache, limit):
     total = 0
-    for num in xrange(limit):
+    for num in range(limit):
         if cache.add(num, num):
             total += 1
             # Stop one thread from running ahead of others.
@@ -758,6 +758,61 @@ def test_add_timeout(cache):
             cache.add(0, 0)
     finally:
         cache.check()
+
+
+@setup_cache
+def test_iter(cache):
+    sequence = 'abcdef'
+
+    for index, value in enumerate(sequence):
+        cache[value] = index
+
+    iterator = iter(cache)
+
+    assert all(one == two for one, two in zip(sequence, iterator))
+
+    cache['g'] = 6
+
+    try:
+        next(iterator)
+    except StopIteration:
+        pass
+    else:
+        assert False, 'StopIteration expected'
+
+
+@setup_cache
+@nt.raises(StopIteration)
+def test_iter_error(cache):
+    next(iter(cache))
+
+
+@setup_cache
+def test_reversed(cache):
+    sequence = 'abcdef'
+
+    for index, value in enumerate(sequence):
+        cache[value] = index
+
+    iterator = reversed(cache)
+
+    cache['g'] = 6
+
+    pairs = zip(reversed(sequence), iterator)
+    assert all(one == two for one, two in pairs)
+
+    try:
+        next(iterator)
+    except StopIteration:
+        pass
+    else:
+        assert False, 'StopIteration expected'
+
+
+@setup_cache
+@nt.raises(StopIteration)
+def test_reversed_error(cache):
+    next(reversed(cache))
 
 
 if __name__ == '__main__':

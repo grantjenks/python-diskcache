@@ -14,6 +14,8 @@ import warnings
 
 if sys.hexversion < 0x03000000:
     import cPickle as pickle
+    # ISSUE #25 Fix for http://bugs.python.org/issue10211
+    from cStringIO import StringIO as BytesIO
     TextType = unicode
     BytesType = str
     INT_TYPES = int, long
@@ -22,6 +24,7 @@ if sys.hexversion < 0x03000000:
         "Timeout expired."
 else:
     import pickle
+    from io import BytesIO # pylint: disable=ungrouped-imports
     TextType = str
     BytesType = bytes
     INT_TYPES = int,
@@ -159,7 +162,7 @@ class Disk(object):
         if raw:
             return BytesType(key) if type(key) is sqlite3.Binary else key
         else:
-            return pickle.load(io.BytesIO(key))
+            return pickle.load(BytesIO(key))
 
 
     def store(self, value, read, threshold, prep_file):
@@ -253,7 +256,7 @@ class Disk(object):
                 with io.open(op.join(directory, filename), 'rb') as reader:
                     return pickle.load(reader)
             else:
-                return pickle.load(io.BytesIO(value))
+                return pickle.load(BytesIO(value))
 
 
 class CachedAttr(object):
@@ -1220,6 +1223,59 @@ class Cache(with_metaclass(CacheMeta, object)):
             status = True
 
         return status, count
+
+
+    def __iter__(self):
+        sql = self._sql
+        rows = sql('SELECT MAX(rowid) FROM Cache').fetchall()
+        (max_rowid,), = rows
+
+        if max_rowid is None:
+            return
+
+        chunk = self.cull_limit
+        rowid = 0
+        _disk_get = self._disk.get
+
+        while True:
+            rows = sql(
+                'SELECT rowid, key, raw FROM Cache'
+                ' WHERE ? < rowid AND rowid < ?'
+                ' ORDER BY rowid LIMIT ?',
+                (rowid, max_rowid, chunk),
+            ).fetchall()
+
+            if not rows:
+                break
+
+            for rowid, key, raw in rows:
+                yield _disk_get(key, raw)
+
+
+    def __reversed__(self):
+        sql = self._sql
+        rows = sql('SELECT MAX(rowid) FROM Cache').fetchall()
+        (rowid,), = rows
+
+        if rowid is None:
+            return
+
+        chunk = self.cull_limit
+        _disk_get = self._disk.get
+
+        while True:
+            rows = sql(
+                'SELECT rowid, key, raw FROM Cache'
+                ' WHERE 0 < rowid AND rowid < ?'
+                ' ORDER BY rowid DESC LIMIT ?',
+                (rowid, chunk),
+            ).fetchall()
+
+            if not rows:
+                break
+
+            for rowid, key, raw in rows:
+                yield _disk_get(key, raw)
 
 
     def stats(self, enable=True, reset=False):
