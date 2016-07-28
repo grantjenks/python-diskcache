@@ -24,6 +24,13 @@ else:
     BytesType = bytes
     INT_TYPES = int,
 
+if (2, 7) <= sys.version_info < (2, 7, 4):
+    # work around http://bugs.python.org/issue10211
+    from StringIO import StringIO as BytesIO
+else:
+    from io import BytesIO
+
+
 DBNAME = 'cache.db'
 ENOVAL = object()
 
@@ -148,7 +155,7 @@ class Disk(object):
         if raw:
             return BytesType(key) if type(key) is sqlite3.Binary else key
         else:
-            return pickle.load(io.BytesIO(key))
+            return pickle.load(BytesIO(key))
 
 
     def store(self, value, read, threshold, prep_file):
@@ -242,7 +249,7 @@ class Disk(object):
                 with io.open(op.join(directory, filename), 'rb') as reader:
                     return pickle.load(reader)
             else:
-                return pickle.load(io.BytesIO(value))
+                return pickle.load(BytesIO(value))
 
 
 class CachedAttr(object):
