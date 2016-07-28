@@ -14,18 +14,21 @@ import warnings
 
 if sys.hexversion < 0x03000000:
     import cPickle as pickle
+    # ISSUE #25 Fix for http://bugs.python.org/issue10211
+    from cStringIO import StringIO as BytesIO
     TextType = unicode
     BytesType = str
     INT_TYPES = int, long
     range = xrange # pylint: disable=redefined-builtin,invalid-name
 else:
     import pickle
+    from io import BytesIO
     TextType = str
     BytesType = bytes
     INT_TYPES = int,
 
 if (2, 7) <= sys.version_info < (2, 7, 4):
-    # work around http://bugs.python.org/issue10211
+    # work around 
     from StringIO import StringIO as BytesIO
 else:
     from io import BytesIO
