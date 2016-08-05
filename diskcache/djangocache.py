@@ -28,7 +28,7 @@ class DjangoCache(BaseCache):
 
 
     def add(self, key, value, timeout=DEFAULT_TIMEOUT, version=None,
-            read=False, tag=None):
+            read=False, tag=None, retry=True):
         """Set a value in the cache if the key does not already exist. If
         timeout is given, that timeout will be used for the key; otherwise the
         default cache timeout will be used.
@@ -39,7 +39,7 @@ class DjangoCache(BaseCache):
         # pylint: disable=arguments-differ
         key = self.make_key(key, version=version)
         timeout = self.get_backend_timeout(timeout=timeout)
-        return self._cache.add(key, value, timeout, read, tag)
+        return self._cache.add(key, value, timeout, read, tag, retry)
 
 
     def get(self, key, default=None, version=None, read=False,
