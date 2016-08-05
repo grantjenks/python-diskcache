@@ -24,16 +24,14 @@ class DjangoCache(BaseCache):
         shards = params.get('SHARDS', 8)
         timeout = params.get('DATABASE_TIMEOUT', 0.025)
         options = params.get('OPTIONS', {})
-        self._cache = FanoutCache(
-            directory, shards=shards, timeout=timeout, **options
-        )
+        self._cache = FanoutCache(directory, shards, timeout, **options)
 
 
     def add(self, key, value, timeout=DEFAULT_TIMEOUT, version=None,
             read=False, tag=None):
-        """Set a value in the cache if the key does not already exist. If timeout is
-        given, that timeout will be used for the key; otherwise the default
-        cache timeout will be used.
+        """Set a value in the cache if the key does not already exist. If
+        timeout is given, that timeout will be used for the key; otherwise the
+        default cache timeout will be used.
 
         Return True if the value was stored, False otherwise.
 
@@ -41,7 +39,7 @@ class DjangoCache(BaseCache):
         # pylint: disable=arguments-differ
         key = self.make_key(key, version=version)
         timeout = self.get_backend_timeout(timeout=timeout)
-        return self._cache.add(key, value, expire=timeout, read=read, tag=tag)
+        return self._cache.add(key, value, timeout, read, tag)
 
 
     def get(self, key, default=None, version=None, read=False,
@@ -52,9 +50,7 @@ class DjangoCache(BaseCache):
         """
         # pylint: disable=arguments-differ
         key = self.make_key(key, version=version)
-        return self._cache.get(
-            key, default=default, read=read, expire_time=expire_time, tag=tag
-        )
+        return self._cache.get(key, default, read, expire_time, tag)
 
 
     def read(self, key, version=None):
@@ -70,21 +66,22 @@ class DjangoCache(BaseCache):
 
 
     def set(self, key, value, timeout=DEFAULT_TIMEOUT, version=None,
-            read=False, tag=None):
-        """Set a value in the cache. If timeout is given, that timeout will be used
-        for the key; otherwise the default cache timeout will be used.
+            read=False, tag=None, retry=True):
+        """Set a value in the cache. If timeout is given, that timeout will be
+        used for the key; otherwise the default cache timeout will be used.
 
         """
         # pylint: disable=arguments-differ
         key = self.make_key(key, version=version)
         timeout = self.get_backend_timeout(timeout=timeout)
-        return self._cache.set(key, value, expire=timeout, read=read, tag=tag)
+        return self._cache.set(key, value, timeout, read, tag, retry)
 
 
-    def delete(self, key, version=None):
+    def delete(self, key, version=None, retry=True):
         "Delete a key from the cache, failing silently."
+        # pylint: disable=arguments-differ
         key = self.make_key(key, version=version)
-        self._cache.delete(key)
+        self._cache.delete(key, retry)
 
 
     def has_key(self, key, version=None):

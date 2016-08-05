@@ -1,6 +1,6 @@
 "DiskCache: disk and file backed cache."
 
-from .core import Cache, Disk, UnknownFileWarning, EmptyDirWarning
+from .core import Cache, Disk, UnknownFileWarning, EmptyDirWarning, Timeout
 from .core import LIMITS, DEFAULT_SETTINGS, EVICTION_POLICY
 from .fanout import FanoutCache
 
