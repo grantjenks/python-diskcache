@@ -85,7 +85,7 @@ class FanoutCache(object):
                 break
 
 
-    def add(self, key, value, expire=None, read=False, tag=None):
+    def add(self, key, value, expire=None, read=False, tag=None, retry=False):
         """Add `key` and `value` item to cache.
 
         Similar to `set`, but only add to cache if key not present.
@@ -102,15 +102,22 @@ class FanoutCache(object):
             (default None, no expiry)
         :param bool read: read value as bytes from file (default False)
         :param str tag: text to associate with key (default None)
+        :param bool retry: retry if database timeout expires
         :return: True if item was successfully added
 
         """
         index = hash(key) % self._count
 
-        try:
-            return self._shards[index].add(key, value, expire, read, tag)
-        except Timeout:
-            return False
+        while True:
+            try:
+                return self._shards[index].add(key, value, expire, read, tag)
+            except Timeout:
+                if retry:
+                    continue
+                else:
+                    return False
+            else:
+                return True
 
 
     def get(self, key, default=None, read=False, expire_time=False, tag=False):
@@ -356,7 +363,7 @@ class FanoutCache(object):
         Settings attributes on cache objects are lazy-loaded and
         read-only. Use `reset` to update the value.
 
-        Settings with the "sqlite_" prefix correspond to SQLite
+        Settings with the ``sqlite_`` prefix correspond to SQLite
         pragmas. Updating the value will execute the corresponding PRAGMA
         statement.
 
