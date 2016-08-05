@@ -90,6 +90,136 @@ def test_set_get_delete(cache):
 
 
 @setup_cache
+def test_set_timeout(cache):
+    shards = mock.Mock()
+    shard = mock.Mock()
+    set_func = mock.Mock()
+
+    shards.__getitem__ = mock.Mock(side_effect=lambda key: shard)
+    shard.set = set_func
+    set_func.side_effect = dc.Timeout
+
+    with mock.patch.object(cache, '_shards', shards):
+        assert not cache.set(0, 0)
+
+
+@setup_cache
+def test_set_timeout_retry(cache):
+    shards = mock.Mock()
+    shard = mock.Mock()
+    set_func = mock.Mock()
+
+    shards.__getitem__ = mock.Mock(side_effect=lambda key: shard)
+    shard.set = set_func
+    set_func.side_effect = [dc.Timeout, True, dc.Timeout, True]
+
+    with mock.patch.object(cache, '_shards', shards):
+        assert cache.set(0, 0, retry=True)
+        cache[1] = 1
+
+
+@setup_cache
+def test_add(cache):
+    assert cache.add(0, 0)
+    assert not cache.add(0, 1)
+    assert cache.get(0) == 0
+
+
+@setup_cache
+def test_add_timeout(cache):
+    shards = mock.Mock()
+    shard = mock.Mock()
+    add_func = mock.Mock()
+
+    shards.__getitem__ = mock.Mock(side_effect=lambda key: shard)
+    shard.add = add_func
+    add_func.side_effect = dc.Timeout
+
+    with mock.patch.object(cache, '_shards', shards):
+        assert not cache.add(0, 0)
+
+
+@setup_cache
+def test_get_timeout(cache):
+    cache.set(0, 0)
+
+    shards = mock.Mock()
+    shard = mock.Mock()
+    get_func = mock.Mock()
+
+    shards.__getitem__ = mock.Mock(side_effect=lambda key: shard)
+    shard.get = get_func
+    get_func.side_effect = dc.Timeout
+
+    with mock.patch.object(cache, '_shards', shards):
+        assert cache.get(0) is None
+
+
+@setup_cache
+def test_delete_timeout(cache):
+    shards = mock.Mock()
+    shard = mock.Mock()
+    delete_func = mock.Mock()
+
+    shards.__getitem__ = mock.Mock(side_effect=lambda key: shard)
+    shard.__delitem__ = delete_func
+    delete_func.side_effect = dc.Timeout
+
+    with mock.patch.object(cache, '_shards', shards):
+        assert not cache.delete(0)
+
+
+@setup_cache
+def test_delete_timeout_retry(cache):
+    shards = mock.Mock()
+    shard = mock.Mock()
+    delete_func = mock.Mock()
+
+    shards.__getitem__ = mock.Mock(side_effect=lambda key: shard)
+    shard.__delitem__ = delete_func
+    delete_func.side_effect = [dc.Timeout, True]
+
+    with mock.patch.object(cache, '_shards', shards):
+        assert cache.delete(0, retry=True)
+
+
+@setup_cache
+def test_delitem(cache):
+    cache[0] = 0
+    assert cache[0] == 0
+    del cache[0]
+
+
+@setup_cache
+@nt.raises(KeyError)
+def test_delitem_keyerror(cache):
+    del cache[0]
+
+
+@setup_cache
+def test_delitem_timeout(cache):
+    shards = mock.Mock()
+    shard = mock.Mock()
+    delete_func = mock.Mock()
+
+    shards.__getitem__ = mock.Mock(side_effect=lambda key: shard)
+    shard.__delitem__ = delete_func
+    delete_func.side_effect = [dc.Timeout, True]
+
+    with mock.patch.object(cache, '_shards', shards):
+        del cache[0]
+
+
+@setup_cache
+def test_tag_index(cache):
+    assert cache.tag_index == 0
+    cache.create_tag_index()
+    assert cache.tag_index == 1
+    cache.drop_tag_index()
+    assert cache.tag_index == 0
+
+
+@setup_cache
 def test_read(cache):
     cache.set(0, b'abcd' * 2 ** 12)
     with cache.read(0) as reader:
@@ -103,23 +233,6 @@ def test_read_keyerror(cache):
         pass
 
 
-def test_operationalerror():
-    cache = dc.FanoutCache('tmp', shards=1)
-
-    shards = mock.Mock()
-    shards.__getitem__ = mock.Mock(side_effect=sqlite3.OperationalError)
-
-    object.__setattr__(cache, '_shards', shards)
-
-    assert cache.set(0, 0) == False
-    assert cache.add(0, 0) == False
-    assert cache.get(0) == None
-    assert (0 in cache) == False
-    assert cache.__delitem__(0) == False
-
-    shutil.rmtree('tmp')
-
-
 @nt.raises(KeyError)
 @setup_cache
 def test_getitem_keyerror(cache):
@@ -128,15 +241,15 @@ def test_getitem_keyerror(cache):
 
 @setup_cache
 def test_expire(cache):
-    cache.cull_limit = 0
+    cache.reset('cull_limit', 0)
 
     for value in range(100):
         cache.set(value, value, expire=0)
 
     assert len(cache) == 100
 
-    cache.cull_limit = 10
-    
+    cache.reset('cull_limit', 10)
+
     assert cache.expire() == 100
 
 
@@ -161,6 +274,30 @@ def test_clear(cache):
     assert cache.clear() == 100
     assert len(cache) == 0
     assert len(cache.check()) == 0
+
+
+@setup_cache
+def test_remove_timeout(cache):
+    shard = mock.Mock()
+    clear = mock.Mock()
+
+    shard.clear = clear
+    clear.side_effect = [1, dc.Timeout(2), 3, 0]
+
+    with mock.patch.object(cache, '_shards', [shard]):
+        assert cache.clear() == 6
+
+
+@setup_cache
+def test_reset_timeout(cache):
+    shard = mock.Mock()
+    reset = mock.Mock()
+
+    shard.reset = reset
+    reset.side_effect = [dc.Timeout, 0]
+
+    with mock.patch.object(cache, '_shards', [shard]):
+        assert cache.reset('blah', 1) == 0
 
 
 @setup_cache

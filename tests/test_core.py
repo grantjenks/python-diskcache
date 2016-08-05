@@ -47,6 +47,13 @@ def test_init(cache):
     cache.close()
 
 
+def test_init_disk():
+    with dc.Cache('tmp', disk=dc.Disk('tmp', 2 ** 10, 0)) as cache:
+        cache['a'] = 0
+        cache.check()
+    shutil.rmtree('tmp', ignore_errors=True)
+        
+
 @nt.raises(EnvironmentError)
 def test_init_makedirs():
     shutil.rmtree('tmp', ignore_errors=True)
@@ -74,9 +81,10 @@ def test_pragma(cache):
     cursor.fetchall = fetchall
     fetchall.side_effect = [sqlite3.OperationalError, None]
 
-    with mock.patch.object(cache, '_local', local):
-        cache.sqlite_mmap_size = 2 ** 28
+    size = 2 ** 28
 
+    with mock.patch.object(cache, '_local', local):
+        assert cache.reset('sqlite_mmap_size', size) == size
 
 @setup_cache
 @nt.raises(sqlite3.OperationalError)
@@ -91,16 +99,16 @@ def test_pragma_error(cache):
     con.execute = execute
     execute.return_value = cursor
     cursor.fetchall = fetchall
-    fetchall.side_effect = sqlite3.OperationalError
+    fetchall.side_effect = [sqlite3.OperationalError]
 
-    prev = dc.LIMITS[u'pragma_timeout']
-    dc.LIMITS[u'pragma_timeout'] = 0.003
+    size = 2 ** 28
+    dc.LIMITS[u'pragma_timeout'] = 0
 
     try:
         with mock.patch.object(cache, '_local', local):
-            cache.sqlite_mmap_size = 2 ** 28
+            cache.reset('sqlite_mmap_size', size)
     finally:
-        dc.LIMITS[u'pragma_timeout'] = prev
+        dc.LIMITS[u'pragma_timeout'] = 60
 
 
 @setup_cache
@@ -172,50 +180,6 @@ def test_get_keyerror1(cache):
     cache[0]
 
 
-@nt.raises(KeyError)
-@setup_cache
-def test_get_keyerror2(cache):
-    "Test cache miss when store_time is None."
-    local = mock.Mock()
-    con = mock.Mock()
-    execute = mock.Mock()
-    cursor = mock.Mock()
-    fetchall = mock.Mock()
-
-    local.con = con
-    con.execute = execute
-    execute.return_value = cursor
-    cursor.fetchall = fetchall
-    fetchall.return_value = [(0, None, None, None, 0, None, 0)]
-
-    cache.statistics = True
-
-    with mock.patch.object(cache, '_local', local):
-        cache[0]
-
-
-@nt.raises(KeyError)
-@setup_cache
-def test_get_keyerror3(cache):
-    "Test cache miss when expire_time is less than now."
-    local = mock.Mock()
-    con = mock.Mock()
-    execute = mock.Mock()
-    cursor = mock.Mock()
-    fetchall = mock.Mock()
-
-    local.con = con
-    con.execute = execute
-    execute.return_value = cursor
-    cursor.fetchall = fetchall
-    fetchall.return_value = [(0, 0, 0, None, 0, None, 0)]
-
-    cache.statistics = True
-
-    with mock.patch.object(cache, '_local', local):
-        cache[0]
-
-
 @nt.raises(IOError, KeyError)
 @setup_cache
 def test_get_keyerror4(cache):
@@ -277,7 +241,7 @@ def test_set_twice(cache):
 
 
 @setup_cache
-@nt.raises(sqlite3.OperationalError)
+@nt.raises(dc.Timeout)
 def test_set_timeout(cache):
     local = mock.Mock()
     con = mock.Mock()
@@ -289,7 +253,7 @@ def test_set_timeout(cache):
 
     try:
         with mock.patch.object(cache, '_local', local):
-            cache.set(0, 0)
+            cache.set('a', 'b' * 2 ** 12)
     finally:
         cache.check()
 
@@ -313,6 +277,61 @@ def test_get(cache):
     assert cache.get(0, tag=True) == (0, u'number')
     assert cache.get(0, expire_time=True, tag=True) == (0, None, u'number')
 
+@setup_cache
+def test_get_expired_fast_path(cache):
+    assert cache.set(0, 0, expire=0.001)
+    time.sleep(0.01)
+    assert cache.get(0) is None
+
+
+@setup_cache
+def test_get_ioerror_fast_path(cache):
+    assert cache.set(0, 0)
+
+    disk = mock.Mock()
+    put = mock.Mock()
+    fetch = mock.Mock()
+
+    disk.put = put
+    put.side_effect = [(0, True)]
+    disk.fetch = fetch
+    io_error = IOError()
+    io_error.errno = errno.ENOENT
+    fetch.side_effect = io_error
+
+    with mock.patch.object(cache, '_disk', disk):
+        assert cache.get(0) is None
+
+
+@setup_cache
+def test_get_expired_slow_path(cache):
+    cache.stats(enable=True)
+    cache.reset('eviction_policy', 'least-recently-used')
+    assert cache.set(0, 0, expire=0.001)
+    time.sleep(0.01)
+    assert cache.get(0) is None
+
+
+@setup_cache
+@nt.raises(IOError)
+def test_get_ioerror_slow_path(cache):
+    cache.reset('eviction_policy', 'least-recently-used')
+    cache.set(0, 0)
+
+    disk = mock.Mock()
+    put = mock.Mock()
+    fetch = mock.Mock()
+
+    disk.put = put
+    put.side_effect = [(0, True)]
+    disk.fetch = fetch
+    io_error = IOError()
+    io_error.errno = errno.EACCES
+    fetch.side_effect = io_error
+
+    with mock.patch.object(cache, '_disk', disk):
+        cache.get(0)
+
 
 @setup_cache
 def test_delete(cache):
@@ -326,6 +345,14 @@ def test_delete(cache):
 @nt.raises(KeyError)
 @setup_cache
 def test_del(cache):
+    del cache[0]
+
+
+@nt.raises(KeyError)
+@setup_cache
+def test_del_expired(cache):
+    cache.set(0, 0, expire=0.001)
+    time.sleep(0.01)
     del cache[0]
 
 
@@ -494,7 +521,7 @@ def test_filename_error(cache):
     func = mock.Mock(side_effect=OSError(errno.EACCES))
 
     with mock.patch('os.makedirs', func):
-        cache._prep_file()
+        cache._disk.filename()
 
 
 # TODO: Add test for Windows. Attempting to remove a file that is in use
@@ -506,7 +533,7 @@ def test_remove_error(cache):
     func = mock.Mock(side_effect=OSError(errno.EACCES))
 
     with mock.patch('os.remove', func):
-        cache._remove('ab/cd/efg.val')
+        cache._disk.remove('ab/cd/efg.val')
 
 
 @setup_cache
@@ -527,9 +554,9 @@ def test_check(cache):
         full_path = reader.name
     os.remove(full_path)
 
-    cache._sql('UPDATE Cache SET store_time = NULL WHERE rowid > 2')
-    cache.count = 0
-    cache.size = 0
+    cache._sql('UPDATE Cache SET size = 0 WHERE rowid > 1')
+    cache.reset('count', 0)
+    cache.reset('size', 0)
 
     with warnings.catch_warnings():
         warnings.filterwarnings('ignore')
@@ -581,6 +608,12 @@ def test_expire(cache):
     assert len(cache.check()) == 0
 
 
+def test_tag_index():
+    with dc.Cache('tmp', tag_index=True) as cache:
+        assert cache.tag_index == 1
+    shutil.rmtree('tmp', ignore_errors=True)
+
+
 @setup_cache
 def test_evict(cache):
     colors = ('red', 'blue', 'yellow')
@@ -602,6 +635,15 @@ def test_clear(cache):
     assert cache.clear() == 100
     assert len(cache) == 0
     assert len(cache.check()) == 0
+
+
+@setup_cache
+@nt.raises(dc.Timeout)
+def test_clear_timeout(cache):
+    transact = mock.Mock()
+    transact.side_effect = dc.Timeout
+    with mock.patch.object(cache, '_transact', transact):
+        cache.clear()
 
 
 @setup_cache
@@ -689,8 +731,6 @@ def test_contains(cache):
     assert 0 not in cache
     cache[0] = 0
     assert 0 in cache
-    cache._sql('UPDATE Cache SET store_time = NULL')
-    assert 0 not in cache
 
 
 @setup_cache
@@ -699,6 +739,10 @@ def test_add(cache):
     assert cache.get(1) == 1
     assert not cache.add(1, 2)
     assert cache.get(1) == 1
+    assert cache.delete(1)
+    assert cache.add(1, 1, expire=0.001)
+    time.sleep(0.01)
+    assert cache.add(1, 1)
     cache.check()
 
 @setup_cache
@@ -743,7 +787,7 @@ def test_add_concurrent(cache):
 
 
 @setup_cache
-@nt.raises(sqlite3.OperationalError)
+@nt.raises(dc.Timeout)
 def test_add_timeout(cache):
     local = mock.Mock()
     con = mock.Mock()
@@ -762,7 +806,7 @@ def test_add_timeout(cache):
 
 @setup_cache
 def test_iter(cache):
-    sequence = 'abcdef'
+    sequence = list('abcdef') + [('g',)]
 
     for index, value in enumerate(sequence):
         cache[value] = index
@@ -771,7 +815,7 @@ def test_iter(cache):
 
     assert all(one == two for one, two in zip(sequence, iterator))
 
-    cache['g'] = 6
+    cache['h'] = 7
 
     try:
         next(iterator)
@@ -795,8 +839,6 @@ def test_reversed(cache):
         cache[value] = index
 
     iterator = reversed(cache)
-
-    cache['g'] = 6
 
     pairs = zip(reversed(sequence), iterator)
     assert all(one == two for one, two in pairs)

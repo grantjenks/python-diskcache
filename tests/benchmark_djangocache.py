@@ -100,7 +100,7 @@ def dispatch():
 
     from django.core.cache import caches
 
-    for name in ['locmem', 'memcached', 'redis', 'diskcache', 'filebased']:
+    for name in ['diskcache']: # ['locmem', 'memcached', 'redis', 'diskcache', 'filebased']:
         shutil.rmtree('tmp', ignore_errors=True)
 
         preparer = mp.Process(target=prepare, args=(name,))
