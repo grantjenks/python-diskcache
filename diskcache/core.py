@@ -154,7 +154,8 @@ class Disk(object):
 
 
     def store(self, value, read):
-        """Return fields size, mode, filename, and value for Cache table.
+        """Convert `value` to fields size, mode, filename, and value for Cache
+        table.
 
         :param value: value to convert
         :param bool read: True when value is file-like object
@@ -214,7 +215,8 @@ class Disk(object):
 
 
     def fetch(self, mode, filename, value, read):
-        """Convert fields mode, filename, and value from Cache table to value.
+        """Convert fields `mode`, `filename`, and `value` from Cache table to
+        value.
 
         :param int mode: value mode raw, binary, text, or pickle
         :param str filename: filename of corresponding value
@@ -1277,7 +1279,7 @@ class Cache(object):
         Settings attributes on cache objects are lazy-loaded and
         read-only. Use `reset` to update the value.
 
-        Settings with the "sqlite_" prefix correspond to SQLite
+        Settings with the ``sqlite_`` prefix correspond to SQLite
         pragmas. Updating the value will execute the corresponding PRAGMA
         statement.
 
