@@ -140,6 +140,20 @@ def test_add_timeout(cache):
 
 
 @setup_cache
+def test_add_timeout_retry(cache):
+    shards = mock.Mock()
+    shard = mock.Mock()
+    add_func = mock.Mock()
+
+    shards.__getitem__ = mock.Mock(side_effect=lambda key: shard)
+    shard.add = add_func
+    add_func.side_effect = [dc.Timeout, True]
+
+    with mock.patch.object(cache, '_shards', shards):
+        assert cache.add(0, 0, retry=True)
+
+
+@setup_cache
 def test_get_timeout(cache):
     cache.set(0, 0)
 
@@ -153,6 +167,20 @@ def test_get_timeout(cache):
 
     with mock.patch.object(cache, '_shards', shards):
         assert cache.get(0) is None
+
+
+@setup_cache
+def test_get_timeout_retry(cache):
+    shards = mock.Mock()
+    shard = mock.Mock()
+    get_func = mock.Mock()
+
+    shards.__getitem__ = mock.Mock(side_effect=lambda key: shard)
+    shard.get = get_func
+    get_func.side_effect = [dc.Timeout, 0]
+
+    with mock.patch.object(cache, '_shards', shards):
+        assert cache.get(0, retry=True) == 0
 
 
 @setup_cache
