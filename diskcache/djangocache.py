@@ -35,6 +35,16 @@ class DjangoCache(BaseCache):
 
         Return True if the value was stored, False otherwise.
 
+        :param key: key for item
+        :param value: value for item
+        :param float timeout: seconds until the item expires
+            (default 300 seconds)
+        :param int version: key version number (default None, cache parameter)
+        :param bool read: read value as bytes from file (default False)
+        :param str tag: text to associate with key (default None)
+        :param bool retry: retry if database timeout expires (default True)
+        :return: True if item is added
+
         """
         # pylint: disable=arguments-differ
         key = self.make_key(key, version=version)
@@ -43,20 +53,32 @@ class DjangoCache(BaseCache):
 
 
     def get(self, key, default=None, version=None, read=False,
-            expire_time=False, tag=False):
+            expire_time=False, tag=False, retry=False):
         """Fetch a given key from the cache. If the key does not exist, return
         default, which itself defaults to None.
+
+        :param key: key for item
+        :param default: return value if key is missing (default None)
+        :param int version: key version number (default None, cache parameter)
+        :param bool read: if True, return file handle to value
+            (default False)
+        :param float expire_time: if True, return expire_time in tuple
+            (default False)
+        :param tag: if True, return tag in tuple (default False)
+        :param bool retry: retry if database timeout expires (default False)
+        :return: value for item if key is found else default
 
         """
         # pylint: disable=arguments-differ
         key = self.make_key(key, version=version)
-        return self._cache.get(key, default, read, expire_time, tag)
+        return self._cache.get(key, default, read, expire_time, tag, retry)
 
 
     def read(self, key, version=None):
         """Return file handle corresponding to `key` from Cache.
 
         :param key: Python key to retrieve
+        :param int version: key version number (default None, cache parameter)
         :return: file open for reading in binary mode
         :raises KeyError: if key is not found
 
@@ -70,6 +92,16 @@ class DjangoCache(BaseCache):
         """Set a value in the cache. If timeout is given, that timeout will be
         used for the key; otherwise the default cache timeout will be used.
 
+        :param key: key for item
+        :param value: value for item
+        :param float timeout: seconds until the item expires
+            (default 300 seconds)
+        :param int version: key version number (default None, cache parameter)
+        :param bool read: read value as bytes from file (default False)
+        :param str tag: text to associate with key (default None)
+        :param bool retry: retry if database timeout expires (default True)
+        :return: True if item is added
+
         """
         # pylint: disable=arguments-differ
         key = self.make_key(key, version=version)
@@ -78,14 +110,27 @@ class DjangoCache(BaseCache):
 
 
     def delete(self, key, version=None, retry=True):
-        "Delete a key from the cache, failing silently."
+        """Delete a key from the cache, failing silently.
+
+        :param key: key for item
+        :param int version: key version number (default None, cache parameter)
+        :param bool retry: retry if database timeout expires (default True)
+        :return: True if item is deleted
+
+        """
         # pylint: disable=arguments-differ
         key = self.make_key(key, version=version)
         self._cache.delete(key, retry)
 
 
     def has_key(self, key, version=None):
-        "Returns True if the key is in the cache and has not expired."
+        """Returns True if the key is in the cache and has not expired.
+
+        :param key: key for item
+        :param int version: key version number (default None, cache parameter)
+        :return: True if key is found
+
+        """
         key = self.make_key(key, version=version)
         return key in self._cache
 
@@ -105,7 +150,8 @@ class DjangoCache(BaseCache):
     def get_backend_timeout(self, timeout=DEFAULT_TIMEOUT):
         """Return seconds to expiration.
 
-        :param float timeout: seconds to expire (default `DEFAULT_TIMEOUT`)
+        :param float timeout: seconds until the item expires
+            (default 300 seconds)
 
         """
         if timeout == DEFAULT_TIMEOUT:

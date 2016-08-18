@@ -47,7 +47,7 @@ class FanoutCache(object):
             (default None, no expiry)
         :param bool read: read value as raw bytes from file (default False)
         :param str tag: text to associate with key (default None)
-        :param bool retry: retry if database timeout expires
+        :param bool retry: retry if database timeout expires (default False)
         :return: True if item is set
 
         """
@@ -56,14 +56,12 @@ class FanoutCache(object):
 
         while True:
             try:
-                set_func(key, value, expire, read, tag)
+                return set_func(key, value, expire, read, tag)
             except Timeout:
                 if retry:
                     continue
                 else:
                     return False
-            else:
-                return True
 
 
     def __setitem__(self, key, value):
@@ -78,11 +76,9 @@ class FanoutCache(object):
 
         while True:
             try:
-                set_func(key, value)
+                return set_func(key, value)
             except Timeout:
                 continue
-            else:
-                break
 
 
     def add(self, key, value, expire=None, read=False, tag=None, retry=False):
@@ -102,46 +98,52 @@ class FanoutCache(object):
             (default None, no expiry)
         :param bool read: read value as bytes from file (default False)
         :param str tag: text to associate with key (default None)
-        :param bool retry: retry if database timeout expires
-        :return: True if item was successfully added
+        :param bool retry: retry if database timeout expires (default False)
+        :return: True if item is added
 
         """
         index = hash(key) % self._count
+        add_func = self._shards[index].add
 
         while True:
             try:
-                return self._shards[index].add(key, value, expire, read, tag)
+                return add_func(key, value, expire, read, tag)
             except Timeout:
                 if retry:
                     continue
                 else:
                     return False
-            else:
-                return True
 
 
-    def get(self, key, default=None, read=False, expire_time=False, tag=False):
+    def get(self, key, default=None, read=False, expire_time=False, tag=False,
+            retry=False):
         """Retrieve value from cache. If `key` is missing, return `default`.
 
         :param key: key for item
-        :param default: value to return if key is missing (default None)
+        :param default: return value if key is missing (default None)
         :param bool read: if True, return file handle to value
             (default False)
         :param float expire_time: if True, return expire_time in tuple
             (default False)
         :param tag: if True, return tag in tuple (default False)
+        :param bool retry: retry if database timeout expires (default False)
         :return: value for item if key is found else default
 
         """
         index = hash(key) % self._count
+        get_func = self._shards[index].get
 
-        try:
-            return self._shards[index].get(
-                key,
-                default=default, read=read, expire_time=expire_time, tag=tag,
-            )
-        except Timeout:
-            return default
+        while True:
+            try:
+                return get_func(
+                    key, default=default, read=read, expire_time=expire_time,
+                    tag=tag,
+                )
+            except Timeout:
+                if retry:
+                    continue
+                else:
+                    return default
 
 
     def __getitem__(self, key):
@@ -166,7 +168,7 @@ class FanoutCache(object):
         :raises KeyError: if key is not found
 
         """
-        handle = self.get(key, default=ENOVAL, read=True)
+        handle = self.get(key, default=ENOVAL, read=True, retry=True)
         if handle is ENOVAL:
             raise KeyError(key)
         return handle
@@ -189,7 +191,7 @@ class FanoutCache(object):
         Missing keys are ignored.
 
         :param key: key for item
-        :param bool retry: retry if database timeout expires
+        :param bool retry: retry if database timeout expires (default False)
         :return: True if item is deleted
 
         """
@@ -198,7 +200,7 @@ class FanoutCache(object):
 
         while True:
             try:
-                del_func(key)
+                return del_func(key)
             except Timeout:
                 if retry:
                     continue
@@ -206,8 +208,6 @@ class FanoutCache(object):
                     return False
             except KeyError:
                 return False
-            else:
-                return True
 
 
     def __delitem__(self, key):
@@ -222,11 +222,9 @@ class FanoutCache(object):
 
         while True:
             try:
-                del_func(key)
+                return del_func(key)
             except Timeout:
                 continue
-            else:
-                break
 
 
     def check(self, fix=False):
