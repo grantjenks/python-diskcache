@@ -154,6 +154,72 @@ def test_add_timeout_retry(cache):
 
 
 @setup_cache
+def test_incr(cache):
+    cache.incr('key', delta=3) == 3
+
+
+@setup_cache
+def test_incr_timeout(cache):
+    shards = mock.Mock()
+    shard = mock.Mock()
+    incr_func = mock.Mock()
+
+    shards.__getitem__ = mock.Mock(side_effect=lambda key: shard)
+    shard.incr = incr_func
+    incr_func.side_effect = dc.Timeout
+
+    with mock.patch.object(cache, '_shards', shards):
+        assert cache.incr('key', 1) is None
+
+
+@setup_cache
+def test_incr_timeout_retry(cache):
+    shards = mock.Mock()
+    shard = mock.Mock()
+    incr_func = mock.Mock()
+
+    shards.__getitem__ = mock.Mock(side_effect=lambda key: shard)
+    shard.incr = incr_func
+    incr_func.side_effect = [dc.Timeout, 1]
+
+    with mock.patch.object(cache, '_shards', shards):
+        assert cache.incr('key', retry=True) == 1
+
+
+@setup_cache
+def test_decr(cache):
+    cache.decr('key', delta=2) == -2
+
+
+def stress_incr(cache, limit):
+    for _ in range(limit):
+        cache.incr(b'key', retry=True)
+        time.sleep(0.001)
+
+
+def test_incr_concurrent():
+    count = 16
+    limit = 500
+
+    with dc.FanoutCache('tmp', timeout=0.001) as cache:
+        threads = [
+            threading.Thread(target=stress_incr, args=(cache, limit))
+            for _ in range(count)
+        ]
+
+        for thread in threads:
+            thread.start()
+
+        for thread in threads:
+            thread.join()
+
+        assert cache.get(b'key') == count * limit
+        cache.check()
+
+    shutil.rmtree('tmp', ignore_errors=True)
+
+
+@setup_cache
 def test_get_timeout(cache):
     cache.set(0, 0)
 

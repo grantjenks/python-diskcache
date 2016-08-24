@@ -745,6 +745,7 @@ def test_add(cache):
     assert cache.add(1, 1)
     cache.check()
 
+
 @setup_cache
 def test_add_large_value(cache):
     value = b'abcd' * 2 ** 12
@@ -754,10 +755,8 @@ def test_add_large_value(cache):
     assert cache.get(b'test-key') == value
     cache.check()
 
-results = co.deque()
 
-
-def stress_add(cache, limit):
+def stress_add(cache, limit, results):
     total = 0
     for num in range(limit):
         if cache.add(num, num):
@@ -769,10 +768,11 @@ def stress_add(cache, limit):
 
 @setup_cache
 def test_add_concurrent(cache):
+    results = co.deque()
     limit = 1000
 
     threads = [
-        threading.Thread(target=stress_add, args=(cache, limit))
+        threading.Thread(target=stress_add, args=(cache, limit, results))
         for _ in range(16)
     ]
 
@@ -802,6 +802,45 @@ def test_add_timeout(cache):
             cache.add(0, 0)
     finally:
         cache.check()
+
+
+@setup_cache
+def test_incr(cache):
+    assert cache.incr('key', default=5) == 6
+    assert cache.incr('key', 2) == 8
+    assert cache.get('key', expire_time=True, tag=True) == (8, None, None)
+    assert cache.delete('key')
+    assert cache.set('key', 100, expire=0.100)
+    assert cache.get('key') == 100
+    time.sleep(0.120)
+    assert cache.incr('key') == 1
+
+
+@setup_cache
+@nt.raises(KeyError)
+def test_incr_insert_keyerror(cache):
+    cache.incr('key', default=None)
+
+
+@setup_cache
+@nt.raises(KeyError)
+def test_incr_update_keyerror(cache):
+    assert cache.set('key', 100, expire=0.100)
+    assert cache.get('key') == 100
+    time.sleep(0.120)
+    cache.incr('key', default=None)
+
+
+@setup_cache
+def test_decr(cache):
+    assert cache.decr('key', default=5) == 4
+    assert cache.decr('key', 2) == 2
+    assert cache.get('key', expire_time=True, tag=True) == (2, None, None)
+    assert cache.delete('key')
+    assert cache.set('key', 100, expire=0.100)
+    assert cache.get('key') == 100
+    time.sleep(0.120)
+    assert cache.decr('key') == -1
 
 
 @setup_cache

@@ -115,6 +115,67 @@ class FanoutCache(object):
                     return False
 
 
+    def incr(self, key, delta=1, default=0, retry=False):
+        """Increment value by delta for item with key.
+
+        If key is missing and default is None then raise KeyError. Else if key
+        is missing and default is not None then use default for value.
+
+        Operation is atomic. All concurrent increment operations will be
+        counted individually.
+
+        Assumes value may be stored in a SQLite column. Most builds that target
+        machines with 64-bit pointer widths will support 64-bit signed
+        integers.
+
+        :param key: key for item
+        :param int delta: amount to increment (default 1)
+        :param int default: value if key is missing (default 0)
+        :param bool retry: retry if database timeout expires (default False)
+        :return: new value for item on success else None
+        :raises KeyError: if key is not found and default is None
+
+        """
+        index = hash(key) % self._count
+        incr_func = self._shards[index].incr
+
+        while True:
+            try:
+                return incr_func(key, delta, default)
+            except Timeout:
+                if retry:
+                    continue
+                else:
+                    return None
+
+
+    def decr(self, key, delta=1, default=0, retry=False):
+        """Decrement value by delta for item with key.
+
+        If key is missing and default is None then raise KeyError. Else if key
+        is missing and default is not None then use default for value.
+
+        Operation is atomic. All concurrent decrement operations will be
+        counted individually.
+
+        Unlike Memcached, negative values are supported. Value may be
+        decremented below zero.
+
+        Assumes value may be stored in a SQLite column. Most builds that target
+        machines with 64-bit pointer widths will support 64-bit signed
+        integers.
+
+        :param key: key for item
+        :param int delta: amount to decrement (default 1)
+        :param int default: value if key is missing (default 0)
+        :param bool retry: retry if database timeout expires (default False)
+        :return: new value for item on success else None
+        :raises KeyError: if key is not found and default is None
+
+        """
+        return self.incr(key, -delta, default, retry)
+
+
     def get(self, key, default=None, read=False, expire_time=False, tag=False,
             retry=False):
         """Retrieve value from cache. If `key` is missing, return `default`.

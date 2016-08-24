@@ -72,31 +72,23 @@ EVICTION_POLICY = {
             ' Cache (store_time)'
         ),
         'get': None,
-        'set': 'SELECT %s FROM Cache ORDER BY store_time LIMIT ?',
+        'cull': 'SELECT %s FROM Cache ORDER BY store_time LIMIT ?',
     },
     'least-recently-used': {
         'init': (
             'CREATE INDEX IF NOT EXISTS Cache_access_time ON'
             ' Cache (access_time)'
         ),
-        'get': (
-            'UPDATE Cache SET'
-            ' access_time = ((julianday("now") - 2440587.5) * 86400.0)'
-            ' WHERE rowid = ?'
-        ),
-        'set': 'SELECT %s FROM Cache ORDER BY access_time LIMIT ?',
+        'get': 'access_time = ((julianday("now") - 2440587.5) * 86400.0)',
+        'cull': 'SELECT %s FROM Cache ORDER BY access_time LIMIT ?',
     },
     'least-frequently-used': {
         'init': (
             'CREATE INDEX IF NOT EXISTS Cache_access_count ON'
             ' Cache (access_count)'
         ),
-        'get': (
-            'UPDATE Cache SET'
-            ' access_count = access_count + 1'
-            ' WHERE rowid = ?'
-        ),
-        'set': 'SELECT %s FROM Cache ORDER BY access_count LIMIT ?',
+        'get': 'access_count = access_count + 1',
+        'cull': 'SELECT %s FROM Cache ORDER BY access_count LIMIT ?',
     },
 }
 
@@ -648,7 +640,7 @@ class Cache(object):
 
         # Evict keys by policy.
 
-        select_policy_template = EVICTION_POLICY[self.eviction_policy]['set']
+        select_policy_template = EVICTION_POLICY[self.eviction_policy]['cull']
         select_policy = select_policy_template % 'filename'
 
         rows = sql(select_policy, (cull_limit,)).fetchall()
@@ -669,8 +661,8 @@ class Cache(object):
 
         Similar to `set`, but only add to cache if key not present.
 
-        This operation is atomic. Only one concurrent add operation for a given
-        key from separate threads or processes will succeed.
+        Operation is atomic. Only one concurrent add operation for a given key
+        will succeed.
 
         When `read` is `True`, `value` should be a file-like object opened
         for reading in binary mode.
@@ -715,22 +707,115 @@ class Cache(object):
             return True
 
 
+    def incr(self, key, delta=1, default=0):
+        """Increment value by delta for item with key.
+
+        If key is missing and default is None then raise KeyError. Else if key
+        is missing and default is not None then use default for value.
+
+        Operation is atomic. All concurrent increment operations will be
+        counted individually.
+
+        Assumes value may be stored in a SQLite column. Most builds that target
+        machines with 64-bit pointer widths will support 64-bit signed
+        integers.
+
+        :param key: key for item
+        :param int delta: amount to increment (default 1)
+        :param int default: value if key is missing (default None)
+        :return: new value for item
+        :raises KeyError: if key is not found and default is None
+        :raises Timeout: if database timeout expires
+
+        """
+        now = time.time()
+        db_key, raw = self._disk.put(key)
+        select = (
+            'SELECT rowid, expire_time, filename, value FROM Cache'
+            ' WHERE key = ? AND raw = ?'
+        )
+
+        with self._transact() as (sql, cleanup):
+            rows = sql(select, (db_key, raw)).fetchall()
+
+            if not rows:
+                if default is None:
+                    raise KeyError(key)
+
+                value = default + delta
+                columns = (None, None) + self._disk.store(value, False)
+                self._row_insert(db_key, raw, now, columns)
+                self._cull(now, sql, cleanup)
+                return value
+
+            (rowid, expire_time, filename, value), = rows
+
+            if expire_time is not None and expire_time < now:
+                if default is None:
+                    raise KeyError(key)
+
+                value = default + delta
+                columns = (None, None) + self._disk.store(value, False)
+                self._row_update(rowid, now, columns)
+                self._cull(now, sql, cleanup)
+                cleanup(filename)
+                return value
+
+            value += delta
+
+            columns = 'store_time = ?, value = ?'
+            update_column = EVICTION_POLICY[self.eviction_policy]['get']
+            columns += '' if update_column is None else ', ' + update_column
+            update = 'UPDATE Cache SET %s WHERE rowid = ?' % columns
+            sql(update, (now, value, rowid))
+
+            return value
+
+
+    def decr(self, key, delta=1, default=0):
+        """Decrement value by delta for item with key.
+
+        If key is missing and default is None then raise KeyError. Else if key
+        is missing and default is not None then use default for value.
+
+        Operation is atomic. All concurrent decrement operations will be
+        counted individually.
+
+        Unlike Memcached, negative values are supported. Value may be
+        decremented below zero.
+
+        Assumes value may be stored in a SQLite column. Most builds that target
+        machines with 64-bit pointer widths will support 64-bit signed
+        integers.
+
+        :param key: key for item
+        :param int delta: amount to decrement (default 1)
+        :param int default: value if key is missing (default 0)
+        :return: new value for item
+        :raises KeyError: if key is not found and default is None
+        :raises Timeout: if database timeout expires
+
+        """
+        return self.incr(key, -delta, default)
+
+
     def get(self, key, default=None, read=False, expire_time=False, tag=False):
         """Retrieve value from cache. If `key` is missing, return `default`.
 
-        :param key: Python key to retrieve
+        :param key: key for item
         :param default: value to return if key is missing (default None)
         :param bool read: if True, return file handle to value
             (default False)
         :param bool expire_time: if True, return expire_time in tuple
             (default False)
         :param bool tag: if True, return tag in tuple (default False)
-        :return: corresponding value or `default` if not found
+        :return: value for item or default if key not found
         :raises Timeout: if database timeout expires
 
         """
         db_key, raw = self._disk.put(key)
-        policy_update = EVICTION_POLICY[self.eviction_policy]['get']
+        update_column = EVICTION_POLICY[self.eviction_policy]['get']
+        update = 'UPDATE Cache SET %s WHERE rowid = ?'
         select = (
             'SELECT rowid, expire_time, tag, mode, filename, value'
             ' FROM Cache WHERE key = ? AND raw = ?'
@@ -741,7 +826,7 @@ class Cache(object):
         elif expire_time or tag:
             default = (default, None)
 
-        if not self.statistics and policy_update is None:
+        if not self.statistics and update_column is None:
             # Fast path, no transaction necessary.
 
             rows = self._sql(select, (db_key, raw)).fetchall()
@@ -802,8 +887,8 @@ class Cache(object):
                 if self.statistics:
                     sql(cache_hit)
 
-                if policy_update is not None:
-                    sql(policy_update, (rowid,))
+                if update_column is not None:
+                    sql(update % update_column, (rowid,))
 
         if expire_time and tag:
             return (value, db_expire_time, db_tag)

@@ -123,6 +123,65 @@ class DjangoCache(BaseCache):
         self._cache.delete(key, retry)
 
 
+    def incr(self, key, delta=1, version=None, default=None, retry=True):
+        """Increment value by delta for item with key.
+
+        If key is missing and default is None then raise KeyError. Else if key
+        is missing and default is not None then use default for value.
+
+        Operation is atomic. All concurrent increment operations will be
+        counted individually.
+
+        Assumes value may be stored in a SQLite column. Most builds that target
+        machines with 64-bit pointer widths will support 64-bit signed
+        integers.
+
+        :param key: key for item
+        :param int delta: amount to increment (default 1)
+        :param int version: key version number (default None, cache parameter)
+        :param int default: value if key is missing (default None)
+        :param bool retry: retry if database timeout expires (default True)
+        :return: new value for item on success else None
+        :raises ValueError: if key is not found and default is None
+
+        """
+        # pylint: disable=arguments-differ
+        key = self.make_key(key, version=version)
+        try:
+            return self._cache.incr(key, delta, default, retry)
+        except KeyError:
+            raise ValueError("Key '%s' not found" % key)
+
+
+    def decr(self, key, delta=1, version=None, default=None, retry=True):
+        """Decrement value by delta for item with key.
+
+        If key is missing and default is None then raise KeyError. Else if key
+        is missing and default is not None then use default for value.
+
+        Operation is atomic. All concurrent decrement operations will be
+        counted individually.
+
+        Unlike Memcached, negative values are supported. Value may be
+        decremented below zero.
+
+        Assumes value may be stored in a SQLite column. Most builds that target
+        machines with 64-bit pointer widths will support 64-bit signed
+        integers.
+
+        :param key: key for item
+        :param int delta: amount to decrement (default 1)
+        :param int version: key version number (default None, cache parameter)
+        :param int default: value if key is missing (default None)
+        :param bool retry: retry if database timeout expires (default True)
+        :return: new value for item on success else None
+        :raises ValueError: if key is not found and default is None
+
+        """
+        # pylint: disable=arguments-differ
+        return self.incr(key, -delta, version, default, retry)
+
+
     def has_key(self, key, version=None):
         """Returns True if the key is in the cache and has not expired.
 
