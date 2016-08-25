@@ -37,10 +37,10 @@ In Python, we can do better. And we can do it in pure-Python!
 measurements. DiskCache offers cache benchmarks to defend its performance
 claims. Micro-optimizations are avoided but your mileage may vary.
 
-DiskCache efficiently opens up gigabytes of storage space for caching. By
-leveraging rock-solid database libraries and memory-mapped files, cache
-performance can match and exceed industry standard solutions. There's no need
-for a C compiler or running another process. Performance is a feature and
+DiskCache efficiently makes gigabytes of storage space available for
+caching. By leveraging rock-solid database libraries and memory-mapped files,
+cache performance can match and exceed industry-standard solutions. There's no
+need for a C compiler or running another process. Performance is a feature and
 testing has 100% coverage with unit tests and hours of stress.
 
 Testimonials

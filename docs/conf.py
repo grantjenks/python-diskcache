@@ -127,6 +127,7 @@ html_theme_options = {
     'show_related': True,
     'github_user': 'grantjenks',
     'github_repo': 'python-diskcache',
+    'github_type': 'star',
 }
 
 # Add any paths that contain custom themes here, relative to this directory.

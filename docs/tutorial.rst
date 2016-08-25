@@ -319,3 +319,17 @@ integers, floats, strings, and bytes. Other datatypes are converted to bytes
 via the pickle protocol. Beware that integers and floats like ``1`` and ``1.0``
 will compare equal as keys just as in Python. All other equality comparisons
 will require identical types.
+
+Implementation Notes
+--------------------
+
+:doc:`DiskCache <index>` is mostly built on SQLite and the filesystem. Some
+techniques used to improve performance:
+
+* Shard database to distribute writes.
+* Leverage SQLite native types: integers, floats, unicode, and bytes.
+* Use SQLite write-ahead-log so reads and writes don't block each other.
+* Use SQLite memory-mapped pages to accelerate reads.
+* Store small values in SQLite database and large values in files.
+* Always use a SQLite index for queries.
+* Use SQLite triggers to maintain key count and database size.

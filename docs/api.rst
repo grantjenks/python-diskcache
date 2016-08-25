@@ -3,6 +3,9 @@ DiskCache API Reference
 
 The :doc:`tutorial` provides a helpful walkthrough of most methods.
 
+.. contents::
+   :local:
+
 DjangoCache
 -----------
 
@@ -40,6 +43,7 @@ Constants
 .. data:: diskcache.DEFAULT_SETTINGS
 
    * `statistics` (int) default 0 - disabled when 0, enabled when 1.
+   * `tag_index` (int) default 0 - disabled when 0, enabled when 1.
    * `eviction_policy` (str) default "least-recently-stored" - any of the keys
      in `EVICTION_POLICY` as described below.
    * `size_limit` (int) default one gigabyte - approximate size limit of cache.
@@ -66,18 +70,3 @@ Constants
    * `least-recently-stored` (default) - evict least recently stored keys first.
    * `least-recently-used` - evict least recently retrieved keys first.
    * `least-frequently-used` - evict least frequently used keys first.
-
-Implementation Notes
---------------------
-
-:doc:`DiskCache <index>` is mostly built on SQLite and the filesystem. Some
-techniques used to improve performance:
-
-* Shard database to distribute writes.
-* Leverage SQLite native types: integers, floats, unicode, and bytes.
-* Use SQLite write-ahead-log so reads and writes don't block each other.
-* Use SQLite memory-mapped pages to accelerate reads.
-* Store small values in SQLite database and large values in files.
-* Always use a SQLite index for queries.
-* Keep SQLite transactions short.
-* Use SQLite triggers to maintain count of keys and size of database.

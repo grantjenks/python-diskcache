@@ -20,7 +20,6 @@ Requests for Contributions
 
 #. Command-line interface. Operations to support: get, set, store, delete,
    expire, evict, clear, path, check, stats.
-#. Atomic increment and decrement methods.
 #. Django admin interface for cache stats and interaction.
 #. Cache stampede barrier (source prototype in repo).
 #. API Compatibility
@@ -136,7 +135,7 @@ Coverage testing uses `nose <https://nose.readthedocs.org>`_:
 
    OK
 
-It's normal not to see 100% coverage. Some code is specific to the Python
+It's normal to not see 100% coverage. Some code is specific to the Python
 runtime.
 
 Stress testing is also based on nose but can be run independently as a
