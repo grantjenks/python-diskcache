@@ -1152,8 +1152,7 @@ class Cache(object):
         """Remove items with matching `tag` from cache.
 
         Removing items is an iterative process. In each iteration, a subset of
-        items is removed. The subset size is equal to the `cull_limit`
-        attribute.
+        items is removed. Concurrent writes may occur between iterations.
 
         If a :exc:`Timeout` occurs, the first element of the exception's
         `args` attribute will be the number of items removed before the
@@ -1165,21 +1164,19 @@ class Cache(object):
 
         """
         select = (
-            'SELECT %s FROM Cache'
+            'SELECT rowid, filename FROM Cache'
             ' WHERE tag = ? AND rowid > ?'
             ' ORDER BY rowid LIMIT ?'
         )
-        fields = 'rowid, filename'
-        args = [tag, 0, self.cull_limit]
-        return self._select_delete(select, fields, args, index=1)
+        args = [tag, 0, 100]
+        return self._select_delete(select, args, arg_index=1)
 
 
     def expire(self, now=None):
         """Remove expired items from cache.
 
         Removing items is an iterative process. In each iteration, a subset of
-        items is removed. The subset size is equal to the `cull_limit`
-        attribute.
+        items is removed. Concurrent writes may occur between iterations.
 
         If a :exc:`Timeout` occurs, the first element of the exception's
         `args` attribute will be the number of items removed before the
@@ -1191,21 +1188,19 @@ class Cache(object):
 
         """
         select = (
-            'SELECT %s FROM Cache'
+            'SELECT rowid, expire_time, filename FROM Cache'
             ' WHERE ? < expire_time AND expire_time < ?'
             ' ORDER BY expire_time LIMIT ?'
         )
-        fields = 'expire_time, filename'
-        args = [0, now or time.time(), self.cull_limit]
-        return self._select_delete(select, fields, args)
+        args = [0, now or time.time(), 100]
+        return self._select_delete(select, args, row_index=1)
 
 
     def clear(self):
         """Remove all items from cache.
 
         Removing items is an iterative process. In each iteration, a subset of
-        items is removed. The subset size is equal to the `cull_limit`
-        attribute.
+        items is removed. Concurrent writes may occur between iterations.
 
         If a :exc:`Timeout` occurs, the first element of the exception's
         `args` attribute will be the number of items removed before the
@@ -1216,22 +1211,17 @@ class Cache(object):
 
         """
         select = (
-            'SELECT %s FROM Cache'
+            'SELECT rowid, filename FROM Cache'
             ' WHERE rowid > ?'
             ' ORDER BY rowid LIMIT ?'
         )
-        fields = 'rowid, filename'
-        args = [0, self.cull_limit]
-        return self._select_delete(select, fields, args)
+        args = [0, 100]
+        return self._select_delete(select, args)
 
 
-    def _select_delete(self, select_template, fields, args, index=0):
+    def _select_delete(self, select, args, row_index=0, arg_index=0):
         count = 0
-        select = select_template % fields
-        delete = (
-            'DELETE FROM Cache WHERE rowid IN (%s)'
-            % (select_template % 'rowid')
-        )
+        delete = 'DELETE FROM Cache WHERE rowid IN (%s)'
 
         try:
             while True:
@@ -1242,10 +1232,10 @@ class Cache(object):
                         break
 
                     count += len(rows)
-                    sql(delete, args)
+                    sql(delete % ','.join(str(row[0]) for row in rows))
 
                     for row in rows:
-                        args[index] = row[0]
+                        args[arg_index] = row[row_index]
                         cleanup(row[-1])
 
         except Timeout:
@@ -1263,7 +1253,7 @@ class Cache(object):
             return
 
         bound = max_rowid + 1
-        limit = self.cull_limit
+        limit = 100
         _disk_get = self._disk.get
         rowid = 0 if ascending else bound
         select = (
