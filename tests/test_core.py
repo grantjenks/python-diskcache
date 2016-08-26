@@ -844,6 +844,7 @@ def test_decr(cache):
 
 
 @setup_cache
+@nt.raises(StopIteration)
 def test_iter(cache):
     sequence = list('abcdef') + [('g',)]
 
@@ -856,12 +857,16 @@ def test_iter(cache):
 
     cache['h'] = 7
 
-    try:
-        next(iterator)
-    except StopIteration:
-        pass
-    else:
-        assert False, 'StopIteration expected'
+    next(iterator)
+
+
+@setup_cache
+def test_iter_expire(cache):
+    cache.cull_limit = 0
+    for num in range(100):
+        cache.set(num, num, expire=0)
+    assert len(cache) == 100
+    assert list(cache) == list(range(100))
 
 
 @setup_cache
