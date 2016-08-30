@@ -426,6 +426,37 @@ def test_volume(cache):
     assert volume == cache.volume()
 
 
+@setup_cache
+def test_iter(cache):
+    for num in range(100):
+        cache[num] = num
+    assert set(cache) == set(range(100))
+
+
+@setup_cache
+def test_iter_expire(cache):
+    """Test iteration with expiration.
+
+    Iteration does not expire keys.
+
+    """
+    cache.reset('cull_limit', 0)
+    for num in range(100):
+        cache.set(num, num, expire=0)
+    time.sleep(0.1)
+    assert set(cache) == set(range(100))
+    cache.expire()
+    assert set(cache) == set()
+
+
+@setup_cache
+def test_reversed(cache):
+    for num in range(100):
+        cache[num] = num
+    reverse = list(reversed(cache))
+    assert list(cache) == list(reversed(reverse))
+
+
 if __name__ == '__main__':
     import nose
     nose.runmodule()
