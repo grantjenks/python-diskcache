@@ -1,5 +1,6 @@
 "Fanout cache automatically shards keys and values."
 
+import itertools as it
 import os.path as op
 import time
 
@@ -407,6 +408,16 @@ class FanoutCache(object):
 
     def __exit__(self, *exception):
         self.close()
+
+
+    def __iter__(self):
+        iterators = [iter(shard) for shard in self._shards]
+        return it.chain.from_iterable(iterators)
+
+
+    def __reversed__(self):
+        iterators = [reversed(shard) for shard in self._shards]
+        return it.chain.from_iterable(reversed(iterators))
 
 
     def __len__(self):

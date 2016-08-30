@@ -1248,6 +1248,7 @@ class Cache(object):
         sql = self._sql
         rows = sql('SELECT MAX(rowid) FROM Cache').fetchall()
         (max_rowid,), = rows
+        yield  # Signal ready.
 
         if max_rowid is None:
             return
@@ -1278,11 +1279,15 @@ class Cache(object):
 
 
     def __iter__(self):
-        return self._iter()
+        iterator = self._iter()
+        iterator.next()
+        return iterator
 
 
     def __reversed__(self):
-        return self._iter(ascending=False)
+        iterator = self._iter(ascending=False)
+        iterator.next()
+        return iterator
 
 
     def stats(self, enable=True, reset=False):
