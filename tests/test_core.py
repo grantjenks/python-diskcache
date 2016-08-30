@@ -185,7 +185,7 @@ def test_get_keyerror1(cache):
 def test_get_keyerror4(cache):
     func = mock.Mock(side_effect=IOError(errno.ENOENT, ''))
 
-    cache.statistics = True
+    cache.reset('statistics', True)
     cache[0] = b'abcd' * 2 ** 12
 
     with mock.patch('io.open', func):
@@ -403,7 +403,7 @@ def test_path(cache):
 
 @setup_cache
 def test_expire_rows(cache):
-    cache.cull_limit = 0
+    cache.reset('cull_limit', 0)
 
     for value in range(10):
         assert cache.set(value, value, expire=0)
@@ -413,7 +413,7 @@ def test_expire_rows(cache):
 
     assert len(cache) == 15
 
-    cache.cull_limit = 10
+    cache.reset('cull_limit', 10)
 
     assert cache.set(15, 15)
 
@@ -423,9 +423,9 @@ def test_expire_rows(cache):
 
 @setup_cache
 def test_least_recently_stored(cache):
-    cache.eviction_policy = u'least-recently-stored'
-    cache.size_limit = int(10.1e6)
-    cache.cull_limit = 2
+    cache.reset('eviction_policy', u'least-recently-stored')
+    cache.reset('size_limit', int(10.1e6))
+    cache.reset('cull_limit', 2)
 
     million = b'x' * int(1e6)
 
@@ -459,9 +459,9 @@ def test_least_recently_stored(cache):
 
 @setup_cache
 def test_least_recently_used(cache):
-    cache.eviction_policy = u'least-recently-used'
-    cache.size_limit = int(10.1e6)
-    cache.cull_limit = 5
+    cache.reset('eviction_policy', u'least-recently-used')
+    cache.reset('size_limit', int(10.1e6))
+    cache.reset('cull_limit', 5)
 
     million = b'x' * int(1e6)
 
@@ -488,9 +488,9 @@ def test_least_recently_used(cache):
 
 @setup_cache
 def test_least_frequently_used(cache):
-    cache.eviction_policy = u'least-frequently-used'
-    cache.size_limit = int(10.1e6)
-    cache.cull_limit = 5
+    cache.reset('eviction_policy', u'least-frequently-used')
+    cache.reset('size_limit', int(10.1e6))
+    cache.reset('cull_limit', 5)
 
     million = b'x' * int(1e6)
 
@@ -589,7 +589,7 @@ def test_integrity_check(cache):
 
 @setup_cache
 def test_expire(cache):
-    cache.cull_limit = 0 # Disable expiring keys on `set`.
+    cache.reset('cull_limit', 0)  # Disable expiring keys on `set`.
     now = time.time()
     time_time = mock.Mock(return_value=now)
 
@@ -600,7 +600,7 @@ def test_expire(cache):
     assert len(cache) == 100
 
     time_time = mock.Mock(return_value=now + 10)
-    cache.cull_limit = 10
+    cache.reset('cull_limit', 10)
     with mock.patch('time.time', time_time):
         assert cache.expire() == 10
 
@@ -862,7 +862,7 @@ def test_iter(cache):
 
 @setup_cache
 def test_iter_expire(cache):
-    cache.cull_limit = 0
+    cache.reset('cull_limit', 0)
     for num in range(100):
         cache.set(num, num, expire=0)
     assert len(cache) == 100
