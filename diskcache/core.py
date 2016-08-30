@@ -367,7 +367,7 @@ class Cache(object):
         for key, value in METADATA.items():
             query = 'INSERT OR IGNORE INTO Settings VALUES (?, ?)'
             sql(query, (key, value))
-            setattr(self, key, value)
+            self.reset(key)
 
         (self._page_size,), = sql('PRAGMA page_size').fetchall()
 
