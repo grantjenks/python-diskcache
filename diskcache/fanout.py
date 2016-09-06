@@ -314,13 +314,13 @@ class FanoutCache(object):
         :return: count of items removed
 
         """
-        return self._remove('expire', (time.time(),))
+        return self._remove('expire', args=(time.time(),))
 
 
     def create_tag_index(self):
         """Create tag index on cache database.
 
-        It's better to initialized cache with `tag_index=True`.
+        It is better to initialize cache with `tag_index=True` than use this.
 
         :raises Timeout: if database timeout expires
 
@@ -346,7 +346,7 @@ class FanoutCache(object):
         :return: count of items removed
 
         """
-        return self._remove('evict', (tag,))
+        return self._remove('evict', args=(tag,))
 
 
     def clear(self):

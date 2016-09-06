@@ -848,7 +848,7 @@ class Cache(object):
                 else:
                     raise
 
-        else: # Slow path, transaction required.
+        else:  # Slow path, transaction required.
 
             cache_hit = (
                 'UPDATE Settings SET value = value + 1 WHERE key = "hits"'
@@ -1055,7 +1055,8 @@ class Cache(object):
                             warnings.warn(message % args)
 
                             if fix:
-                                sql('UPDATE Cache SET size = ? WHERE rowid = ?',
+                                sql('UPDATE Cache SET size = ?'
+                                    ' WHERE rowid = ?',
                                     (real_size, rowid),
                                 )
 
@@ -1127,7 +1128,7 @@ class Cache(object):
     def create_tag_index(self):
         """Create tag index on cache database.
 
-        It's better to initialized cache with `tag_index=True`.
+        It is better to initialize cache with `tag_index=True` than use this.
 
         :raises Timeout: if database timeout expires
 

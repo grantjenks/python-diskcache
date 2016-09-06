@@ -43,7 +43,7 @@ class StampedeBarrier(object):
         cache = self._cache
         expire = self._expire
 
-        ft.wraps(func)
+        @ft.wraps(func)
         def wrapper(*args, **kwargs):
             "Wrapper function to cache function result."
             key = (args, kwargs)

@@ -6,7 +6,7 @@ from .fanout import FanoutCache
 
 try:
     from .djangocache import DjangoCache
-except Exception: # pylint: disable=broad-except
+except Exception:  # pylint: disable=broad-except
     # Django not installed or not setup so ignore.
     pass
 
