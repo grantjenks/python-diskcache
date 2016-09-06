@@ -194,10 +194,49 @@ class DjangoCache(BaseCache):
         return key in self._cache
 
 
+    def expire(self):
+        """Remove expired items from cache.
+
+        :return: count of items removed
+
+        """
+        return self._cache.expire()
+
+
+    def create_tag_index(self):
+        """Create tag index on cache database.
+
+        It is better to initialize cache with `tag_index=True` than use this.
+
+        :raises Timeout: if database timeout expires
+
+        """
+        self._cache.create_tag_index()
+
+
+    def drop_tag_index(self):
+        """Drop tag index on cache database.
+
+        :raises Timeout: if database timeout expires
+
+        """
+        self._cache.drop_tag_index()
+
+
+    def evict(self, tag):
+        """Remove items with matching `tag` from cache.
+
+        :param str tag: tag identifying items
+        :return: count of items removed
+
+        """
+        return self._cache.evict(tag)
+
+
     def clear(self, **kwargs):
         "Remove *all* values from the cache at once."
         # pylint: disable=unused-argument
-        self._cache.clear()
+        return self._cache.clear()
 
 
     def close(self, **kwargs):

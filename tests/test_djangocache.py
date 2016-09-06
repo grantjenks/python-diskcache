@@ -875,3 +875,22 @@ class DiskCacheTests(BaseCacheTests, TestCase):
             error = True
 
         self.assertTrue(error)
+
+    def test_expire(self):
+        cache.clear()
+        cache.set(b'expire-key', 0, timeout=0.05)
+        time.sleep(0.1)
+        self.assertEqual(cache.expire(), 1)
+        self.assertEqual(cache.get(b'expire-key'), None)
+
+    def test_evict(self):
+        cache.clear()
+        for num in range(100):
+            cache.set(num, num, tag=(num % 4))
+        self.assertEqual(cache.evict(1), 25)
+        cache.create_tag_index()
+        self.assertEqual(cache.evict(2), 25)
+        cache.drop_tag_index()
+        self.assertEqual(cache.evict(3), 25)
+        for num in range(0, 100, 4):
+            self.assertEqual(cache.get(num), num)
