@@ -4,7 +4,7 @@ import itertools as it
 import os.path as op
 import time
 
-from .core import Cache, Disk, ENOVAL, Timeout
+from .core import ENOVAL, DEFAULT_SETTINGS, Cache, Disk, Timeout
 
 
 class FanoutCache(object):
@@ -21,11 +21,14 @@ class FanoutCache(object):
 
         """
         self._count = shards
+        default_size_limit = DEFAULT_SETTINGS['size_limit']
+        size_limit = settings.pop('size_limit', default_size_limit) / shards
         self._shards = tuple(
             Cache(
                 op.join(directory, '%03d' % num),
                 timeout=timeout,
                 disk=disk,
+                size_limit=size_limit,
                 **settings
             )
             for num in range(shards)

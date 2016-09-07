@@ -39,8 +39,11 @@ def setup_cache(func):
 
 @setup_cache
 def test_init(cache):
-    for key, value in dc.DEFAULT_SETTINGS.items():
+    default_settings = dc.DEFAULT_SETTINGS.copy()
+    del default_settings['size_limit']
+    for key, value in default_settings.items():
         assert getattr(cache, key) == value
+    assert cache.size_limit == 2 ** 27
 
     cache.check()
 
