@@ -46,8 +46,8 @@ testing has 100% coverage with unit tests and hours of stress.
 Testimonials
 ------------
 
-Does your company or website use `DiskCache`_? Send us a message and let us
-know.
+Does your company or website use `DiskCache`_? Send us a `message
+<contact@grantjenks.com>`_ and let us know.
 
 Features
 --------
