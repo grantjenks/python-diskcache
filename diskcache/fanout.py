@@ -414,16 +414,19 @@ class FanoutCache(object):
 
 
     def __iter__(self):
+        "Iterate keys in cache including expired items."
         iterators = [iter(shard) for shard in self._shards]
         return it.chain.from_iterable(iterators)
 
 
     def __reversed__(self):
+        "Reverse iterate keys in cache including expired items."
         iterators = [reversed(shard) for shard in self._shards]
         return it.chain.from_iterable(reversed(iterators))
 
 
     def __len__(self):
+        "Count of items in cache including expired items."
         return sum(len(shard) for shard in self._shards)
 
 
