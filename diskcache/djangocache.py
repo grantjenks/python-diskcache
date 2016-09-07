@@ -43,7 +43,7 @@ class DjangoCache(BaseCache):
         :param bool read: read value as bytes from file (default False)
         :param str tag: text to associate with key (default None)
         :param bool retry: retry if database timeout expires (default True)
-        :return: True if item is added
+        :return: True if item was added
 
         """
         # pylint: disable=arguments-differ
@@ -100,7 +100,7 @@ class DjangoCache(BaseCache):
         :param bool read: read value as bytes from file (default False)
         :param str tag: text to associate with key (default None)
         :param bool retry: retry if database timeout expires (default True)
-        :return: True if item is added
+        :return: True if item was set
 
         """
         # pylint: disable=arguments-differ
@@ -115,7 +115,7 @@ class DjangoCache(BaseCache):
         :param key: key for item
         :param int version: key version number (default None, cache parameter)
         :param bool retry: retry if database timeout expires (default True)
-        :return: True if item is deleted
+        :return: True if item was deleted
 
         """
         # pylint: disable=arguments-differ

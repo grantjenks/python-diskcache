@@ -500,7 +500,7 @@ class Cache(object):
             (default None, no expiry)
         :param bool read: read value as bytes from file (default False)
         :param str tag: text to associate with key (default None)
-        :return: True if item was successfully set
+        :return: True if item was set
         :raises Timeout: if database timeout expires
 
         """
@@ -673,7 +673,7 @@ class Cache(object):
             (default None, no expiry)
         :param bool read: read value as bytes from file (default False)
         :param str tag: text to associate with key (default None)
-        :return: True if item was successfully added
+        :return: True if item was added
         :raises Timeout: if database timeout expires
 
         """
@@ -989,7 +989,7 @@ class Cache(object):
         Missing keys are ignored.
 
         :param key: key matching item
-        :return: True if item was deleted else False
+        :return: True if item was deleted
         :raises Timeout: if database timeout expires
 
         """
