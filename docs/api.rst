@@ -9,12 +9,16 @@ The :doc:`tutorial` provides a helpful walkthrough of most methods.
 DjangoCache
 -----------
 
+Read the :ref:`DjangoCache tutorial <tutorial-djangocache>` for example usage.
+
 .. autoclass:: diskcache.DjangoCache
    :members:
    :special-members:
 
 FanoutCache
 -----------
+
+Read the :ref:`FanoutCache tutorial <tutorial-fanoutcache>` for example usage.
 
 .. autoclass:: diskcache.FanoutCache
    :members:
@@ -24,21 +28,17 @@ FanoutCache
 Cache
 -----
 
+Read the :ref:`Cache tutorial <tutorial-cache>` for example usage.
+
 .. autoclass:: diskcache.Cache
-   :members:
-   :special-members:
-   :exclude-members: __weakref__
-
-Disk
-----
-
-.. autoclass:: diskcache.Disk
    :members:
    :special-members:
    :exclude-members: __weakref__
 
 Constants
 ---------
+
+Read the :ref:`Settings tutorial <tutorial-settings>` for details.
 
 .. data:: diskcache.DEFAULT_SETTINGS
 
@@ -47,8 +47,8 @@ Constants
    * `eviction_policy` (str) default "least-recently-stored" - any of the keys
      in `EVICTION_POLICY` as described below.
    * `size_limit` (int) default one gigabyte - approximate size limit of cache.
-   * `cull_limit` (int) default ten - maximum number of keys culled during
-     `set` operation.
+   * `cull_limit` (int) default ten - maximum number of items culled during
+     `set` or `add` operations.
    * `large_value_threshold` (int) default one kilobyte - values with greater
      size are stored in files.
    * `sqlite_synchronous` (str) default "NORMAL" - SQLite synchronous pragma.
@@ -68,5 +68,20 @@ Constants
 .. data:: diskcache.EVICTION_POLICY
 
    * `least-recently-stored` (default) - evict least recently stored keys first.
-   * `least-recently-used` - evict least recently retrieved keys first.
+   * `least-recently-used` - evict least recently used keys first.
    * `least-frequently-used` - evict least frequently used keys first.
+
+Disk
+----
+
+Read the :ref:`Disk tutorial <tutorial-disk>` for details.
+
+.. autoclass:: diskcache.Disk
+   :members:
+   :special-members:
+   :exclude-members: __weakref__
+
+Timeout
+-------
+
+.. autoexception:: diskcache.Timeout

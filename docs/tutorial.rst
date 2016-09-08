@@ -1,34 +1,39 @@
 DiskCache Tutorial
 ==================
 
+.. contents::
+   :depth: 1
+   :local:
+
 Installation
 ------------
 
 This part of the documentation covers the installation of :doc:`DiskCache
-<index>`.  The first step to using any software package is getting it properly
+<index>`. The first step to using any software package is getting it properly
 installed.
 
 Pip & PyPI
 ..........
 
 Installing :doc:`DiskCache <index>` is simple with `pip
-<http://www.pip-installer.org/>`_::
+<https://pip.pypa.io/en/stable/>`_::
 
     $ pip install diskcache
 
-or, with `easy_install <http://pypi.python.org/pypi/setuptools>`_::
+or, with `easy_install <https://setuptools.readthedocs.io/en/latest/easy_install.html>`_::
 
     $ easy_install diskcache
 
-But, you really `shouldn't do that <http://www.pip-installer.org/en/latest/other-tools.html#pip-compared-to-easy-install>`_.
+But `prefer pip <https://packaging.python.org/pip_easy_install/>`_ if at all
+possible.
 
 Get the Code
 ............
 
 :doc:`DiskCache <index>` is actively developed on GitHub, where the code is
-`always available <https://github.com/grantjenks/python-diskcache>`_.
+always available.
 
-You can either clone the public repository::
+You can either clone the `DiskCache repository <https://github.com/grantjenks/python-diskcache>`_::
 
     $ git clone git://github.com/grantjenks/python-diskcache.git
 
@@ -45,11 +50,15 @@ or install it into your site-packages easily::
 
     $ python setup.py install
 
-:doc:`DiskCache <index>` is looking for a Debian package maintainer. Can you
-help?
+:doc:`DiskCache <index>` is looking for a Debian package maintainer. If you can
+help, please open an issue in the `DiskCache Issue Tracker
+<https://github.com/grantjenks/python-diskcache/issues/>`_.
 
-:doc:`DiskCache <index>` is looking for a CentOS/RPM package maintainer. Can
-you help?
+:doc:`DiskCache <index>` is looking for a CentOS/RPM package maintainer.  If
+you can help, please open an issue in the `DiskCache Issue Tracker
+<https://github.com/grantjenks/python-diskcache/issues/>`_.
+
+.. _tutorial-cache:
 
 Cache
 -----
@@ -59,7 +68,7 @@ represents a disk and file backed cache. As a Cache it supports a familiar
 Python Mapping interface with additional cache and performance parameters.
 
     >>> from diskcache import Cache
-    >>> cache = Cache('mycachedir')
+    >>> cache = Cache('/tmp/mycachedir')
 
 Initialization requires a directory path reference. If the directory path does
 not exist, it will be created. Additional keyword parameters are discussed
@@ -71,16 +80,16 @@ communication.
 When created, Cache objects open and maintain a file handle. As such, they may
 not be pickled and do not survive process forking. Each thread that accesses a
 cache is also responsible for calling :meth:`close <diskcache.Cache.close>` on
-the cache if used. You can use a Cache reference in a `with` statement to
-safeguard calling :meth:`close <diskcache.Cache.close>`.
+the cache. You can use a Cache reference in a `with` statement to safeguard
+calling :meth:`close <diskcache.Cache.close>`.
 
     >>> cache.close()
-    >>> with Cache('mycachedir') as reference:
+    >>> with Cache('/tmp/mycachedir') as reference:
     ...     pass
 
 Set an item, get a value, and delete a key using the usual operators:
 
-    >>> cache = Cache('mycachedir')
+    >>> cache = Cache('/tmp/mycachedir')
     >>> cache[b'key'] = b'value'
     >>> cache[b'key']
     'value'
@@ -102,7 +111,7 @@ file-like object, and tag metadata is stored with the key. Another method,
 
     >>> cache.get(b'key', default=b'', read=True, expire_time=True, tag=True)
     (<_io.BufferedReader
-      name=u'mycachedir/1d/6e/128a921c3b8a9027c1f69989f3ac.val'>,
+      name=u'/tmp/mycachedir/1d/6e/128a921c3b8a9027c1f69989f3ac.val'>,
      1457066214.784396,
      u'data')
 
@@ -110,30 +119,97 @@ The return value is a tuple containing the value, expire time (seconds from
 epoch), and tag. Because we passed ``read=True`` the value is returned as a
 file-like object.
 
+Like :meth:`set <diskcache.Cache.set>`, the method :meth:`add
+<diskcache.Cache.add>` can be used to insert an item in the cache. The item is
+inserted only if the key is not already present.
+
+    >>> cache.add(b'test', 123)
+    True
+    >>> cache[b'test']
+    123
+    >>> cache.add(b'test', 456)
+    False
+    >>> cache[b'test']
+    123
+
+Item values can also be incremented and decremented using :meth:`incr
+<diskcache.Cache.incr>` and :meth:`decr <diskcache.Cache.decr>` methods.
+
+    >>> cache.incr(b'test')
+    124
+    >>> cache.decr(b'test', 24)
+    100
+
+Increment and decrement methods also support a keyword parameter, `default`,
+which will be used for missing keys. When ``None``, incrementing or
+decrementing a missing key will raise a :exc:`KeyError`.
+
+    >>> cache.incr(u'alice')
+    1
+    >>> cache.decr(u'bob', default=-9)
+    -10
+    >>> cache.incr(u'carol', default=None)
+    Traceback (most recent call last):
+        ...
+    KeyError: u'carol'
+
+Increment and decrement operations are atomic and assume the value may be
+stored in a SQLite column. Most builds that target machines with 64-bit pointer
+widths will support 64-bit signed integers.
+
 Another three methods remove items from the cache.
 
-    >>> cache.cull_limit = 0              # Disable evictions.
-    >>> for num in range(100):
-    ...     cache.set(num, num, expire=0) # Expire immediately.
-    >>> cache.cull_limit = 10
+    >>> cache.reset('cull_limit', 0)       # Disable automatic evictions.
+    >>> for num in range(10):
+    ...     cache.set(num, num, expire=0)  # Expire immediately.
+    >>> len(cache)
+    10
+    >>> list(cache)
+    [0, 1, 2, 3, 4, 5, 6, 7, 8, 9]
     >>> cache.expire()
+    10
 
 :meth:`Expire <diskcache.Cache.expire>` removes all expired keys from the
-cache. It does so in chunks according to the cull limit size.
+cache. Resetting the `cull_limit` to zero will disable culling during
+:meth:`set <diskcache.Cache.set>` and :meth:`add <diskcache.Cache.add>`
+operations. Because culling is performed lazily, the reported length of the
+cache includes expired items. Iteration likewise includes expired items because
+it is a read-only operation. To exclude expired items you must explicitly call
+:meth:`expire <diskcache.Cache.expire>` which works regardless of the
+`cull_limit`.
 
     >>> for num in range(100):
     ...     cache.set(num, num, tag=u'odd' if num % 2 else u'even')
     >>> cache.evict(u'even')
 
 :meth:`Evict <diskcache.Cache.evict>` removes all the keys with a matching
-key. The default tag is ``None``. Tag values may be any of integer, float,
-string, bytes and None.
+tag. The default tag is ``None``. Tag values may be any of integer, float,
+string, bytes and None. To accelerate the eviction of items by tag, an index
+can be created. To do so, initialize the cache with ``tag_index=True``.
+
+    >>> cache = Cache('/tmp/mycachedir', tag_index=True)
+    >>> for num in range(100):
+    ...     cache.set(num, num, tag=(num % 2))
+    >>> cache.evict(0)
+
+Likewise, the tag index may be created or dropped using methods::
+
+    >>> cache.drop_tag_index()
+    >>> cache.tag_index
+    0
+    >>> cache.create_tag_index()
+    >>> cache.tag_index
+    1
+
+But prefer initializing the cache with a tag index rather than explicitly
+creating or dropping the tag index.
+
+:meth:`Clear <diskcache.Cache.clear>` simply removes all items from the cache.
 
     >>> cache.clear()
 
-:meth:`Clear <diskcache.Cache.clear>` simply removes all keys from the
-cache. Each of these methods is designed to work concurrent to others. None of
-them lock or freeze the cache while operating.
+Each of these methods is designed to work concurrent to others. None of them
+block readers or writers in other threads or processes.
 
 Lastly, three methods support metadata about the cache. The first is
 :meth:`volume <diskcache.Cache.volume>` which returns the estimated total size
@@ -146,55 +222,67 @@ The second is :meth:`stats <diskcache.Cache.stats>` which returns cache hits
 and misses. Cache statistics must first be enabled.
 
     >>> cache.stats(enable=True)
+    (0, 0)
     >>> for num in range(100):
     ...     cache.set(num, num)
     >>> for num in range(150):
     ...     cache.get(num)
     >>> cache.stats(enable=False, reset=True)
-    (100, 50)
+    (100, 50)  # 100 hits, 50 misses
 
 Cache statistics are useful when evaluating different eviction policies as
 discussed below. By default, statistics are disabled as they incur an extra
-overhead on cache retrieval.
+overhead on cache lookups. Increment and decrement operations are not accounted
+in cache statistics.
 
 The third is :meth:`check <diskcache.Cache.check>` which verifies cache
-consistency. It can also fix inconsistencies and reclaimed unused space.
+consistency. It can also fix inconsistencies and reclaim unused space.
 
     >>> cache.check(fix=True)
     []
 
-The value returned is a list of warnings. As such it is useful in assert
-statements as ``assert len(cache.check()) == 0``.
+The return value is a list of warnings.
+
+.. _tutorial-fanoutcache:
 
 FanoutCache
 -----------
 
 Built atop :class:`Cache <diskcache.Cache>` is :class:`diskcache.FanoutCache`
-which automatically `shards` the underlying database used. `Sharding`_ is the
-practice of horizontally partitioning data in a database. Here it is used to
-decrease blocking writes. While readers and writers do not block each other,
-writers block other writers. Therefore a shard for every concurrent writer is
+which automatically `shards` the underlying database. `Sharding`_ is the
+practice of horizontally partitioning data. Here it is used to decrease
+blocking writes. While readers and writers do not block each other, writers
+block other writers. Therefore a shard for every concurrent writer is
 suggested. This will depend on your scenario. The default value is 8.
 
 Another parameter, `timeout`, sets a limit on how long to wait for database
-operations. This depends on your requirements and underlying hardware. This
-parameter is also present on :class:`diskcache.Cache` but operates differently
-there. :class:`FanoutCache <diskcache.FanoutCache>` automatically catches
-timeout errors and aborts the operation. This means that a :meth:`set
-<diskcache.FanoutCache.set>` or :meth:`delete <diskcache.FanoutCache.delete>`
-operation could fail to complete. The default value is 0.025 (25 milliseconds).
+transactions. Transactions are used for every operation that writes to the
+database. The `timeout` parameter is also present on
+:class:`diskcache.Cache`. When a :exc:`diskcache.Timeout` error occurs in
+:class:`Cache <diskcache.Cache>` methods, the exception is raised to the
+caller. In contrast, :class:`FanoutCache <diskcache.FanoutCache>` catches
+timeout errors and aborts the operation. As a result, :meth:`set
+<diskcache.FanoutCache.set>` and :meth:`delete <diskcache.FanoutCache.delete>`
+methods may silently fail. Most methods that handle :exc:`Timeout
+<diskcache.Timeout>` exceptions also include a `retry` keyword parameter
+(default ``False``) to automatically repeat attempts that
+timeout. :class:`FanoutCache <diskcache.FanoutCache>` will never raise a
+:exc:`Timeout <diskcache.Timeout>` exception. The default `timeout` is 0.025
+(25 milliseconds).
 
     >>> from diskcache import FanoutCache
-    >>> cache = FanoutCache('mycachedir', shards=4, timeout=1)
+    >>> cache = FanoutCache('/tmp/mycachedir', shards=4, timeout=1)
 
-The example above creates a cache in the local ``mycachedir`` directory with
-four shards and a one second timeout. The `get`, `set`, and `delete` operations
-will attempt to abort if they'll take longer than one second.
+The example above creates a cache in the local ``/tmp/mycachedir`` directory
+with four shards and a one second timeout. Operations will attempt to abort if
+they take longer than one second. 
 
 The remaining API of :class:`FanoutCache <diskcache.FanoutCache>` matches
 :class:`Cache <diskcache.Cache>` as described above.
 
 .. _`Sharding`: https://en.wikipedia.org/wiki/Shard_(database_architecture)
+
+.. _tutorial-djangocache:
 
 DjangoCache
 -----------
@@ -221,12 +309,39 @@ DjangoCache
 As with :class:`FanoutCache <diskcache.FanoutCache>` above, these settings
 create a Django-compatible cache with four shards and a one second timeout. You
 can pass further settings via the ``OPTIONS`` mapping as shown in the Django
-documentation.
+documentation. :class:`DjangoCache <diskcache.DjangoCache>` will never raise a
+:exc:`Timeout <diskcache.Timeout>` exception. But unlike :class:`FanoutCache
+<diskcache.FanoutCache>`, the keyword parameter `retry` defaults to ``True``
+for :class:`DjangoCache <diskcache.DjangoCache>` methods.
 
-The API of :class:`DjangoCache <diskcache.DjangoCache>` is as described in the
-`Django documentation on caching`_.
+The API of :class:`DjangoCache <diskcache.DjangoCache>` is a superset of the
+functionality described in the `Django documentation on caching`_ and includes
+many :class:`FanoutCache <diskcache.FanoutCache>` features.
+
+:class:`DjangoCache <diskcache.DjangoCache>` also works well with `X-Sendfile` and
+`X-Accel-Redirect` headers.
+
+::
+
+    from django.core.cache import cache
+
+    def media(request, path):
+        try:
+            with cache.read(path) as reader:
+                response = HttpResponse()
+                response['X-Accel-Redirect'] = reader.name
+                return response
+        except KeyError:
+            # Handle cache miss.
+
+When values are :meth:`set <diskcache.DjangoCache.set>` using ``read=True``
+they are guaranteed to be stored in files. The full path is available on the
+file handle in the `name` attribute. Remember to also include the
+`Content-Type` header if known.
 
 .. _`Django documentation on caching`: https://docs.djangoproject.com/en/1.9/topics/cache/#the-low-level-cache-api
+
+.. _tutorial-settings:
 
 Settings
 --------
@@ -234,25 +349,40 @@ Settings
 A variety of settings are available to improve performance. These values are
 stored in the database for durability and to communicate between
 processes. Each value is cached in an attribute with matching name. Attributes
-are updated when set or deleted. Attributes are set during initialization when
-passed as keyword arguments.
+are updated using :meth:`reset <diskcache.Cache.reset>`. Attributes are set
+during initialization when passed as keyword arguments.
 
-* `size_limit`, default one gigabyte. The maximum disk size of the cache.
-* `cull_limit`, default ten. The maximum number of keys to cull when setting a
+* `size_limit`, default one gigabyte. The maximum on-disk size of the cache.
+* `cull_limit`, default ten. The maximum number of keys to cull when adding a
   new item. Set to zero to disable automatic culling. Some systems may disable
-  automatic culling in exchange for a cron job that regularly calls
-  :meth:`expire <diskcache.Cache.expire>` in a separate process.
+  automatic culling in exchange for a cron-like job that regularly calls
+  :meth:`expire <diskcache.DjangoCache.expire>` in a separate process.
 * `large_value_threshold`, default one kilobyte. The minimum size of a value
   stored in a file on disk rather than in the cache database.
-* `eviction_policy`, see section below.
+* `eviction_policy`, see descriptions below.
 
-    >>> cache = Cache('mycachedir', size_limit=int(4e9), cull_limit=2)
+    >>> cache = Cache('/tmp/mycachedir', size_limit=int(4e9))
     >>> cache.size_limit
     4000000000
-    >>> cache.cull_limit
-    2
     >>> cache.large_value_threshold
     1024
+    >>> cache.reset('cull_limit', 0)  # Disable automatic evictions.
+    0
+    >>> cache.set(b'key', 1.234)
+    True
+    >>> cache.count           # Stale attribute.
+    0
+    >>> cache.reset('count')  # Prefer: len(cache)
+    1
+
+The :meth:`reset <diskcache.FanoutCache.reset>` method accepts an optional
+second argument that updates the corresponding value in the database. The
+return value is the latest retrieved from the database. Notice attributes are
+updated lazily. Prefer idioms like :meth:`len <diskcache.FanoutCache.__len__>`,
+:meth:`volume <diskcache.FanoutCache.volume>`, :meth:`create_tag_index
+<diskcache.FanoutCache.create_tag_index>`, and :meth:`keyword arguments
+<diskcache.FanoutCache.__init__>` rather than using :meth:`reset
+<diskcache.FanoutCache.reset>` directly.
 
 An additional set of attributes correspond to SQLite pragmas. Changing these
 values will also execute the appropriate ``PRAGMA`` statement. See the `SQLite
@@ -291,17 +421,21 @@ tradeoffs for accessing and storing items.
   slows accesses.
 
 All clients accessing the cache are expected to use the same eviction
-policy. The policy can be set during initialization via keyword argument and
-changed by attribute.
+policy. The policy can be set during initialization using a keyword argument.
 
-    >>> cache = Cache('mycachedir', eviction_policy=u'least-recently-used')
+    >>> cache = Cache('/tmp/mycachedir')
     >>> cache.eviction_policy
+    u'least-recently-stored'
+    >>> cache = Cache('/tmp/mycachedir', eviction_policy=u'least-frequently-used')
+    >>> cache.eviction_policy
+    u'least-frequently-used'
+    >>> cache.reset('eviction_policy', u'least-recently-used')
     u'least-recently-used'
-    >>> cache.eviction_policy = u'least-frequently-used'
-    >>> cache.eviction_policy = u'least-recently-stored'
 
-The eviction policy can be changed at any time but previous indexes will not be
-dropped.
+Though the eviction policy is changed the previously created indexes will not
+be dropped.
+
+.. _tutorial-disk:
 
 Disk
 ----
@@ -319,6 +453,28 @@ integers, floats, strings, and bytes. Other datatypes are converted to bytes
 via the pickle protocol. Beware that integers and floats like ``1`` and ``1.0``
 will compare equal as keys just as in Python. All other equality comparisons
 will require identical types.
+
+Caveats
+-------
+
+Though :doc:`DiskCache <index>` has a dictionary-like interface, Python's `hash
+protocol`_ is not used. Neither the `__hash__` nor `__eq__` methods are used
+for lookups. Instead lookups depend on the serialization method defined by
+:class:`Disk <diskcache.Disk>` objects. For strings, bytes, integers, and
+floats equality matches Python's definition. But large integers and all other
+types will be converted to bytes using pickling and the bytes representation
+will define equality.
+
+:doc:`DiskCache <index>` uses SQLite to synchronize database access between
+threads and processes and as such inherits all SQLite caveats. Most notably
+SQLite is `not recommended`_ for use with Network File System (NFS) mounts. For
+this reason, :doc:`DiskCache <index>` currently `performs poorly`_ on `Python
+Anywhere`_.
+
+.. _`hash protocol`: https://docs.python.org/library/functions.html#hash
+.. _`not recommended`: https://www.sqlite.org/faq.html#q5
+.. _`performs poorly`: https://www.pythonanywhere.com/forums/topic/1847/
+.. _`Python Anywhere`: https://www.pythonanywhere.com/
 
 Implementation Notes
 --------------------
