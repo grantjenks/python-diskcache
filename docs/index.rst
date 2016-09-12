@@ -12,8 +12,8 @@ to leverage empty disk space for caching?
 Django is Python's most popular web framework and ships with several caching
 backends. Unfortunately the file-based cache in Django is essentially
 broken. The culling method is random and large caches repeatedly scan a cache
-directory which slows linearly with growth. Should it really take ~60ms to
-store a key in a cache with a thousand items?
+directory which slows linearly with growth. Can you really allow it to take
+sixty milliseconds to store a key in a cache with a thousand items?
 
 In Python, we can do better. And we can do it in pure-Python!
 

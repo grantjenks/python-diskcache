@@ -13,8 +13,8 @@ A survey of repositories on Github showed a diversity of cached values. Among
 those observed values were:
 
 1. Processed text, most commonly HTML. The average HTML page size in 2014 was
-   59KB. Javascript assets total an average of 295KB and images range
-   dramatically but average 1.2MB.
+   59KB. Javascript assets totalled an average of 295KB and images range
+   dramatically but averaged 1.2MB.
 2. QuerySets, the building blocks of the Django ORM.
 3. Numbers, settings, and labels. Generally small values that vary in how often
    they change.
@@ -113,7 +113,7 @@ Set
 
 Not displayed above is the filebased cache backend. At all percentiles, the
 latency exceeded five milliseconds. Timing data is available below. Though
-:doc:`DiskCache <index>` is the slowest its latency remains competitive.
+:doc:`DiskCache <index>` is the slowest, its latency remains competitive.
 
 Delete
 ......
@@ -136,10 +136,10 @@ Timings for locmem
 -------------------------------------------------------------------------------
    Action     Count      Miss    Median       P90       P99       Max     Total
 ========= ========= ========= ========= ========= ========= ========= =========
-      get    712546    140750  35.048us  56.982us  59.128us  10.045ms  28.172s
-      set     71530         0  36.955us  38.147us  43.154us   9.984ms   2.659s
-   delete      7916         0  31.948us  34.094us  36.001us   9.987ms 267.255ms
-    Total    791992                                                    31.099s
+      get    712546    140750  35.048us  56.982us  59.128us   8.609ms  28.325s
+      set     71530         0  36.955us  38.147us  46.015us   6.582ms   2.670s
+   delete      7916         0  31.948us  34.809us  36.955us   2.065ms 255.893ms
+    Total    791992                                                    31.252s
 ========= ========= ========= ========= ========= ========= ========= =========
 
 Notice the high cache miss rate. This reflects the isolation of local memory
@@ -151,10 +151,10 @@ Timings for memcached
 -------------------------------------------------------------------------------
    Action     Count      Miss    Median       P90       P99       Max     Total
 ========= ========= ========= ========= ========= ========= ========= =========
-      get    712546     68969  87.976us 101.089us 113.010us 449.181us  62.615s
-      set     71530         0  92.030us 105.143us 117.779us 442.982us   6.565s
-   delete      7916         0  87.023us  99.897us 113.010us 206.947us 682.936ms
-    Total    791992                                                    69.863s
+      get    712546     69192  88.930us 102.043us 123.978us 917.912us  63.269s
+      set     71530         0  92.030us 106.096us 127.077us 804.901us   6.604s
+   delete      7916         0  87.023us 100.136us 122.070us 201.941us 687.053ms
+    Total    791992                                                    70.560s
 ========= ========= ========= ========= ========= ========= ========= =========
 
 Memcached performance is low latency and very stable.
@@ -164,40 +164,43 @@ Timings for redis
 -------------------------------------------------------------------------------
    Action     Count      Miss    Median       P90       P99       Max     Total
 ========= ========= ========= ========= ========= ========= ========= =========
-      get    712546     68854 171.900us 211.000us 250.101us   5.437ms 125.218s
-      set     71530         0 179.052us 216.007us 255.108us   5.327ms  13.051s
-   delete      7916       781 154.018us 190.020us 230.074us   1.309ms   1.253s
-    Total    791992                                                   139.522s
+      get    712546     68891 174.046us 213.146us 251.055us   1.084ms 126.502s
+      set     71530         0 179.052us 216.007us 252.962us 478.983us  13.056s
+   delete      7916       770 156.879us 193.119us 227.213us 293.970us   1.268s
+    Total    791992                                                   140.826s
 ========= ========= ========= ========= ========= ========= ========= =========
 
-Redis performance is roughtly half that of Memcached. But notice also the
-maximum latency is a magnitude larger.
+Redis performance is roughtly half that of Memcached. Beware the impact of
+persistence settings on your Redis performance. Depending on your use of
+logging and snapshotting, maximum latency may increase significantly.
 
 ========= ========= ========= ========= ========= ========= ========= =========
 Timings for diskcache
 -------------------------------------------------------------------------------
    Action     Count      Miss    Median       P90       P99       Max     Total
 ========= ========= ========= ========= ========= ========= ========= =========
-      get    712546     70313  50.068us  67.949us 102.043us  14.113ms  35.382s
-      set     71530         0 355.005us   1.459ms   3.817ms  31.551ms  45.698s
-   delete      7916         0 240.088us   1.330ms   3.665ms  26.498ms   3.785s
-    Total    791992                                                    84.865s
+      get    712546     68585  35.048us  61.989us 107.050us  11.898ms  28.819s
+      set     71530         0 324.011us   1.491ms   8.872ms  36.179ms  56.072s
+   delete      7916         0 254.154us   1.410ms   8.748ms  27.164ms   5.651s
+    Total    791992                                                    90.542s
 ========= ========= ========= ========= ========= ========= ========= =========
 
 :class:`DjangoCache <diskcache.DjangoCache>` defaults to using eight shards
-with a 25 millisecond timeout. The total cache time for all operations is only
-20% slower than Memcached. Cache access is in aggregate twice as fast.
+with a 25 millisecond timeout. Notice that cache get operations are in
+aggregate twice as fast as Memcached. And total cache time for all operations
+is only 30% slower.
 
 ========= ========= ========= ========= ========= ========= ========= =========
 Timings for filebased
 -------------------------------------------------------------------------------
    Action     Count      Miss    Median       P90       P99       Max     Total
 ========= ========= ========= ========= ========= ========= ========= =========
-      get    712580    123599  97.990us 144.958us 257.015us  15.342ms  75.490s
-      set     71539         0   5.274ms   6.261ms   7.501ms  26.983ms 376.789s
-   delete      7873         0 139.952us 235.081us 398.874us   1.394ms   1.218s
-    Total    791992                                                   453.496s
+      get    712598     99964 101.805us 171.900us 365.973us   5.407ms  83.088s
+      set     71557         0   7.903ms  10.250ms  12.787ms  34.464ms 578.779s
+   delete      7837         0 200.987us 346.899us 596.046us   1.250ms   1.736s
+    Total    791992                                                   663.603s
 ========= ========= ========= ========= ========= ========= ========= =========
 
-Notice the higher cache miss rate. This reflects the cache's random culling
-strategy.
+Notice the higher cache miss rate. That's a result of the cache's random
+culling strategy. Get and set operations also take two to seven times longer in
+aggregate as compared with :class:`DjangoCache <diskcache.DjangoCache>`.
