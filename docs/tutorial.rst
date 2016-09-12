@@ -275,7 +275,7 @@ timeout. :class:`FanoutCache <diskcache.FanoutCache>` will never raise a
 
 The example above creates a cache in the local ``/tmp/mycachedir`` directory
 with four shards and a one second timeout. Operations will attempt to abort if
-they take longer than one second. 
+they take longer than one second.
 
 The remaining API of :class:`FanoutCache <diskcache.FanoutCache>` matches
 :class:`Cache <diskcache.Cache>` as described above.
@@ -318,8 +318,8 @@ The API of :class:`DjangoCache <diskcache.DjangoCache>` is a superset of the
 functionality described in the `Django documentation on caching`_ and includes
 many :class:`FanoutCache <diskcache.FanoutCache>` features.
 
-:class:`DjangoCache <diskcache.DjangoCache>` also works well with `X-Sendfile` and
-`X-Accel-Redirect` headers.
+:class:`DjangoCache <diskcache.DjangoCache>` also works well with `X-Sendfile`
+and `X-Accel-Redirect` headers.
 
 ::
 
@@ -423,10 +423,10 @@ tradeoffs for accessing and storing items.
 All clients accessing the cache are expected to use the same eviction
 policy. The policy can be set during initialization using a keyword argument.
 
-    >>> cache = Cache('/tmp/mycachedir')
+    >>> cache = Cache('/tmp/mydir')
     >>> cache.eviction_policy
     u'least-recently-stored'
-    >>> cache = Cache('/tmp/mycachedir', eviction_policy=u'least-frequently-used')
+    >>> cache = Cache('/tmp/mydir', eviction_policy=u'least-frequently-used')
     >>> cache.eviction_policy
     u'least-frequently-used'
     >>> cache.reset('eviction_policy', u'least-recently-used')
