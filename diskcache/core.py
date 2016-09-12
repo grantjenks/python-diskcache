@@ -1282,14 +1282,14 @@ class Cache(object):
     def __iter__(self):
         "Iterate keys in cache including expired items."
         iterator = self._iter()
-        iterator.next()
+        next(iterator)
         return iterator
 
 
     def __reversed__(self):
         "Reverse iterate keys in cache including expired items."
         iterator = self._iter(ascending=False)
-        iterator.next()
+        next(iterator)
         return iterator
 
 
