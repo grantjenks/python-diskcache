@@ -165,7 +165,7 @@ class Disk(object):
             return 0, MODE_RAW, None, value
         elif type_value is BytesType:
             if len(value) < _threshold:
-                return len(value), MODE_RAW, None, sqlite3.Binary(value)
+                return 0, MODE_RAW, None, sqlite3.Binary(value)
             else:
                 filename, full_path = self.filename()
 
