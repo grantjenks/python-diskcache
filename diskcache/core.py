@@ -52,6 +52,7 @@ DEFAULT_SETTINGS = {
     u'size_limit': 2 ** 30,  # 1gb
     u'cull_limit': 10,
     u'large_value_threshold': 2 ** 10,  # 1kb, min 8
+    u'pickle_protocol': pickle.HIGHEST_PROTOCOL,  # 2: highest, 0: lowest protocol
     u'sqlite_synchronous': u'NORMAL',
     u'sqlite_journal_mode': u'WAL',
     u'sqlite_cache_size': 2 ** 13,  # 8,192 pages
@@ -354,7 +355,7 @@ class Cache(object):
             self._disk = disk(  # pylint: disable=redefined-variable-type
                 directory,
                 sets['large_value_threshold'],
-                pickle.HIGHEST_PROTOCOL,
+                sets['pickle_protocol'],
             )
 
         # Set cached attributes: updates settings and sets pragmas.
