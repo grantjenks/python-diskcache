@@ -109,6 +109,28 @@ class DjangoCache(BaseCache):
         return self._cache.set(key, value, timeout, read, tag, retry)
 
 
+    def pop(self, key, default=None, version=None, expire_time=False,
+            tag=False, retry=True):
+        """Remove corresponding item for `key` from cache and return value.
+
+        If `key` is missing, return `default`.
+
+        Operation is atomic. Concurrent operations will be serialized.
+
+        :param key: key for item
+        :param default: return value if key is missing (default None)
+        :param int version: key version number (default None, cache parameter)
+        :param float expire_time: if True, return expire_time in tuple
+            (default False)
+        :param tag: if True, return tag in tuple (default False)
+        :param bool retry: retry if database timeout expires (default True)
+        :return: value for item if key is found else default
+
+        """
+        key = self.make_key(key, version=version)
+        return self._cache.pop(key, default, expire_time, tag, retry)
+
+
     def delete(self, key, version=None, retry=True):
         """Delete a key from the cache, failing silently.
 

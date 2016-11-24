@@ -250,6 +250,38 @@ class FanoutCache(object):
         return key in self._shards[index]
 
 
+    def pop(self, key, default=None, expire_time=False, tag=False,
+            retry=False):
+        """Remove corresponding item for `key` from cache and return value.
+
+        If `key` is missing, return `default`.
+
+        Operation is atomic. Concurrent operations will be serialized.
+
+        :param key: key for item
+        :param default: return value if key is missing (default None)
+        :param float expire_time: if True, return expire_time in tuple
+            (default False)
+        :param tag: if True, return tag in tuple (default False)
+        :param bool retry: retry if database timeout expires (default False)
+        :return: value for item if key is found else default
+
+        """
+        index = hash(key) % self._count
+        pop_func = self._shards[index].pop
+
+        while True:
+            try:
+                return pop_func(
+                    key, default=default, expire_time=expire_time, tag=tag,
+                )
+            except Timeout:
+                if retry:
+                    continue
+                else:
+                    return default
+
+
     def delete(self, key, retry=False):
         """Delete corresponding item for `key` from cache.
 

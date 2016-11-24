@@ -334,6 +334,68 @@ def test_get_ioerror_slow_path(cache):
 
 
 @setup_cache
+def test_pop(cache):
+    assert cache.incr('alpha') == 1
+    assert cache.pop('alpha') == 1
+    assert cache.get('alpha') is None
+    assert cache.check() == []
+
+    assert cache.set('alpha', 123, expire=1, tag='blue')
+    assert cache.pop('alpha', tag=True) == (123, 'blue')
+
+    assert cache.set('beta', 456, expire=0, tag='green')
+    time.sleep(0.01)
+    assert cache.pop('beta', 'dne') == 'dne'
+
+    assert cache.set('gamma', 789, tag='red')
+    assert cache.pop('gamma', expire_time=True, tag=True) == (789, None, 'red')
+
+    assert cache.pop('dne') is None
+
+    assert cache.set('delta', 210)
+    assert cache.pop('delta', expire_time=True) == (210, None)
+
+
+@setup_cache
+def test_pop_ioerror(cache):
+    assert cache.set(0, 0)
+
+    disk = mock.Mock()
+    put = mock.Mock()
+    fetch = mock.Mock()
+
+    disk.put = put
+    put.side_effect = [(0, True)]
+    disk.fetch = fetch
+    io_error = IOError()
+    io_error.errno = errno.ENOENT
+    fetch.side_effect = io_error
+
+    with mock.patch.object(cache, '_disk', disk):
+        assert cache.pop(0) is None
+
+
+@setup_cache
+@nt.raises(IOError)
+def test_pop_ioerror_eacces(cache):
+    assert cache.set(0, 0)
+
+    disk = mock.Mock()
+    put = mock.Mock()
+    fetch = mock.Mock()
+
+    disk.put = put
+    put.side_effect = [(0, True)]
+    disk.fetch = fetch
+    io_error = IOError()
+    io_error.errno = errno.EACCES
+    fetch.side_effect = io_error
+
+    with mock.patch.object(cache, '_disk', disk):
+        cache.pop(0)
+
+
+@setup_cache
 def test_delete(cache):
     cache[0] = 0
     assert cache.delete(0)

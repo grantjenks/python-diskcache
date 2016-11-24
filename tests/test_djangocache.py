@@ -894,3 +894,16 @@ class DiskCacheTests(BaseCacheTests, TestCase):
         self.assertEqual(cache.evict(3), 25)
         for num in range(0, 100, 4):
             self.assertEqual(cache.get(num), num)
+
+    def test_pop(self):
+        cache.clear()
+        for num in range(5):
+            cache.set(num, num, timeout=None)
+        self.assertEqual(cache.pop(0), 0)
+        self.assertEqual(cache.pop(0), None)
+        self.assertEqual(cache.pop(0, 1), 1)
+        self.assertEqual(cache.pop(0, default=1), 1)
+        self.assertEqual(cache.pop(1, expire_time=True), (1, None))
+        self.assertEqual(cache.pop(2, tag=True), (2, None))
+        self.assertEqual(cache.pop(3, expire_time=True, tag=True), (3, None, None))
+        self.assertEqual(cache.pop(4, retry=False), 4)

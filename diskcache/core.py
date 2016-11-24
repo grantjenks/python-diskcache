@@ -953,6 +953,66 @@ class Cache(object):
         return expire_time is None or time.time() < expire_time
 
 
+    def pop(self, key, default=None, expire_time=False, tag=False):
+        """Remove corresponding item for `key` from cache and return value.
+
+        If `key` is missing, return `default`.
+
+        Operation is atomic. Concurrent operations will be serialized.
+
+        :param key: key for item
+        :param default: value to return if key is missing (default None)
+        :param bool expire_time: if True, return expire_time in tuple
+            (default False)
+        :param bool tag: if True, return tag in tuple (default False)
+        :return: value for item or default if key not found
+        :raises Timeout: if database timeout expires
+
+        """
+        db_key, raw = self._disk.put(key)
+        select = (
+            'SELECT rowid, expire_time, tag, mode, filename, value'
+            ' FROM Cache WHERE key = ? AND raw = ?'
+        )
+
+        if expire_time and tag:
+            default = (default, None, None)
+        elif expire_time or tag:
+            default = (default, None)
+
+        with self._transact() as (sql, cleanup):
+            rows = sql(select, (db_key, raw)).fetchall()
+
+            if not rows:
+                return default
+
+            (rowid, db_expire_time, db_tag, mode, filename, db_value), = rows
+
+            sql('DELETE FROM Cache WHERE rowid = ?', (rowid,))
+            cleanup(filename)
+
+        if db_expire_time is not None and db_expire_time < time.time():
+            return default
+
+        try:
+            value = self._disk.fetch(mode, filename, db_value, False)
+        except IOError as error:
+            if error.errno == errno.ENOENT:
+                # Key was deleted before we could retrieve result.
+                return default
+            else:
+                raise
+
+        if expire_time and tag:
+            return (value, db_expire_time, db_tag)
+        elif expire_time:
+            return (value, db_expire_time)
+        elif tag:
+            return (value, db_tag)
+        else:
+            return value
+
+
     def __delitem__(self, key):
         """Delete corresponding item for `key` from cache.
 

@@ -253,6 +253,43 @@ def test_get_timeout_retry(cache):
 
 
 @setup_cache
+def test_pop(cache):
+    for num in range(100):
+        cache[num] = num
+
+    for num in range(100):
+        assert cache.pop(num) == num
+
+
+@setup_cache
+def test_pop_timeout(cache):
+    shards = mock.Mock()
+    shard = mock.Mock()
+    pop_func = mock.Mock()
+
+    shards.__getitem__ = mock.Mock(side_effect=lambda key: shard)
+    shard.pop = pop_func
+    pop_func.side_effect = dc.Timeout
+
+    with mock.patch.object(cache, '_shards', shards):
+        assert cache.pop(0) is None
+
+
+@setup_cache
+def test_pop_timeout_retry(cache):
+    shards = mock.Mock()
+    shard = mock.Mock()
+    pop_func = mock.Mock()
+
+    shards.__getitem__ = mock.Mock(side_effect=lambda key: shard)
+    shard.pop = pop_func
+    pop_func.side_effect = [dc.Timeout, 0]
+
+    with mock.patch.object(cache, '_shards', shards):
+        assert cache.pop(0, retry=True) == 0
+
+
+@setup_cache
 def test_delete_timeout(cache):
     shards = mock.Mock()
     shard = mock.Mock()
