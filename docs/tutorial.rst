@@ -157,6 +157,23 @@ Increment and decrement operations are atomic and assume the value may be
 stored in a SQLite column. Most builds that target machines with 64-bit pointer
 widths will support 64-bit signed integers.
 
+Like :meth:`delete <diskcache.Cache.delete>` and :meth:`get
+<diskcache.Cache.get>`, the method :meth:`pop <diskcache.Cache.pop>` can be
+used to delete an item in the cache and return its value.
+
+    >>> cache.pop(u'alice')
+    1
+    >>> cache.pop(u'does not exist', default=u'error')
+    u'error'
+    >>> cache.set(u'dave', 0, tag=u'admin')
+    >>> cache.pop(u'dave', expire_time=True, tag=True)
+    (0, None, u'admin')
+
+The :meth:`pop <diskcache.Cache.pop>` operation is atomic and using :meth:`incr
+<diskcache.Cache.incr>` together is an accurate method for counting and dumping
+statistics in long-running systems. Unlike :meth:`get <diskcache.Cache.get>`
+the `read` argument is not supported.
+
 Another three methods remove items from the cache.
 
     >>> cache.reset('cull_limit', 0)       # Disable automatic evictions.
