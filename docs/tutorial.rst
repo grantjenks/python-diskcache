@@ -163,9 +163,9 @@ used to delete an item in the cache and return its value.
 
     >>> cache.pop(u'alice')
     1
-    >>> cache.pop(u'does not exist', default=u'error')
-    u'error'
-    >>> cache.set(u'dave', 0, tag=u'admin')
+    >>> cache.pop(u'dave', default=u'does not exist')
+    u'does not exist'
+    >>> cache.set(u'dave', 0, expire=None, tag=u'admin')
     >>> cache.pop(u'dave', expire_time=True, tag=True)
     (0, None, u'admin')
 
