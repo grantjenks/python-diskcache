@@ -3,11 +3,9 @@ DiskCache: Disk Backed Cache
 
 .. image:: https://api.travis-ci.org/grantjenks/python-diskcache.svg?branch=master
     :target: http://www.grantjenks.com/docs/diskcache/
-    :width: 120px
 
 .. image:: https://ci.appveyor.com/api/projects/status/github/grantjenks/python-diskcache?branch=master&svg=true
     :target: http://www.grantjenks.com/docs/diskcache/
-    :width: 120px
 
 `DiskCache`_ is an Apache2 licensed disk and file backed cache library, written
 in pure-Python, and compatible with Django.
