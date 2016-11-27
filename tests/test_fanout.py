@@ -216,6 +216,7 @@ def test_incr_concurrent():
         for thread in threads:
             thread.join()
 
+    with dc.FanoutCache('tmp') as cache:
         assert cache.get(b'key') == count * limit
         cache.check()
 
