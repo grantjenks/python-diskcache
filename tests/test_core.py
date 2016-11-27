@@ -475,6 +475,7 @@ def test_expire_rows(cache):
 
     assert len(cache) == 15
 
+    time.sleep(0.01)
     cache.reset('cull_limit', 10)
 
     assert cache.set(15, 15)

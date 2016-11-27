@@ -383,6 +383,7 @@ def test_expire(cache):
 
     assert len(cache) == 100
 
+    time.sleep(0.01)
     cache.reset('cull_limit', 10)
 
     assert cache.expire() == 100
