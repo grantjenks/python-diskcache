@@ -825,7 +825,7 @@ class DiskCacheTests(BaseCacheTests, TestCase):
     def tearDown(self):
         super(DiskCacheTests, self).tearDown()
         cache.close()
-        shutil.rmtree(self.dirname)
+        shutil.rmtree(self.dirname, ignore_errors=True)
 
     def test_ignores_non_cache_files(self):
         fname = os.path.join(self.dirname, 'not-a-cache-file')
