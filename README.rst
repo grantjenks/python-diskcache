@@ -1,12 +1,6 @@
 DiskCache: Disk Backed Cache
 ============================
 
-.. image:: https://api.travis-ci.org/grantjenks/python-diskcache.svg?branch=master
-    :target: http://www.grantjenks.com/docs/diskcache/
-
-.. image:: https://ci.appveyor.com/api/projects/status/github/grantjenks/python-diskcache?branch=master&svg=true
-    :target: http://www.grantjenks.com/docs/diskcache/
-
 `DiskCache`_ is an Apache2 licensed disk and file backed cache library, written
 in pure-Python, and compatible with Django.
 
@@ -70,6 +64,14 @@ Features
 - Keys support "tag" metadata and eviction
 - Developed on Python 2.7
 - Tested on CPython 2.7, 3.4, 3.5 and PyPy
+- Tested on Linux, Mac OS X, and Windows
+- Tested using Travis CI and AppVeyor CI
+
+.. image:: https://api.travis-ci.org/grantjenks/python-diskcache.svg?branch=master
+    :target: http://www.grantjenks.com/docs/diskcache/
+
+.. image:: https://ci.appveyor.com/api/projects/status/github/grantjenks/python-diskcache?branch=master&svg=true
+    :target: http://www.grantjenks.com/docs/diskcache/
 
 Quickstart
 ----------
