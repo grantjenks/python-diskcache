@@ -52,7 +52,7 @@ def test_init_disk():
         cache['a'] = 0
         cache.check()
     shutil.rmtree('tmp', ignore_errors=True)
-        
+
 
 @nt.raises(EnvironmentError)
 def test_init_makedirs():
@@ -589,20 +589,18 @@ def test_filename_error(cache):
         cache._disk.filename()
 
 
-try:
-    WindowsError
-except NameError:
-    class WindowsError(Exception):
-        pass
-
-
-@nt.raises(OSError, WindowsError)
 @setup_cache
 def test_remove_error(cache):
     func = mock.Mock(side_effect=OSError(errno.EACCES))
 
     with mock.patch('os.remove', func):
         cache._disk.remove('ab/cd/efg.val')
+
+
+if os.name == 'nt':
+    pass  # All Windows errors are passed.
+else:
+    test_remove_error = nt.raises(OSError)(test_remove_error)
 
 
 @setup_cache
