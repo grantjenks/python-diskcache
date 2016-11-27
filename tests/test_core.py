@@ -533,6 +533,8 @@ def test_least_recently_used(cache):
 
     assert len(cache) == 10
 
+    time.sleep(0.01)
+
     cache[0]
     cache[1]
     cache[7]
@@ -587,10 +589,14 @@ def test_filename_error(cache):
         cache._disk.filename()
 
 
-# TODO: Add test for Windows. Attempting to remove a file that is in use
-# (i.e. open for reading) causes an exception.
+try:
+    WindowsError
+except NameError:
+    class WindowsError(Exception):
+        pass
 
-@nt.raises(OSError)
+
+@nt.raises(OSError, WindowsError)
 @setup_cache
 def test_remove_error(cache):
     func = mock.Mock(side_effect=OSError(errno.EACCES))
