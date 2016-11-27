@@ -17,4 +17,4 @@ build: off
 
 test_script:
 
-  - "%PYTHON%\\python.exe -m nose"
+  - "%PYTHON%\\python.exe -m nose -v"
