@@ -11,10 +11,10 @@ environment:
 
 install:
 
-  - "%PYTHON%\\python.exe -m pip install tox nose mock django"
+  - "%PYTHON%\\python.exe -m pip install nose mock django"
 
 build: off
 
 test_script:
 
-  - "%PYTHON%\\python.exe setup.py test"
+  - "%PYTHON%\\python.exe -m nose"
