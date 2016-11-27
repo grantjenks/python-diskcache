@@ -32,8 +32,6 @@ KEY_COUNT = 10
 DEL_CHANCE = 0.1
 WARMUP = 10
 EXPIRE = None
-THREADS = 1
-PROCESSES = 1
 
 
 def make_keys():
@@ -125,7 +123,7 @@ def all_ops():
         yield next(ops)
 
 
-def worker(queue, eviction_policy):
+def worker(queue, eviction_policy, processes, threads):
     timings = {'get': [], 'set': [], 'delete': []}
     cache = FanoutCache('tmp', eviction_policy=eviction_policy)
 
@@ -142,7 +140,7 @@ def worker(queue, eviction_policy):
 
         stop = time.time()
 
-        if action == 'get' and PROCESSES == 1 and THREADS == 1 and EXPIRE is None:
+        if action == 'get' and processes == 1 and threads == 1 and EXPIRE is None:
             assert result == value
 
         if index > WARMUP:
@@ -153,19 +151,19 @@ def worker(queue, eviction_policy):
     cache.close()
 
 
-def dispatch(num, eviction_policy):
+def dispatch(num, eviction_policy, processes, threads):
     with open('input-%s.pkl' % num, 'rb') as reader:
         process_queue = pickle.load(reader)
 
-    thread_queues = [Queue.Queue() for _ in range(THREADS)]
-    threads = [
+    thread_queues = [Queue.Queue() for _ in range(threads)]
+    subthreads = [
         threading.Thread(
-            target=worker, args=(thread_queue, eviction_policy)
+            target=worker, args=(thread_queue, eviction_policy, processes, threads)
         ) for thread_queue in thread_queues
     ]
 
     for index, triplet in enumerate(process_queue):
-        thread_queue = thread_queues[index % THREADS]
+        thread_queue = thread_queues[index % threads]
         thread_queue.put(triplet)
 
     for thread_queue in thread_queues:
@@ -173,10 +171,10 @@ def dispatch(num, eviction_policy):
 
     start = time.time()
 
-    for thread in threads:
+    for thread in subthreads:
         thread.start()
 
-    for thread in threads:
+    for thread in subthreads:
         thread.join()
 
     stop = time.time()
@@ -206,35 +204,37 @@ def percentile(sequence, percent):
     return values[pos]
 
 
-def stress_test(create=True, delete=True, eviction_policy=u'least-recently-stored'):
+def stress_test(create=True, delete=True,
+                eviction_policy=u'least-recently-stored',
+                processes=1, threads=1):
     shutil.rmtree('tmp', ignore_errors=True)
 
-    if PROCESSES == 1:
+    if processes == 1:
         # Use threads.
         func = threading.Thread
     else:
         func = mp.Process
 
-    processes = [
-        func(target=dispatch, args=(num, eviction_policy))
-        for num in range(PROCESSES)
+    subprocs = [
+        func(target=dispatch, args=(num, eviction_policy, processes, threads))
+        for num in range(processes)
     ]
 
     if create:
         operations = list(all_ops())
-        process_queue = [[] for _ in range(PROCESSES)]
+        process_queue = [[] for _ in range(processes)]
 
         for index, ops in enumerate(operations):
-            process_queue[index % PROCESSES].append(ops)
+            process_queue[index % processes].append(ops)
 
-        for num in range(PROCESSES):
+        for num in range(processes):
             with open('input-%s.pkl' % num, 'wb') as writer:
                 pickle.dump(process_queue[num], writer, protocol=2)
 
-    for process in processes:
+    for process in subprocs:
         process.start()
 
-    for process in processes:
+    for process in subprocs:
         process.join()
 
     with FanoutCache('tmp') as cache:
@@ -245,14 +245,14 @@ def stress_test(create=True, delete=True, eviction_policy=u'least-recently-store
 
     timings = {'get': [], 'set': [], 'delete': [], 'self': 0.0}
 
-    for num in range(PROCESSES):
+    for num in range(processes):
         with open('output-%s.pkl' % num, 'rb') as reader:
             data = pickle.load(reader)
             for key in data:
                 timings[key] += data[key]
 
     if delete:
-        for num in range(PROCESSES):
+        for num in range(processes):
             os.remove('input-%s.pkl' % num)
             os.remove('output-%s.pkl' % num)
 
@@ -273,13 +273,7 @@ def stress_test_lfu():
 
 def stress_test_mp():
     "Stress test multiple threads and processes."
-    global PROCESSES, THREADS
-
-    PROCESSES = THREADS = 4
-
-    stress_test()
-
-    PROCESSES = THREADS = 1
+    stress_test(processes=4, threads=4)
 
 
 if __name__ == '__main__':
@@ -313,11 +307,11 @@ if __name__ == '__main__':
         help='Number of seconds before key expires',
     )
     parser.add_argument(
-        '-t', '--threads', type=int, default=THREADS,
+        '-t', '--threads', type=int, default=1,
         help='Number of threads to start in each process',
     )
     parser.add_argument(
-        '-p', '--processes', type=int, default=PROCESSES,
+        '-p', '--processes', type=int, default=1,
         help='Number of processes to start',
     )
     parser.add_argument(
@@ -345,8 +339,6 @@ if __name__ == '__main__':
     DEL_CHANCE = args.del_chance
     WARMUP = int(args.warmup)
     EXPIRE = args.expire
-    THREADS = args.threads
-    PROCESSES = args.processes
 
     random.seed(args.seed)
 
@@ -355,6 +347,8 @@ if __name__ == '__main__':
         create=args.create,
         delete=args.delete,
         eviction_policy=args.eviction_policy,
+        processes=args.processes,
+        threads=args.threads,
     )
     end = time.time()
     print('Total wall clock time: %.3f seconds' % (end - start))
