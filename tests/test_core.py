@@ -599,7 +599,10 @@ def test_remove_error(cache):
     except OSError:
         pass
     else:
-        raise Exception('test_remove_error failed')
+        if os.name == 'nt':
+            pass  # File delete errors ignored on Windows.
+        else:
+            raise Exception('test_remove_error failed')
 
 
 @setup_cache
