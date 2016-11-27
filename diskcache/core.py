@@ -30,6 +30,12 @@ else:
     BytesType = bytes
     INT_TYPES = int,
 
+try:
+    WindowsError
+except NameError:
+    class WindowsError(Exception):
+        pass
+
 DBNAME = 'cache.db'
 ENOVAL = object()
 
@@ -276,6 +282,8 @@ class Disk(object):
 
         try:
             os.remove(full_path)
+        except WindowsError:
+            pass
         except OSError as error:
             if error.errno != errno.ENOENT:
                 # ENOENT may occur if two caches attempt to delete the same
