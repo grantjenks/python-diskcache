@@ -34,6 +34,7 @@ try:
     WindowsError
 except NameError:
     class WindowsError(Exception):
+        "Windows error place-holder on platforms without support."
         pass
 
 DBNAME = 'cache.db'
