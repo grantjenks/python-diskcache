@@ -2,6 +2,7 @@
 
 import itertools as it
 import os.path as op
+import sqlite3
 import time
 
 from .core import ENOVAL, DEFAULT_SETTINGS, Cache, Disk, Timeout
@@ -204,7 +205,7 @@ class FanoutCache(object):
                     key, default=default, read=read, expire_time=expire_time,
                     tag=tag,
                 )
-            except Timeout:
+            except (Timeout, sqlite3.OperationalError):
                 if retry:
                     continue
                 else:
