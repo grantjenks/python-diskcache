@@ -58,11 +58,12 @@ DEFAULT_SETTINGS = {
     u'eviction_policy': u'least-recently-stored',
     u'size_limit': 2 ** 30,  # 1gb
     u'cull_limit': 10,
-    u'large_value_threshold': 2 ** 10,  # 1kb, min 8
     u'sqlite_synchronous': u'NORMAL',
     u'sqlite_journal_mode': u'WAL',
-    u'sqlite_cache_size': 2 ** 13,  # 8,192 pages
-    u'sqlite_mmap_size': 2 ** 26,   # 64mb
+    u'sqlite_cache_size': 2 ** 13,   # 8,192 pages
+    u'sqlite_mmap_size': 2 ** 26,    # 64mb
+    u'disk_min_file_size': 2 ** 10,  # 1kb
+    u'disk_pickle_protocol': pickle.HIGHEST_PROTOCOL,
 }
 
 METADATA = {
@@ -102,17 +103,17 @@ EVICTION_POLICY = {
 
 class Disk(object):
     "Cache key and value serialization for SQLite database and files."
-    def __init__(self, directory, size_threshold, pickle_protocol):
+    def __init__(self, directory, min_file_size=0, pickle_protocol=0):
         """Initialize disk instance.
 
         :param str directory: directory path
-        :param int size_threshold: size threshold for large values
+        :param int min_file_size: minimum size for file use
         :param int pickle_protocol: pickle protocol for serialization
 
         """
         self._dir = directory
-        self._threshold = size_threshold
-        self._protocol = pickle_protocol
+        self.min_file_size = min_file_size
+        self.pickle_protocol = pickle_protocol
 
 
     def put(self, key):
@@ -133,7 +134,7 @@ class Disk(object):
                 or (type_key is float)):
             return key, True
         else:
-            result = pickle.dumps(key, protocol=self._protocol)
+            result = pickle.dumps(key, protocol=self.pickle_protocol)
             return sqlite3.Binary(result), False
 
 
@@ -163,15 +164,15 @@ class Disk(object):
         """
         # pylint: disable=unidiomatic-typecheck
         type_value = type(value)
-        _threshold = self._threshold
+        min_file_size = self.min_file_size
 
-        if ((type_value is TextType and len(value) < _threshold)
+        if ((type_value is TextType and len(value) < min_file_size)
                 or (type_value in INT_TYPES
                     and LIMITS[u'min_int'] <= value <= LIMITS[u'max_int'])
                 or (type_value is float)):
             return 0, MODE_RAW, None, value
         elif type_value is BytesType:
-            if len(value) < _threshold:
+            if len(value) < min_file_size:
                 return 0, MODE_RAW, None, sqlite3.Binary(value)
             else:
                 filename, full_path = self.filename()
@@ -200,9 +201,9 @@ class Disk(object):
 
             return size, MODE_BINARY, filename, None
         else:
-            result = pickle.dumps(value, protocol=self._protocol)
+            result = pickle.dumps(value, protocol=self.pickle_protocol)
 
-            if len(result) < _threshold:
+            if len(result) < min_file_size:
                 return 0, MODE_PICKLE, None, sqlite3.Binary(result)
             else:
                 filename, full_path = self.filename()
@@ -315,10 +316,15 @@ class Cache(object):
 
         :param str directory: cache directory
         :param float timeout: SQLite connection timeout
-        :param disk: disk type or instance for serialization
+        :param disk: Disk type or subclass for serialization
         :param settings: any of DEFAULT_SETTINGS
 
         """
+        try:
+            assert issubclass(disk, Disk)
+        except (TypeError, AssertionError):
+            raise ValueError('disk must subclass diskcache.Disk')
+
         self._dir = directory
         self._timeout = 60    # Use 1 minute timeout for initialization.
         self._local = threading.local()
@@ -356,15 +362,11 @@ class Cache(object):
 
         # Setup Disk object (must happen after settings initialized).
 
-        if isinstance(disk, Disk):
-            self._disk = disk
-        else:
-            assert issubclass(disk, Disk)
-            self._disk = disk(  # pylint: disable=redefined-variable-type
-                directory,
-                sets['large_value_threshold'],
-                pickle.HIGHEST_PROTOCOL,
-            )
+        kwargs = {
+            key[5:]: value for key, value in sets.items()
+            if key.startswith('disk_')
+        }
+        self._disk = disk(directory, **kwargs)
 
         # Set cached attributes: updates settings and sets pragmas.
 
@@ -1432,6 +1434,10 @@ class Cache(object):
         Settings attributes on cache objects are lazy-loaded and
         read-only. Use `reset` to update the value.
 
+        Settings with the ``disk_`` prefix correspond to Disk
+        attributes. Updating the value will change the unprefixed attribute on
+        the associated Disk instance.
+
         Settings with the ``sqlite_`` prefix correspond to SQLite
         pragmas. Updating the value will execute the corresponding PRAGMA
         statement.
@@ -1479,6 +1485,10 @@ class Cache(object):
                     raise error
 
                 del error
+
+            elif key.startswith('disk_'):
+                attr = key[5:]
+                setattr(self._disk, attr, value)
 
             setattr(self, key, value)
             return value

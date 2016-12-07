@@ -4,6 +4,7 @@ import collections as co
 import errno
 import functools as ft
 import io
+import json
 import mock
 import nose.tools as nt
 import os
@@ -14,12 +15,14 @@ import sys
 import threading
 import time
 import warnings
+import zlib
 
 try:
     import cPickle as pickle
 except:
     import pickle
 
+import diskcache
 import diskcache as dc
 
 warnings.simplefilter('error')
@@ -48,9 +51,84 @@ def test_init(cache):
 
 
 def test_init_disk():
-    with dc.Cache('tmp', disk=dc.Disk('tmp', 2 ** 10, 0)) as cache:
-        cache['a'] = 0
+    with dc.Cache('tmp', disk_pickle_protocol=1, disk_min_file_size=2 ** 20) as cache:
+        key = (None, 0, 'abc')
+        cache[key] = 0
         cache.check()
+        assert cache.disk_min_file_size == 2 ** 20
+        assert cache.disk_pickle_protocol == 1
+    shutil.rmtree('tmp', ignore_errors=True)
+
+
+def test_disk_reset():
+    with dc.Cache('tmp', disk_min_file_size=0, disk_pickle_protocol=0) as cache:
+        value = (None, 0, 'abc')
+
+        cache[0] = value
+        cache.check()
+
+        assert cache.disk_min_file_size == 0
+        assert cache.disk_pickle_protocol == 0
+        assert cache._disk.min_file_size == 0
+        assert cache._disk.pickle_protocol == 0
+
+        cache.reset('disk_min_file_size', 2 ** 10)
+        cache.reset('disk_pickle_protocol', 2)
+
+        cache[1] = value
+        cache.check()
+
+        assert cache.disk_min_file_size == 2 ** 10
+        assert cache.disk_pickle_protocol == 2
+        assert cache._disk.min_file_size == 2 ** 10
+        assert cache._disk.pickle_protocol == 2
+
+    shutil.rmtree('tmp', ignore_errors=True)
+
+
+@nt.raises(ValueError)
+def test_disk_valueerror():
+    with dc.Cache('tmp', disk=dc.Disk('tmp')) as cache:
+        pass
+
+
+class JSONDisk(diskcache.Disk):
+    def __init__(self, directory, compress_level=1, **kwargs):
+        self.compress_level = compress_level
+        super(JSONDisk, self).__init__(directory, **kwargs)
+
+    def put(self, key):
+        json_bytes = json.dumps(key).encode('utf-8')
+        data = zlib.compress(json_bytes, self.compress_level)
+        return super(JSONDisk, self).put(data)
+
+    def get(self, key, raw):
+        data = super(JSONDisk, self).get(key, raw)
+        return json.loads(zlib.decompress(data).decode('utf-8'))
+
+    def store(self, value, read):
+        if not read:
+            json_bytes = json.dumps(value).encode('utf-8')
+            value = zlib.compress(json_bytes, self.compress_level)
+        return super(JSONDisk, self).store(value, read)
+
+    def fetch(self, mode, filename, value, read):
+        data = super(JSONDisk, self).fetch(mode, filename, value, read)
+        if not read:
+            data = json.loads(zlib.decompress(data).decode('utf-8'))
+        return data
+
+
+def test_custom_disk():
+    with dc.Cache('tmp', disk=JSONDisk, disk_compress_level=6) as cache:
+        values = [None, True, 0, 1.23, {}, [None] * 10000]
+
+        for value in values:
+            cache[value] = value
+
+        for value in values:
+            assert cache[value] == value
+
     shutil.rmtree('tmp', ignore_errors=True)
 
 

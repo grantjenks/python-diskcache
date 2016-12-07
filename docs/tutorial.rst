@@ -199,6 +199,8 @@ it is a read-only operation. To exclude expired items you must explicitly call
     ...     cache.set(num, num, tag=u'odd' if num % 2 else u'even')
     >>> cache.evict(u'even')
 
+.. _tutorial-tag-index:
+
 :meth:`Evict <diskcache.Cache.evict>` removes all the keys with a matching
 tag. The default tag is ``None``. Tag values may be any of integer, float,
 string, bytes and None. To accelerate the eviction of items by tag, an index
@@ -235,6 +237,8 @@ in bytes of the cache directory on disk.
     >>> cache.volume()
     9216
 
+.. _tutorial-statistics:
+
 The second is :meth:`stats <diskcache.Cache.stats>` which returns cache hits
 and misses. Cache statistics must first be enabled.
 
@@ -247,10 +251,10 @@ and misses. Cache statistics must first be enabled.
     >>> cache.stats(enable=False, reset=True)
     (100, 50)  # 100 hits, 50 misses
 
-Cache statistics are useful when evaluating different eviction policies as
-discussed below. By default, statistics are disabled as they incur an extra
-overhead on cache lookups. Increment and decrement operations are not accounted
-in cache statistics.
+Cache statistics are useful when evaluating different :ref:`eviction policies
+<tutorial-eviction-policies>`. By default, statistics are disabled as they
+incur an extra overhead on cache lookups. Increment and decrement operations
+are not counted in cache statistics.
 
 The third is :meth:`check <diskcache.Cache.check>` which verifies cache
 consistency. It can also fix inconsistencies and reclaim unused space.
@@ -309,7 +313,7 @@ DjangoCache
 :doc:`DiskCache <index>` installed, you can use :class:`DjangoCache
 <diskcache.DjangoCache>` in your settings file.
 
-::
+.. code-block:: python
 
     CACHES = {
         'default': {
@@ -338,7 +342,7 @@ many :class:`FanoutCache <diskcache.FanoutCache>` features.
 :class:`DjangoCache <diskcache.DjangoCache>` also works well with `X-Sendfile`
 and `X-Accel-Redirect` headers.
 
-::
+.. code-block:: python
 
     from django.core.cache import cache
 
@@ -374,9 +378,22 @@ during initialization when passed as keyword arguments.
   new item. Set to zero to disable automatic culling. Some systems may disable
   automatic culling in exchange for a cron-like job that regularly calls
   :meth:`expire <diskcache.DjangoCache.expire>` in a separate process.
-* `large_value_threshold`, default one kilobyte. The minimum size of a value
-  stored in a file on disk rather than in the cache database.
-* `eviction_policy`, see descriptions below.
+* `statistics`, default False, disabled. The setting to collect :ref:`cache
+  statistics <tutorial-statistics>`.
+* `tag_index`, default False, disabled. The setting to create a database
+  :ref:`tag index <tutorial-tag-index>` for :meth:`evict
+  <diskcache.Cache.evict>`.
+* `eviction_policy`, default "least-recently-stored". The setting to determine
+  :ref:`eviction policy <tutorial-eviction-policies>`.
+
+The :meth:`reset <diskcache.FanoutCache.reset>` method accepts an optional
+second argument that updates the corresponding value in the database. The
+return value is the latest retrieved from the database. Notice that attributes
+are updated lazily. Prefer idioms like :meth:`len
+<diskcache.FanoutCache.__len__>`, :meth:`volume
+<diskcache.FanoutCache.volume>`, and :meth:`keyword arguments
+<diskcache.FanoutCache.__init__>` rather than using :meth:`reset
+<diskcache.FanoutCache.reset>` directly.
 
     >>> cache = Cache('/tmp/mycachedir', size_limit=int(4e9))
     >>> cache.size_limit
@@ -392,14 +409,15 @@ during initialization when passed as keyword arguments.
     >>> cache.reset('count')  # Prefer: len(cache)
     1
 
-The :meth:`reset <diskcache.FanoutCache.reset>` method accepts an optional
-second argument that updates the corresponding value in the database. The
-return value is the latest retrieved from the database. Notice attributes are
-updated lazily. Prefer idioms like :meth:`len <diskcache.FanoutCache.__len__>`,
-:meth:`volume <diskcache.FanoutCache.volume>`, :meth:`create_tag_index
-<diskcache.FanoutCache.create_tag_index>`, and :meth:`keyword arguments
-<diskcache.FanoutCache.__init__>` rather than using :meth:`reset
-<diskcache.FanoutCache.reset>` directly.
+More settings correspond to :ref:`Disk <tutorial-disk>` attributes. Each of
+these may be specified when initializing the :ref:`Cache
+<tutorial-cache>`. Changing these values will update the unprefixed attribute
+on the :class:`Disk <diskcache.Disk>` object.
+
+* `disk_min_file_size`, default one kilobyte. The minimum size to store a value
+  in a file.
+* `disk_pickle_protocol`, default highest pickle protocol. The pickle protocol
+  to use for data types that are not natively supported.
 
 An additional set of attributes correspond to SQLite pragmas. Changing these
 values will also execute the appropriate ``PRAGMA`` statement. See the `SQLite
@@ -416,6 +434,8 @@ and after changing the default values. Default settings are programmatically
 accessible at :data:`diskcache.DEFAULT_SETTINGS`.
 
 .. _`SQLite pragma documentation`: https://www.sqlite.org/pragma.html
+
+.. _tutorial-eviction-policies:
 
 Eviction Policies
 -----------------
@@ -449,8 +469,9 @@ policy. The policy can be set during initialization using a keyword argument.
     >>> cache.reset('eviction_policy', u'least-recently-used')
     u'least-recently-used'
 
-Though the eviction policy is changed the previously created indexes will not
-be dropped.
+Though the eviction policy is changed, the previously created indexes will not
+be dropped. Prefer to always specify the eviction policy as a keyword argument
+to initialize the cache.
 
 .. _tutorial-disk:
 
@@ -460,10 +481,45 @@ Disk
 :class:`diskcache.Disk` objects are responsible for serializing and
 deserializing data stored in the cache. Serialization behavior differs between
 keys and values. In particular, keys are always stored in the cache metadata
-database while values are sometimes stored separately in files. To customize
-serialization, you can pass in a :class:`Disk <diskcache.Disk>` object during
-cache initialization. All clients accessing the cache are expected to use the
-same serialization.
+database while values are sometimes stored separately in files.
+
+To customize serialization, you may pass in a :class:`Disk <diskcache.Disk>`
+subclass to initialize the cache. All clients accessing the cache are expected
+to use the same serialization. The default implementation uses pickle and the
+example below uses compressed JSON.
+
+.. code-block:: python
+
+    import json, zlib
+
+    class JSONDisk(diskcache.Disk):
+        def __init__(self, directory, compress_level=1, **kwargs):
+            self.compress_level = compress_level
+            super(JSONDisk, self).__init__(directory, **kwargs)
+
+        def put(self, key):
+            json_bytes = json.dumps(key).encode('utf-8')
+            data = zlib.compress(json_bytes, self.compress_level)
+            return super(JSONDisk, self).put(data)
+
+        def get(self, key, raw):
+            data = super(JSONDisk, self).get(key, raw)
+            return json.loads(zlib.decompress(data).decode('utf-8'))
+
+        def store(self, value, read):
+            if not read:
+                json_bytes = json.dumps(value).encode('utf-8')
+                value = zlib.compress(json_bytes, self.compress_level)
+            return super(JSONDisk, self).store(value, read)
+
+        def fetch(self, mode, filename, value, read):
+            data = super(JSONDisk, self).fetch(mode, filename, value, read)
+            if not read:
+                data = json.loads(zlib.decompress(data).decode('utf-8'))
+            return data
+
+        with Cache('/tmp/dir', disk=JSONDisk, disk_compress_level=6) as cache:
+            pass
 
 Four data types can be stored natively in the cache metadata database:
 integers, floats, strings, and bytes. Other datatypes are converted to bytes
@@ -478,7 +534,7 @@ Though :doc:`DiskCache <index>` has a dictionary-like interface, Python's `hash
 protocol`_ is not used. Neither the `__hash__` nor `__eq__` methods are used
 for lookups. Instead lookups depend on the serialization method defined by
 :class:`Disk <diskcache.Disk>` objects. For strings, bytes, integers, and
-floats equality matches Python's definition. But large integers and all other
+floats, equality matches Python's definition. But large integers and all other
 types will be converted to bytes using pickling and the bytes representation
 will define equality.
 
