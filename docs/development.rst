@@ -41,7 +41,7 @@ Get the Code
 
 You can either clone the public repository::
 
-    $ git clone git://github.com/grantjenks/python-diskcache.git
+    $ git clone https://github.com/grantjenks/python-diskcache.git
 
 Download the `tarball <https://github.com/grantjenks/python-diskcache/tarball/master>`_::
 
