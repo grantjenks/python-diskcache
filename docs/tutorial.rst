@@ -35,7 +35,7 @@ always available.
 
 You can either clone the `DiskCache repository <https://github.com/grantjenks/python-diskcache>`_::
 
-    $ git clone git://github.com/grantjenks/python-diskcache.git
+    $ git clone https://github.com/grantjenks/python-diskcache.git
 
 Download the `tarball <https://github.com/grantjenks/python-diskcache/tarball/master>`_::
 
