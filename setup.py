@@ -1,9 +1,9 @@
-import diskcache
 import io
 from setuptools import setup, find_packages
 from setuptools.command.test import test as TestCommand
 import sys
 
+import diskcache
 
 class Tox(TestCommand):
     def finalize_options(self):
@@ -14,7 +14,6 @@ class Tox(TestCommand):
         import tox
         errno = tox.cmdline(self.test_args)
         sys.exit(errno)
-
 
 with io.open('README.rst', encoding='UTF-8') as reader:
     readme = reader.read()
