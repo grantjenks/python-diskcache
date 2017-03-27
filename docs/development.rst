@@ -71,6 +71,7 @@ Testing
 * CPython 2.7
 * CPython 3.4
 * CPython 3.5
+# CPython 3.6
 * PyPy2
 
 Testing uses `tox <https://pypi.python.org/pypi/tox>`_. If you don't want to

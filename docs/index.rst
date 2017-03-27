@@ -63,7 +63,7 @@ Features
 - Supports multiple eviction policies (LRU and LFU included)
 - Keys support "tag" metadata and eviction
 - Developed on Python 2.7
-- Tested on CPython 2.7, 3.4, 3.5 and PyPy
+- Tested on CPython 2.7, 3.4, 3.5, 3.6 and PyPy
 - Tested on Linux, Mac OS X, and Windows
 - Tested using Travis CI and AppVeyor CI
 
