@@ -416,7 +416,7 @@ on the :class:`Disk <diskcache.Disk>` object.
 
 * `disk_min_file_size`, default one kilobyte. The minimum size to store a value
   in a file.
-* `disk_pickle_protocol`, default highest pickle protocol. The pickle protocol
+* `disk_pickle_protocol`, default highest Pickle protocol. The Pickle protocol
   to use for data types that are not natively supported.
 
 An additional set of attributes correspond to SQLite pragmas. Changing these
@@ -485,7 +485,7 @@ database while values are sometimes stored separately in files.
 
 To customize serialization, you may pass in a :class:`Disk <diskcache.Disk>`
 subclass to initialize the cache. All clients accessing the cache are expected
-to use the same serialization. The default implementation uses pickle and the
+to use the same serialization. The default implementation uses Pickle and the
 example below uses compressed JSON.
 
 .. code-block:: python
@@ -518,12 +518,12 @@ example below uses compressed JSON.
                 data = json.loads(zlib.decompress(data).decode('utf-8'))
             return data
 
-        with Cache('/tmp/dir', disk=JSONDisk, disk_compress_level=6) as cache:
-            pass
+    with Cache('/tmp/dir', disk=JSONDisk, disk_compress_level=6) as cache:
+        pass
 
 Four data types can be stored natively in the cache metadata database:
 integers, floats, strings, and bytes. Other datatypes are converted to bytes
-via the pickle protocol. Beware that integers and floats like ``1`` and ``1.0``
+via the Pickle protocol. Beware that integers and floats like ``1`` and ``1.0``
 will compare equal as keys just as in Python. All other equality comparisons
 will require identical types.
 
