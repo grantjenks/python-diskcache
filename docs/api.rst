@@ -46,15 +46,15 @@ Read the :ref:`Settings tutorial <tutorial-settings>` for details.
    * `tag_index` (int) default 0 - disabled when 0, enabled when 1.
    * `eviction_policy` (str) default "least-recently-stored" - any of the keys
      in `EVICTION_POLICY` as described below.
-   * `size_limit` (int) default one gigabyte - approximate size limit of cache.
+   * `size_limit` (int, in bytes) default one gigabyte - approximate size limit of cache.
    * `cull_limit` (int) default ten - maximum number of items culled during
      `set` or `add` operations.
-   * `large_value_threshold` (int) default one kilobyte - values with greater
+   * `large_value_threshold` (int, in bytes) default one kilobyte - values with greater
      size are stored in files.
    * `sqlite_synchronous` (str) default "NORMAL" - SQLite synchronous pragma.
    * `sqlite_journal_mode` (str) default "WAL" - SQLite journal mode pragma.
-   * `sqlite_cache_size` (int) default 8,192 - SQLite cache size pragma.
-   * `sqlite_mmap_size` (int) default 64 megabytes - SQLite mmap size pragma.
+   * `sqlite_cache_size` (int, in bytes) default 8,192 - SQLite cache size pragma.
+   * `sqlite_mmap_size` (int, in bytes) default 64 megabytes - SQLite mmap size pragma.
 
 .. data:: diskcache.LIMITS
 
