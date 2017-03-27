@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-# The entirety of this file was copied from:
+# Most of this file was copied from:
 # https://raw.githubusercontent.com/django/django/master/tests/cache/tests.py
 
 # Unit tests for cache framework
@@ -51,8 +51,16 @@ from django.views.decorators.cache import cache_page
 
 os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'tests.settings')
 
-import django
+############################################################################
+# GrantJ 2017-03-27 Ignore deprecation warnings. Django's metaclass magic does
+# not always play well with Python 3.6. Read
+# http://stackoverflow.com/questions/41343263/ for details
+############################################################################
 
+import warnings
+warnings.filterwarnings('ignore', category=DeprecationWarning)
+
+import django
 django.setup()
 
 from .models import Poll, expensive_calculation
