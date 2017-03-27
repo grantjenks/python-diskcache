@@ -331,7 +331,7 @@ class Cache(object):
 
         if not op.isdir(directory):
             try:
-                os.makedirs(directory, 0o700)
+                os.makedirs(directory, 0o755)
             except OSError as error:
                 if error.errno != errno.EEXIST:
                     raise EnvironmentError(
