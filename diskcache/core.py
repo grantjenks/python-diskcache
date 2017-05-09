@@ -1124,7 +1124,7 @@ class Cache(object):
         :param bool expire_time: if True, return expire_time in tuple
             (default False)
         :param bool tag: if True, return tag in tuple (default False)
-        :return: key and value item or default if key not found
+        :return: key and value item or default if queue is empty
         :raises Timeout: if database timeout expires
 
         """
@@ -1133,7 +1133,6 @@ class Cache(object):
         select = (
             'SELECT rowid, key, expire_time, tag, mode, filename, value'
             ' FROM Cache WHERE ? < key AND key < ? AND raw = 1'
-            ' AND (expire_time IS NULL OR expire_time > ?)'
             ' ORDER BY key LIMIT 1'
         )
 
@@ -1142,15 +1141,21 @@ class Cache(object):
         elif expire_time or tag:
             default = default, None
 
-        with self._transact() as (sql, cleanup):
-            rows = sql(select, (min_key, max_key, time.time())).fetchall()
+        while True:
+            with self._transact() as (sql, cleanup):
+                rows = sql(select, (min_key, max_key)).fetchall()
 
-            if not rows:
-                return default
+                if not rows:
+                    return default
 
-            (rowid, key, expire_time, tag, mode, filename, db_value), = rows
+                (rowid, key, db_expire, tag, mode, filename, db_value), = rows
 
-            sql('DELETE FROM Cache WHERE rowid = ?', (rowid,))
+                sql('DELETE FROM Cache WHERE rowid = ?', (rowid,))
+
+                if db_expire is not None and db_expire < time.time():
+                    cleanup(filename)
+                else:
+                    break
 
         try:
             value = self._disk.fetch(mode, filename, db_value, False)
@@ -1167,7 +1172,7 @@ class Cache(object):
         if expire_time and tag:
             return (key, value), db_expire, db_tag
         elif expire_time:
-            return (key, value), db_expire_time
+            return (key, value), db_expire
         elif tag:
             return (key, value), db_tag
         else:
