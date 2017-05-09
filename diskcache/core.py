@@ -1070,6 +1070,117 @@ class Cache(object):
             return False
 
 
+    def push(self, queue, value, expire=None, read=False, tag=None):
+        """Push `value` onto end of `queue` in cache.
+
+        Operation is atomic. Concurrent operations will be serialized.
+
+        When `read` is `True`, `value` should be a file-like object opened
+        for reading in binary mode.
+
+        :param str queue: queue name
+        :param value: value for item
+        :param float expire: seconds until the key expires
+            (default None, no expiry)
+        :param bool read: read value as bytes from file (default False)
+        :param str tag: text to associate with key (default None)
+        :return: key for item in cache
+        :raises Timeout: if database timeout expires
+
+        """
+        min_key = queue + '-000000000000000'
+        max_key = queue + '-999999999999999'
+        now = time.time()
+        raw = True
+        expire_time = None if expire is None else now + expire
+        size, mode, filename, db_value = self._disk.store(value, read)
+        columns = (expire_time, tag, size, mode, filename, db_value)
+
+        with self._transact(filename) as (sql, cleanup):
+            rows = sql(
+                'SELECT key FROM Cache'
+                ' WHERE ? < key AND key < ? AND raw = ?'
+                ' ORDER BY key DESC LIMIT 1',
+                (min_key, max_key, raw),
+            ).fetchall()
+
+            if rows:
+                (key,), = rows
+                num = int(key[(key.rfind('-') + 1):]) + 1
+            else:
+                num = 500000000000000
+
+            db_key = '{0}-{1:015d}'.format(queue, num)
+
+            self._row_insert(db_key, raw, now, columns)
+            self._cull(now, sql, cleanup)
+
+            return db_key
+
+
+    def pull(self, queue, default=(None, None), expire_time=False, tag=False):
+        """Pull key and value item from start of `queue` in cache.
+
+        If queue is empty, return `default`.
+
+        Operation is atomic. Concurrent operations will be serialized.
+
+        :param str queue: queue name
+        :param default: value to return if key is missing
+            (default (None, None))
+        :param bool expire_time: if True, return expire_time in tuple
+            (default False)
+        :param bool tag: if True, return tag in tuple (default False)
+        :return: key and value item or default if key not found
+        :raises Timeout: if database timeout expires
+
+        """
+        min_key = queue + '-000000000000000'
+        max_key = queue + '-999999999999999'
+        select = (
+            'SELECT rowid, key, expire_time, tag, mode, filename, value'
+            ' FROM Cache WHERE ? < key AND key < ? AND raw = 1'
+            ' AND (expire_time IS NULL OR expire_time > ?)'
+            ' ORDER BY key LIMIT 1'
+        )
+
+        if expire_time and tag:
+            default = default, None, None
+        elif expire_time or tag:
+            default = default, None
+
+        with self._transact() as (sql, cleanup):
+            rows = sql(select, (min_key, max_key, time.time())).fetchall()
+
+            if not rows:
+                return default
+
+            (rowid, key, expire_time, tag, mode, filename, db_value), = rows
+
+            sql('DELETE FROM Cache WHERE rowid = ?', (rowid,))
+
+        try:
+            value = self._disk.fetch(mode, filename, db_value, False)
+        except IOError as error:
+            if error.errno == errno.ENOENT:
+                # Key was deleted before we could retrieve result.
+                return default
+            else:
+                raise
+        finally:
+            if filename is not None:
+                self._disk.remove(filename)
+
+        if expire_time and tag:
+            return (key, value), db_expire, db_tag
+        elif expire_time:
+            return (key, value), db_expire_time
+        elif tag:
+            return (key, value), db_tag
+        else:
+            return key, value
+
+
     def check(self, fix=False):
         """Check database and file system consistency.
 
