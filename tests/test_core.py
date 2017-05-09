@@ -266,7 +266,7 @@ def test_get_keyerror4(cache):
     cache.reset('statistics', True)
     cache[0] = b'abcd' * 2 ** 12
 
-    with mock.patch('io.open', func):
+    with mock.patch('diskcache.core.open', func):
         cache[0]
 
 
@@ -277,7 +277,7 @@ def test_get_keyerror5(cache):
 
     cache[0] = b'abcd' * 2 ** 12
 
-    with mock.patch('io.open', func):
+    with mock.patch('diskcache.core.open', func):
         cache[0]
 
 

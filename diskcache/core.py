@@ -23,12 +23,14 @@ if sys.hexversion < 0x03000000:
     BytesType = str
     INT_TYPES = int, long
     range = xrange  # pylint: disable=redefined-builtin,invalid-name
+    io_open = io.open
 else:
     import pickle
     from io import BytesIO  # pylint: disable=ungrouped-imports
     TextType = str
     BytesType = bytes
     INT_TYPES = int,
+    io_open = open
 
 try:
     WindowsError
@@ -177,14 +179,14 @@ class Disk(object):
             else:
                 filename, full_path = self.filename()
 
-                with io.open(full_path, 'wb') as writer:
+                with open(full_path, 'wb') as writer:
                     writer.write(value)
 
                 return len(value), MODE_BINARY, filename, None
         elif type_value is TextType:
             filename, full_path = self.filename()
 
-            with io.open(full_path, 'w', encoding='UTF-8') as writer:
+            with io_open(full_path, 'w', encoding='UTF-8') as writer:
                 writer.write(value)
 
             size = op.getsize(full_path)
@@ -194,7 +196,7 @@ class Disk(object):
             reader = ft.partial(value.read, 2 ** 22)
             filename, full_path = self.filename()
 
-            with io.open(full_path, 'wb') as writer:
+            with open(full_path, 'wb') as writer:
                 for chunk in iter(reader, b''):
                     size += len(chunk)
                     writer.write(chunk)
@@ -208,7 +210,7 @@ class Disk(object):
             else:
                 filename, full_path = self.filename()
 
-                with io.open(full_path, 'wb') as writer:
+                with open(full_path, 'wb') as writer:
                     writer.write(result)
 
                 return len(result), MODE_PICKLE, filename, None
@@ -230,17 +232,17 @@ class Disk(object):
             return BytesType(value) if type(value) is sqlite3.Binary else value
         elif mode == MODE_BINARY:
             if read:
-                return io.open(op.join(self._dir, filename), 'rb')
+                return open(op.join(self._dir, filename), 'rb')
             else:
-                with io.open(op.join(self._dir, filename), 'rb') as reader:
+                with open(op.join(self._dir, filename), 'rb') as reader:
                     return reader.read()
         elif mode == MODE_TEXT:
             full_path = op.join(self._dir, filename)
-            with io.open(full_path, 'r', encoding='UTF-8') as reader:
+            with io_open(full_path, 'r', encoding='UTF-8') as reader:
                 return reader.read()
         elif mode == MODE_PICKLE:
             if value is None:
-                with io.open(op.join(self._dir, filename), 'rb') as reader:
+                with open(op.join(self._dir, filename), 'rb') as reader:
                     return pickle.load(reader)
             else:
                 return pickle.load(BytesIO(value))
