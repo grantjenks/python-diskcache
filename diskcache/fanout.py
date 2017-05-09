@@ -325,6 +325,69 @@ class FanoutCache(object):
                 continue
 
 
+    def push(self, queue, value, expire=None, read=False, tag=None,
+             retry=False):
+        """Push `value` onto end of `queue` in cache.
+
+        Operation is atomic. Concurrent operations will be serialized.
+
+        When `read` is `True`, `value` should be a file-like object opened
+        for reading in binary mode.
+
+        :param str queue: queue name
+        :param value: value for item
+        :param float expire: seconds until the key expires
+            (default None, no expiry)
+        :param bool read: read value as bytes from file (default False)
+        :param str tag: text to associate with key (default None)
+        :param bool retry: retry if database timeout expires (default False)
+        :return: key in cache if item was pushed else None
+
+        """
+        index = hash(queue) % self._count
+        push_func = self._shards[index].push
+
+        while True:
+            try:
+                return push_func(queue, value, expire, read, tag)
+            except Timeout:
+                if retry:
+                    continue
+                else:
+                    return None
+
+
+    def pull(self, queue, default=(None, None), expire_time=False, tag=False,
+             retry=False):
+        """Pull key and value item from start of `queue` in cache.
+
+        If queue is empty, return `default`.
+
+        Operation is atomic. Concurrent operations will be serialized.
+
+        :param str queue: queue name
+        :param default: value to return if key is missing
+            (default (None, None))
+        :param bool expire_time: if True, return expire_time in tuple
+            (default False)
+        :param bool tag: if True, return tag in tuple (default False)
+        :param bool retry: retry if database timeout expires (default False)
+        :return: key and value item or default if queue is empty
+
+        """
+        index = hash(queue) % self._count
+        pull_func = self._shards[index].pull
+
+        while True:
+            try:
+                return pull_func(queue, default, expire_time, tag)
+            except Timeout:
+                if retry:
+                    continue
+                else:
+                    return default
+
+
     def check(self, fix=False):
         """Check database and file system consistency.
 

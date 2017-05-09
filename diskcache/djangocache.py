@@ -216,6 +216,51 @@ class DjangoCache(BaseCache):
         return key in self._cache
 
 
+    def push(self, queue, value, expire=None, read=False, tag=None,
+             retry=True):
+        """Push `value` onto end of `queue` in cache.
+
+        Operation is atomic. Concurrent operations will be serialized.
+
+        When `read` is `True`, `value` should be a file-like object opened
+        for reading in binary mode.
+
+        :param str queue: queue name
+        :param value: value for item
+        :param float expire: seconds until the key expires
+            (default None, no expiry)
+        :param bool read: read value as bytes from file (default False)
+        :param str tag: text to associate with key (default None)
+        :param bool retry: retry if database timeout expires (default True)
+        :return: key in cache if item was pushed else None
+
+        """
+        key = self.make_key(queue)
+        return self._cache.push(key, value, expire, read, tag, retry)
+
+
+    def pull(self, queue, default=(None, None), expire_time=False, tag=False,
+             retry=True):
+        """Pull key and value item from start of `queue` in cache.
+
+        If queue is empty, return `default`.
+
+        Operation is atomic. Concurrent operations will be serialized.
+
+        :param str queue: queue name
+        :param default: value to return if key is missing
+            (default (None, None))
+        :param bool expire_time: if True, return expire_time in tuple
+            (default False)
+        :param bool tag: if True, return tag in tuple (default False)
+        :param bool retry: retry if database timeout expires (default True)
+        :return: key and value item or default if queue is empty
+
+        """
+        key = self.make_key(queue)
+        return self._cache.pull(key, default, expire_time, tag, retry)
+
+
     def expire(self):
         """Remove expired items from cache.
 
