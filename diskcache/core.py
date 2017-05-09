@@ -538,6 +538,9 @@ class Cache(object):
         # to INSERT and then handling the IntegrityError that occurs from
         # violating the UNIQUE constraint. This optimistic approach was
         # rejected based on the common cache usage pattern.
+        #
+        # INSERT OR REPLACE aka UPSERT is not used because the old filename may
+        # need cleanup.
 
         with self._transact(filename) as (sql, cleanup):
             rows = sql(
@@ -830,6 +833,7 @@ class Cache(object):
         select = (
             'SELECT rowid, expire_time, tag, mode, filename, value'
             ' FROM Cache WHERE key = ? AND raw = ?'
+            ' AND (expire_time IS NULL OR expire_time > ?)'
         )
 
         if expire_time and tag:
@@ -840,15 +844,12 @@ class Cache(object):
         if not self.statistics and update_column is None:
             # Fast path, no transaction necessary.
 
-            rows = self._sql(select, (db_key, raw)).fetchall()
+            rows = self._sql(select, (db_key, raw, time.time())).fetchall()
 
             if not rows:
                 return default
 
             (rowid, db_expire_time, db_tag, mode, filename, db_value), = rows
-
-            if db_expire_time is not None and db_expire_time < time.time():
-                return default
 
             try:
                 value = self._disk.fetch(mode, filename, db_value, read)
@@ -869,7 +870,7 @@ class Cache(object):
             )
 
             with self._transact() as (sql, _):
-                rows = sql(select, (db_key, raw)).fetchall()
+                rows = sql(select, (db_key, raw, time.time())).fetchall()
 
                 if not rows:
                     if self.statistics:
@@ -878,11 +879,6 @@ class Cache(object):
 
                 (rowid, db_expire_time, db_tag,
                      mode, filename, db_value), = rows
-
-                if db_expire_time is not None and db_expire_time < time.time():
-                    if self.statistics:
-                        sql(cache_miss)
-                    return default
 
                 try:
                     value = self._disk.fetch(mode, filename, db_value, read)
@@ -950,18 +946,15 @@ class Cache(object):
         """
         sql = self._sql
         db_key, raw = self._disk.put(key)
+        select = (
+            'SELECT rowid FROM Cache'
+            ' WHERE key = ? AND raw = ?'
+            ' AND (expire_time IS NULL OR expire_time > ?)'
+        )
 
-        rows = sql(
-            'SELECT expire_time FROM Cache WHERE key = ? AND raw = ?',
-            (db_key, raw),
-        ).fetchall()
+        rows = sql(select, (db_key, raw, time.time())).fetchall()
 
-        if not rows:
-            return False
-
-        (expire_time,), = rows
-
-        return expire_time is None or time.time() < expire_time
+        return bool(rows)
 
 
     def pop(self, key, default=None, expire_time=False, tag=False):
