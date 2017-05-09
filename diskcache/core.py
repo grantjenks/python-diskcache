@@ -1029,22 +1029,20 @@ class Cache(object):
 
         with self._transact() as (sql, cleanup):
             rows = sql(
-                'SELECT rowid, expire_time, filename FROM Cache'
-                ' WHERE key = ? AND raw = ?',
-                (db_key, raw),
+                'SELECT rowid, filename FROM Cache'
+                ' WHERE key = ? AND raw = ?'
+                ' AND (expire_time IS NULL OR expire_time > ?)',
+                (db_key, raw, time.time()),
             ).fetchall()
 
             if not rows:
                 raise KeyError(key)
 
-            (rowid, expire_time, filename), = rows
+            (rowid, filename), = rows
             sql('DELETE FROM Cache WHERE rowid = ?', (rowid,))
             cleanup(filename)
 
-            if expire_time is None or time.time() < expire_time:
-                return True
-            else:
-                raise KeyError(key)
+            return True
 
 
     def delete(self, key):
