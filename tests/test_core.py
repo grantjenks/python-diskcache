@@ -433,6 +433,9 @@ def test_pop(cache):
     assert cache.set('delta', 210)
     assert cache.pop('delta', expire_time=True) == (210, None)
 
+    assert cache.set('epsilon', '0' * 2 ** 12)
+    assert cache.pop('epsilon') == '0' * 2 ** 12
+
 
 @setup_cache
 def test_pop_ioerror(cache):

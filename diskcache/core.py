@@ -977,15 +977,16 @@ class Cache(object):
         select = (
             'SELECT rowid, expire_time, tag, mode, filename, value'
             ' FROM Cache WHERE key = ? AND raw = ?'
+            ' AND (expire_time IS NULL OR expire_time > ?)'
         )
 
         if expire_time and tag:
-            default = (default, None, None)
+            default = default, None, None
         elif expire_time or tag:
-            default = (default, None)
+            default = default, None
 
         with self._transact() as (sql, cleanup):
-            rows = sql(select, (db_key, raw)).fetchall()
+            rows = sql(select, (db_key, raw, time.time())).fetchall()
 
             if not rows:
                 return default
@@ -993,10 +994,6 @@ class Cache(object):
             (rowid, db_expire_time, db_tag, mode, filename, db_value), = rows
 
             sql('DELETE FROM Cache WHERE rowid = ?', (rowid,))
-            cleanup(filename)
-
-        if db_expire_time is not None and db_expire_time < time.time():
-            return default
 
         try:
             value = self._disk.fetch(mode, filename, db_value, False)
@@ -1006,13 +1003,16 @@ class Cache(object):
                 return default
             else:
                 raise
+        finally:
+            if filename is not None:
+                self._disk.remove(filename)
 
         if expire_time and tag:
-            return (value, db_expire_time, db_tag)
+            return value, db_expire_time, db_tag
         elif expire_time:
-            return (value, db_expire_time)
+            return value, db_expire_time
         elif tag:
-            return (value, db_tag)
+            return value, db_tag
         else:
             return value
 
