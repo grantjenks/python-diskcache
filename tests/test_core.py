@@ -1051,6 +1051,125 @@ def test_reversed_error(cache):
     next(reversed(cache))
 
 
+@setup_cache
+def test_push_pull(cache):
+    for value in range(10):
+        cache.push(value)
+
+    for value in range(10):
+        _, pull_value = cache.pull()
+        assert pull_value == value
+
+    assert len(cache) == 0
+
+
+@setup_cache
+def test_push_pull_prefix(cache):
+    for value in range(10):
+        cache.push(value, prefix='key')
+
+    for value in range(10):
+        key, pull_value = cache.pull(prefix='key')
+        assert key.startswith('key')
+        assert pull_value == value
+
+    assert len(cache) == 0
+    assert len(cache.check()) == 0
+
+
+@setup_cache
+def test_push_pull_extras(cache):
+    cache.push('test')
+    assert cache.pull() == (500000000000000, 'test')
+    assert len(cache) == 0
+
+    cache.push('test', expire=10)
+    (key, value), expire_time = cache.pull(expire_time=True)
+    assert key == 500000000000000
+    assert value == 'test'
+    assert expire_time > time.time()
+    assert len(cache) == 0
+
+    cache.push('test', tag='foo')
+    (key, value), tag = cache.pull(tag=True)
+    assert key == 500000000000000
+    assert value == 'test'
+    assert tag == 'foo'
+    assert len(cache) == 0
+
+    cache.push('test')
+    (key, value), expire_time, tag = cache.pull(expire_time=True, tag=True)
+    assert key == 500000000000000
+    assert value == 'test'
+    assert expire_time is None
+    assert tag is None
+    assert len(cache) == 0
+
+    assert cache.pull(default=(0, 1)) == (0, 1)
+
+    assert len(cache.check()) == 0
+
+
+@setup_cache
+def test_push_pull_expire(cache):
+    cache.push(0, expire=0.1)
+    cache.push(0, expire=0.1)
+    cache.push(0, expire=0.1)
+    cache.push(1)
+    time.sleep(0.2)
+    assert cache.pull() == (500000000000003, 1)
+    assert len(cache) == 0
+    assert len(cache.check()) == 0
+
+
+@setup_cache
+def test_push_pull_large_value(cache):
+    value = b'test' * (2 ** 12)
+    cache.push(value)
+    assert cache.pull() == (500000000000000, value)
+    assert len(cache) == 0
+    assert len(cache.check()) == 0
+
+
+@setup_cache
+def test_pull_ioerror(cache):
+    assert cache.push(0) == 500000000000000
+
+    disk = mock.Mock()
+    put = mock.Mock()
+    fetch = mock.Mock()
+
+    disk.put = put
+    put.side_effect = [(0, True)]
+    disk.fetch = fetch
+    io_error = IOError()
+    io_error.errno = errno.ENOENT
+    fetch.side_effect = io_error
+
+    with mock.patch.object(cache, '_disk', disk):
+        assert cache.pull() == (None, None)
+
+
+@setup_cache
+@nt.raises(IOError)
+def test_pull_ioerror_eacces(cache):
+    assert cache.push(0) == 500000000000000
+
+    disk = mock.Mock()
+    put = mock.Mock()
+    fetch = mock.Mock()
+
+    disk.put = put
+    put.side_effect = [(0, True)]
+    disk.fetch = fetch
+    io_error = IOError()
+    io_error.errno = errno.EACCES
+    fetch.side_effect = io_error
+
+    with mock.patch.object(cache, '_disk', disk):
+        cache.pull()
+
+
 if __name__ == '__main__':
     import nose
     nose.runmodule()

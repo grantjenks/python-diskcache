@@ -1147,7 +1147,6 @@ class Cache(object):
             min_key = prefix + '-000000000000000'
             max_key = prefix + '-999999999999999'
 
-        now = time.time()
         select = (
             'SELECT rowid, key, expire_time, tag, mode, filename, value'
             ' FROM Cache WHERE ? < key AND key < ? AND raw = 1'
@@ -1166,17 +1165,17 @@ class Cache(object):
                 if not rows:
                     return default
 
-                (rowid, key, db_expire, tag, mode, filename, db_value), = rows
+                (rowid, key, db_expire, db_tag, mode, name, db_value), = rows
 
                 sql('DELETE FROM Cache WHERE rowid = ?', (rowid,))
 
-                if db_expire is not None and db_expire < now:
-                    cleanup(filename)
+                if db_expire is not None and db_expire < time.time():
+                    cleanup(name)
                 else:
                     break
 
         try:
-            value = self._disk.fetch(mode, filename, db_value, False)
+            value = self._disk.fetch(mode, name, db_value, False)
         except IOError as error:
             if error.errno == errno.ENOENT:
                 # Key was deleted before we could retrieve result.
@@ -1184,8 +1183,8 @@ class Cache(object):
             else:
                 raise
         finally:
-            if filename is not None:
-                self._disk.remove(filename)
+            if name is not None:
+                self._disk.remove(name)
 
         if expire_time and tag:
             return (key, value), db_expire, db_tag
