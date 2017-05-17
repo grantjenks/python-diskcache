@@ -55,6 +55,7 @@ def test_init_disk():
         key = (None, 0, 'abc')
         cache[key] = 0
         cache.check()
+        assert cache.directory == 'tmp'
         assert cache.disk_min_file_size == 2 ** 20
         assert cache.disk_pickle_protocol == 1
     shutil.rmtree('tmp', ignore_errors=True)

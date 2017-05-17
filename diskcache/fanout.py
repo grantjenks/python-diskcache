@@ -21,6 +21,7 @@ class FanoutCache(object):
         :param settings: any of `DEFAULT_SETTINGS`
 
         """
+        self._dir = directory
         self._count = shards
         default_size_limit = DEFAULT_SETTINGS['size_limit']
         size_limit = settings.pop('size_limit', default_size_limit) / shards
@@ -34,6 +35,12 @@ class FanoutCache(object):
             )
             for num in range(shards)
         )
+
+
+    @property
+    def directory(self):
+        """Cache directory."""
+        return self._dir
 
 
     def __getattr__(self, name):
@@ -405,8 +412,7 @@ class FanoutCache(object):
                 except Timeout as timeout:
                     total += timeout.args[0]
                 else:
-                    if not count:
-                        break
+                    break
         return total
 
 

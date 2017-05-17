@@ -463,6 +463,12 @@ class Cache(object):
 
 
     @property
+    def directory(self):
+        """Cache directory."""
+        return self._dir
+
+
+    @property
     def _sql(self):
         con = getattr(self._local, 'con', None)
 
