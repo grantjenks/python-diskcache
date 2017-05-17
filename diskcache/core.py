@@ -76,6 +76,11 @@ METADATA = {
 }
 
 EVICTION_POLICY = {
+    'none': {
+        'init': None,
+        'get': None,
+        'cull': None,
+    },
     'least-recently-stored': {
         'init': (
             'CREATE INDEX IF NOT EXISTS Cache_store_time ON'
@@ -657,12 +662,13 @@ class Cache(object):
             if cull_limit == 0:
                 return
 
-        if self.volume() < self.size_limit:
-            return
-
         # Evict keys by policy.
 
         select_policy_template = EVICTION_POLICY[self.eviction_policy]['cull']
+
+        if select_policy_template is None or self.volume() < self.size_limit:
+            return
+
         select_policy = select_policy_template % 'filename'
 
         rows = sql(select_policy, (cull_limit,)).fetchall()

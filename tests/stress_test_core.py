@@ -271,6 +271,11 @@ def stress_test_lfu():
     stress_test(eviction_policy=u'least-frequently-used')
 
 
+def stress_test_none():
+    "Stress test 'none' eviction policy."
+    stress_test(eviction_policy=u'none')
+
+
 def stress_test_mp():
     "Stress test multiple threads and processes."
     stress_test(processes=4, threads=4)
