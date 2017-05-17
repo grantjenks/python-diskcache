@@ -1063,16 +1063,16 @@ class Cache(object):
             return False
 
 
-    def push(self, queue, value, expire=None, read=False, tag=None):
-        """Push `value` onto end of `queue` in cache.
+    def push(self, value, prefix=None, expire=None, read=False, tag=None):
+        """Push `value` onto end of queue in cache.
 
         Operation is atomic. Concurrent operations will be serialized.
 
         When `read` is `True`, `value` should be a file-like object opened
         for reading in binary mode.
 
-        :param str queue: queue name
         :param value: value for item
+        :param str prefix: key prefix (default None, key is integer)
         :param float expire: seconds until the key expires
             (default None, no expiry)
         :param bool read: read value as bytes from file (default False)
@@ -1081,8 +1081,13 @@ class Cache(object):
         :raises Timeout: if database timeout expires
 
         """
-        min_key = queue + '-000000000000000'
-        max_key = queue + '-999999999999999'
+        if prefix is None:
+            min_key = 0
+            max_key = 999999999999999
+        else:
+            min_key = prefix + '-000000000000000'
+            max_key = prefix + '-999999999999999'
+
         now = time.time()
         raw = True
         expire_time = None if expire is None else now + expire
@@ -1099,11 +1104,17 @@ class Cache(object):
 
             if rows:
                 (key,), = rows
-                num = int(key[(key.rfind('-') + 1):]) + 1
+                if prefix is not None:
+                    num = int(key[(key.rfind('-') + 1):]) + 1
+                else:
+                    num = key + 1
             else:
                 num = 500000000000000
 
-            db_key = '{0}-{1:015d}'.format(queue, num)
+            if prefix is not None:
+                db_key = '{0}-{1:015d}'.format(prefix, num)
+            else:
+                db_key = num
 
             self._row_insert(db_key, raw, now, columns)
             self._cull(now, sql, cleanup)
@@ -1111,14 +1122,15 @@ class Cache(object):
             return db_key
 
 
-    def pull(self, queue, default=(None, None), expire_time=False, tag=False):
-        """Pull key and value item from start of `queue` in cache.
+    def pull(self, prefix=None, default=(None, None), expire_time=False,
+             tag=False):
+        """Pull key and value item from start of queue in cache.
 
         If queue is empty, return `default`.
 
         Operation is atomic. Concurrent operations will be serialized.
 
-        :param str queue: queue name
+        :param str prefix: key prefix (default None, key is integer)
         :param default: value to return if key is missing
             (default (None, None))
         :param bool expire_time: if True, return expire_time in tuple
@@ -1128,8 +1140,14 @@ class Cache(object):
         :raises Timeout: if database timeout expires
 
         """
-        min_key = queue + '-000000000000000'
-        max_key = queue + '-999999999999999'
+        if prefix is None:
+            min_key = 0
+            max_key = 999999999999999
+        else:
+            min_key = prefix + '-000000000000000'
+            max_key = prefix + '-999999999999999'
+
+        now = time.time()
         select = (
             'SELECT rowid, key, expire_time, tag, mode, filename, value'
             ' FROM Cache WHERE ? < key AND key < ? AND raw = 1'
@@ -1152,7 +1170,7 @@ class Cache(object):
 
                 sql('DELETE FROM Cache WHERE rowid = ?', (rowid,))
 
-                if db_expire is not None and db_expire < time.time():
+                if db_expire is not None and db_expire < now:
                     cleanup(filename)
                 else:
                     break
