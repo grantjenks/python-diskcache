@@ -1075,16 +1075,39 @@ class Cache(object):
             return False
 
 
-    def push(self, value, prefix=None, expire=None, read=False, tag=None):
-        """Push `value` onto end of queue in cache.
+    def push(self, value, prefix=None, side='back', expire=None, read=False,
+             tag=None):
+        """Push `value` onto `side` of queue identified by `prefix` in cache.
+
+        When prefix is None, integer keys are used. Otherwise, string keys are
+        used in the format "prefix-integer". Integer starts at 500 trillion.
+
+        Defaults to pushing value on back of queue. Set side to 'front' to push
+        value on front of queue. Side must be one of 'back' or 'front'.
 
         Operation is atomic. Concurrent operations will be serialized.
 
         When `read` is `True`, `value` should be a file-like object opened
         for reading in binary mode.
 
+        See also `Cache.pull`.
+
+        >>> cache = Cache('/tmp/test')
+        >>> _ = cache.clear()
+        >>> cache.push('first value')
+        500000000000000
+        >>> cache.get(500000000000000)
+        'first value'
+        >>> cache.push('second value')
+        500000000000001
+        >>> cache.push('third value', side='front')
+        499999999999999
+        >>> cache.push(1234, prefix='userids')
+        'userids-500000000000000'
+
         :param value: value for item
         :param str prefix: key prefix (default None, key is integer)
+        :param str side: either 'back' or 'front' (default 'back')
         :param float expire: seconds until the key expires
             (default None, no expiry)
         :param bool read: read value as bytes from file (default False)
@@ -1105,21 +1128,29 @@ class Cache(object):
         expire_time = None if expire is None else now + expire
         size, mode, filename, db_value = self._disk.store(value, read)
         columns = (expire_time, tag, size, mode, filename, db_value)
+        order = {'back': 'DESC', 'front': 'ASC'}
+        select = (
+            'SELECT key FROM Cache'
+            ' WHERE ? < key AND key < ? AND raw = ?'
+            ' ORDER BY key %s LIMIT 1'
+        ) % order[side]
 
         with self._transact(filename) as (sql, cleanup):
-            rows = sql(
-                'SELECT key FROM Cache'
-                ' WHERE ? < key AND key < ? AND raw = ?'
-                ' ORDER BY key DESC LIMIT 1',
-                (min_key, max_key, raw),
-            ).fetchall()
+            rows = sql(select, (min_key, max_key, raw)).fetchall()
 
             if rows:
                 (key,), = rows
+
                 if prefix is not None:
-                    num = int(key[(key.rfind('-') + 1):]) + 1
+                    num = int(key[(key.rfind('-') + 1):])
                 else:
-                    num = key + 1
+                    num = key
+
+                if side == 'back':
+                    num += 1
+                else:
+                    assert side == 'front'
+                    num -= 1
             else:
                 num = 500000000000000
 
@@ -1134,21 +1165,49 @@ class Cache(object):
             return db_key
 
 
-    def pull(self, prefix=None, default=(None, None), expire_time=False,
-             tag=False):
-        """Pull key and value item from start of queue in cache.
+    def pull(self, prefix=None, default=(None, None), side='front',
+             expire_time=False, tag=False):
+        """Pull key and value item pair from `side` of queue in cache.
 
-        If queue is empty, return `default`.
+        When prefix is None, integer keys are used. Otherwise, string keys are
+        used in the format "prefix-integer". Integer starts at 500 trillion.
+
+        If queue is empty, return default.
+
+        Defaults to pulling key and value item pairs from front of queue. Set
+        side to 'back' to pull from back of queue. Side must be one of 'front'
+        or 'back'.
 
         Operation is atomic. Concurrent operations will be serialized.
+
+        See also `Cache.push` and `Cache.get`.
+
+        >>> cache = Cache('/tmp/test')
+        >>> _ = cache.clear()
+        >>> cache.pull()
+        (None, None)
+        >>> for letter in 'abc':
+        ...     cache.push(letter)
+        500000000000000
+        500000000000001
+        500000000000002
+        >>> cache.pull()
+        (500000000000000, 'a')
+        >>> cache.pull(side='back')
+        (500000000000002, 'c')
+        >>> cache.push(1234, 'userids')
+        'userids-500000000000000'
+        >>> cache.pull('userids')
+        (u'userids-500000000000000', 1234)
 
         :param str prefix: key prefix (default None, key is integer)
         :param default: value to return if key is missing
             (default (None, None))
+        :param str side: either 'front' or 'back' (default 'front')
         :param bool expire_time: if True, return expire_time in tuple
             (default False)
         :param bool tag: if True, return tag in tuple (default False)
-        :return: key and value item or default if queue is empty
+        :return: key and value item pair or default if queue is empty
         :raises Timeout: if database timeout expires
 
         """
@@ -1159,11 +1218,12 @@ class Cache(object):
             min_key = prefix + '-000000000000000'
             max_key = prefix + '-999999999999999'
 
+        order = {'front': 'ASC', 'back': 'DESC'}
         select = (
             'SELECT rowid, key, expire_time, tag, mode, filename, value'
             ' FROM Cache WHERE ? < key AND key < ? AND raw = 1'
-            ' ORDER BY key LIMIT 1'
-        )
+            ' ORDER BY key %s LIMIT 1'
+        ) % order[side]
 
         if expire_time and tag:
             default = default, None, None
@@ -1452,6 +1512,66 @@ class Cache(object):
             raise Timeout(count)
 
         return count
+
+
+    def iterkeys(self, reverse=False):
+        """Iterate Cache keys in database sort order.
+
+        >>> cache = Cache('/tmp/diskcache')
+        >>> _ = cache.clear()
+        >>> for key in [4, 1, 3, 0, 2]:
+        ...     cache[key] = key
+        >>> list(cache.iterkeys())
+        [0, 1, 2, 3, 4]
+        >>> list(cache.iterkeys(reverse=True))
+        [4, 3, 2, 1, 0]
+
+        :param bool reverse: reverse sort order (default False)
+        :return: iterator of Cache keys
+
+        """
+        sql = self._sql
+        limit = 100
+        _disk_get = self._disk.get
+
+        if reverse:
+            select = (
+                'SELECT key, raw FROM Cache'
+                ' ORDER BY key DESC, raw DESC LIMIT 1'
+            )
+            iterate = (
+                'SELECT key, raw FROM Cache'
+                ' WHERE key = ? AND raw < ? OR key < ?'
+                ' ORDER BY key DESC, raw DESC LIMIT ?'
+            )
+        else:
+            select = (
+                'SELECT key, raw FROM Cache'
+                ' ORDER BY key ASC, raw ASC LIMIT 1'
+            )
+            iterate = (
+                'SELECT key, raw FROM Cache'
+                ' WHERE key = ? AND raw > ? OR key > ?'
+                ' ORDER BY key ASC, raw ASC LIMIT ?'
+            )
+
+        row = sql(select).fetchall()
+
+        if row:
+            (key, raw), = row
+        else:
+            return
+
+        yield _disk_get(key, raw)
+
+        while True:
+            rows = sql(iterate, (key, raw, key, limit)).fetchall()
+
+            if not rows:
+                break
+
+            for key, raw in rows:
+                yield _disk_get(key, raw)
 
 
     def _iter(self, ascending=True):
