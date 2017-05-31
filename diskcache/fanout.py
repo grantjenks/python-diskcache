@@ -35,6 +35,7 @@ class FanoutCache(object):
             )
             for num in range(shards)
         )
+        self._hash = self._shards[0].disk.hash
 
 
     @property
@@ -63,7 +64,7 @@ class FanoutCache(object):
         :return: True if item was set
 
         """
-        index = hash(key) % self._count
+        index = self._hash(key) % self._count
         set_func = self._shards[index].set
 
         while True:
@@ -83,7 +84,7 @@ class FanoutCache(object):
         :param value: value for item
 
         """
-        index = hash(key) % self._count
+        index = self._hash(key) % self._count
         set_func = self._shards[index].set
 
         while True:
@@ -114,7 +115,7 @@ class FanoutCache(object):
         :return: True if item was added
 
         """
-        index = hash(key) % self._count
+        index = self._hash(key) % self._count
         add_func = self._shards[index].add
 
         while True:
@@ -148,7 +149,7 @@ class FanoutCache(object):
         :raises KeyError: if key is not found and default is None
 
         """
-        index = hash(key) % self._count
+        index = self._hash(key) % self._count
         incr_func = self._shards[index].incr
 
         while True:
@@ -203,7 +204,7 @@ class FanoutCache(object):
         :return: value for item if key is found else default
 
         """
-        index = hash(key) % self._count
+        index = self._hash(key) % self._count
         get_func = self._shards[index].get
 
         while True:
@@ -254,7 +255,7 @@ class FanoutCache(object):
         :return: True if key is found
 
         """
-        index = hash(key) % self._count
+        index = self._hash(key) % self._count
         return key in self._shards[index]
 
 
@@ -275,7 +276,7 @@ class FanoutCache(object):
         :return: value for item if key is found else default
 
         """
-        index = hash(key) % self._count
+        index = self._hash(key) % self._count
         pop_func = self._shards[index].pop
 
         while True:
@@ -300,7 +301,7 @@ class FanoutCache(object):
         :return: True if item was deleted
 
         """
-        index = hash(key) % self._count
+        index = self._hash(key) % self._count
         del_func = self._shards[index].__delitem__
 
         while True:
@@ -322,7 +323,7 @@ class FanoutCache(object):
         :raises KeyError: if key is not found
 
         """
-        index = hash(key) % self._count
+        index = self._hash(key) % self._count
         del_func = self._shards[index].__delitem__
 
         while True:

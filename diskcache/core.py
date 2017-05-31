@@ -2,6 +2,7 @@
 
 """
 
+import binascii
 import codecs
 import contextlib as cl
 import errno
@@ -10,6 +11,7 @@ import io
 import os
 import os.path as op
 import sqlite3
+import struct
 import sys
 import threading
 import time
@@ -121,6 +123,28 @@ class Disk(object):
         self._dir = directory
         self.min_file_size = min_file_size
         self.pickle_protocol = pickle_protocol
+
+
+    def hash(self, key):
+        """Compute portable hash for `key`.
+
+        :param key: key to hash
+        :return: hash value
+
+        """
+        mask = 0xFFFFFFFF
+        disk_key, _ = self.put(key)
+        type_disk_key = type(disk_key)
+
+        if type_disk_key is sqlite3.Binary:
+            return binascii.crc32(disk_key) & mask
+        elif type_disk_key is TextType:
+            return binascii.crc32(disk_key.encode('utf-8')) & mask
+        elif type_disk_key in INT_TYPES:
+            return disk_key % mask
+        else:
+            assert type_disk_key is float
+            return binascii.crc32(struct.pack('!d', disk_key)) & mask
 
 
     def put(self, key):
@@ -471,6 +495,12 @@ class Cache(object):
     def directory(self):
         """Cache directory."""
         return self._dir
+
+
+    @property
+    def disk(self):
+        """Disk used for serialization."""
+        return self._disk
 
 
     @property
