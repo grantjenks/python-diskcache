@@ -2,7 +2,6 @@
 
 """
 
-import binascii
 import codecs
 import contextlib as cl
 import errno
@@ -16,6 +15,7 @@ import sys
 import threading
 import time
 import warnings
+import zlib
 
 if sys.hexversion < 0x03000000:
     import cPickle as pickle
@@ -137,14 +137,14 @@ class Disk(object):
         type_disk_key = type(disk_key)
 
         if type_disk_key is sqlite3.Binary:
-            return binascii.crc32(disk_key) & mask
+            return zlib.adler32(disk_key) & mask
         elif type_disk_key is TextType:
-            return binascii.crc32(disk_key.encode('utf-8')) & mask
+            return zlib.adler32(disk_key.encode('utf-8')) & mask
         elif type_disk_key in INT_TYPES:
             return disk_key % mask
         else:
             assert type_disk_key is float
-            return binascii.crc32(struct.pack('!d', disk_key)) & mask
+            return zlib.adler32(struct.pack('!d', disk_key)) & mask
 
 
     def put(self, key):
