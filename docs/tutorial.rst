@@ -398,7 +398,7 @@ are updated lazily. Prefer idioms like :meth:`len
     >>> cache = Cache('/tmp/mycachedir', size_limit=int(4e9))
     >>> cache.size_limit
     4000000000
-    >>> cache.large_value_threshold
+    >>> cache.disk_min_file_size
     1024
     >>> cache.reset('cull_limit', 0)  # Disable automatic evictions.
     0

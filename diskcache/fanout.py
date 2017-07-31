@@ -6,6 +6,7 @@ import sqlite3
 import time
 
 from .core import ENOVAL, DEFAULT_SETTINGS, Cache, Disk, Timeout
+from .persistent import Deque, Index
 
 
 class FanoutCache(object):
@@ -21,6 +22,7 @@ class FanoutCache(object):
         :param settings: any of `DEFAULT_SETTINGS`
 
         """
+        self._dir = directory
         self._count = shards
         default_size_limit = DEFAULT_SETTINGS['size_limit']
         size_limit = settings.pop('size_limit', default_size_limit) / shards
@@ -34,6 +36,78 @@ class FanoutCache(object):
             )
             for num in range(shards)
         )
+        self._hash = self._shards[0].disk.hash
+        self._deques = {}
+        self._indexes = {}
+
+
+    @property
+    def directory(self):
+        """Cache directory."""
+        return self._dir
+
+
+    def deque(self, name):
+        """Return Deque with given `name` in subdirectory.
+
+        >>> cache = FanoutCache('/tmp/diskcache/fanoutcache')
+        >>> deque = cache.deque('test')
+        >>> deque.clear()
+        >>> deque.extend('abc')
+        >>> deque.popleft()
+        'a'
+        >>> deque.pop()
+        'c'
+        >>> len(deque)
+        1
+
+        :param str name: subdirectory name for Deque
+        :return: Deque with given name
+
+        """
+        _deques = self._deques
+
+        try:
+            return _deques[name]
+        except KeyError:
+            parts = name.split('/')
+            directory = op.join(self._dir, 'deque', *parts)
+            temp = Deque(directory=directory)
+            _deques[name] = temp
+            return temp
+
+
+    def index(self, name):
+        """Return Index with given `name` in subdirectory.
+
+        >>> cache = FanoutCache('/tmp/diskcache/fanoutcache')
+        >>> index = cache.index('test')
+        >>> index.clear()
+        >>> index['abc'] = 123
+        >>> index['def'] = 456
+        >>> index['ghi'] = 789
+        >>> index.popitem()
+        ('ghi', 789)
+        >>> del index['abc']
+        >>> len(index)
+        1
+        >>> index['def']
+        456
+
+        :param str name: subdirectory name for Index
+        :return: Index with given name
+
+        """
+        _indexes = self._indexes
+
+        try:
+            return _indexes[name]
+        except KeyError:
+            parts = name.split('/')
+            directory = op.join(self._dir, 'index', *parts)
+            temp = Index(directory)
+            _indexes[name] = temp
+            return temp
 
 
     def __getattr__(self, name):
@@ -56,7 +130,7 @@ class FanoutCache(object):
         :return: True if item was set
 
         """
-        index = hash(key) % self._count
+        index = self._hash(key) % self._count
         set_func = self._shards[index].set
 
         while True:
@@ -76,7 +150,7 @@ class FanoutCache(object):
         :param value: value for item
 
         """
-        index = hash(key) % self._count
+        index = self._hash(key) % self._count
         set_func = self._shards[index].set
 
         while True:
@@ -107,7 +181,7 @@ class FanoutCache(object):
         :return: True if item was added
 
         """
-        index = hash(key) % self._count
+        index = self._hash(key) % self._count
         add_func = self._shards[index].add
 
         while True:
@@ -141,7 +215,7 @@ class FanoutCache(object):
         :raises KeyError: if key is not found and default is None
 
         """
-        index = hash(key) % self._count
+        index = self._hash(key) % self._count
         incr_func = self._shards[index].incr
 
         while True:
@@ -196,7 +270,7 @@ class FanoutCache(object):
         :return: value for item if key is found else default
 
         """
-        index = hash(key) % self._count
+        index = self._hash(key) % self._count
         get_func = self._shards[index].get
 
         while True:
@@ -247,7 +321,7 @@ class FanoutCache(object):
         :return: True if key is found
 
         """
-        index = hash(key) % self._count
+        index = self._hash(key) % self._count
         return key in self._shards[index]
 
 
@@ -268,7 +342,7 @@ class FanoutCache(object):
         :return: value for item if key is found else default
 
         """
-        index = hash(key) % self._count
+        index = self._hash(key) % self._count
         pop_func = self._shards[index].pop
 
         while True:
@@ -293,7 +367,7 @@ class FanoutCache(object):
         :return: True if item was deleted
 
         """
-        index = hash(key) % self._count
+        index = self._hash(key) % self._count
         del_func = self._shards[index].__delitem__
 
         while True:
@@ -315,7 +389,7 @@ class FanoutCache(object):
         :raises KeyError: if key is not found
 
         """
-        index = hash(key) % self._count
+        index = self._hash(key) % self._count
         del_func = self._shards[index].__delitem__
 
         while True:
@@ -405,8 +479,7 @@ class FanoutCache(object):
                 except Timeout as timeout:
                     total += timeout.args[0]
                 else:
-                    if not count:
-                        break
+                    break
         return total
 
 
@@ -436,6 +509,8 @@ class FanoutCache(object):
         "Close database connection."
         for shard in self._shards:
             shard.close()
+        self._deques.clear()
+        self._indexes.clear()
 
 
     def __enter__(self):

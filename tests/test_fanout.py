@@ -39,6 +39,8 @@ def setup_cache(func):
 
 @setup_cache
 def test_init(cache):
+    assert cache.directory == 'tmp'
+
     default_settings = dc.DEFAULT_SETTINGS.copy()
     del default_settings['size_limit']
     for key, value in default_settings.items():
@@ -418,10 +420,10 @@ def test_remove_timeout(cache):
     clear = mock.Mock()
 
     shard.clear = clear
-    clear.side_effect = [1, dc.Timeout(2), 3, 0]
+    clear.side_effect = [dc.Timeout(2), 3]
 
     with mock.patch.object(cache, '_shards', [shard]):
-        assert cache.clear() == 6
+        assert cache.clear() == 5
 
 
 @setup_cache

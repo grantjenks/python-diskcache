@@ -867,6 +867,9 @@ class DiskCacheTests(BaseCacheTests, TestCase):
     def test_invalid_keys(self):
         pass # DiskCache supports any Pickleable value as a key.
 
+    def test_directory(self):
+        self.assertTrue('tmp' in cache.directory)
+
     def test_read(self):
         value = b'abcd' * 2 ** 12
         result = cache.set(b'test-key', value)
@@ -915,3 +918,13 @@ class DiskCacheTests(BaseCacheTests, TestCase):
         self.assertEqual(cache.pop(2, tag=True), (2, None))
         self.assertEqual(cache.pop(3, expire_time=True, tag=True), (3, None, None))
         self.assertEqual(cache.pop(4, retry=False), 4)
+
+    def test_deque(self):
+        deque = cache.deque('test')
+        directory = os.path.join(cache.directory, 'deque', 'test')
+        self.assertEqual(deque.directory, directory)
+
+    def test_index(self):
+        index = cache.index('test')
+        directory = os.path.join(cache.directory, 'index', 'test')
+        self.assertEqual(index.directory, directory)

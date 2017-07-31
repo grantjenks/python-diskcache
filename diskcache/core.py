@@ -10,10 +10,12 @@ import io
 import os
 import os.path as op
 import sqlite3
+import struct
 import sys
 import threading
 import time
 import warnings
+import zlib
 
 if sys.hexversion < 0x03000000:
     import cPickle as pickle
@@ -23,12 +25,14 @@ if sys.hexversion < 0x03000000:
     BytesType = str
     INT_TYPES = int, long
     range = xrange  # pylint: disable=redefined-builtin,invalid-name
+    io_open = io.open  # pylint: disable=invalid-name
 else:
     import pickle
     from io import BytesIO  # pylint: disable=ungrouped-imports
     TextType = str
     BytesType = bytes
     INT_TYPES = int,
+    io_open = open  # pylint: disable=invalid-name
 
 try:
     WindowsError
@@ -37,8 +41,16 @@ except NameError:
         "Windows error place-holder on platforms without support."
         pass
 
+class Constant(tuple):
+    "Pretty display of immutable constant."
+    def __new__(cls, name):
+        return tuple.__new__(cls, (name,))
+
+    def __repr__(self):
+        return self[0]
+
 DBNAME = 'cache.db'
-ENOVAL = object()
+ENOVAL = Constant('ENOVAL')
 
 MODE_NONE = 0
 MODE_RAW = 1
@@ -74,6 +86,11 @@ METADATA = {
 }
 
 EVICTION_POLICY = {
+    'none': {
+        'init': None,
+        'get': None,
+        'cull': None,
+    },
     'least-recently-stored': {
         'init': (
             'CREATE INDEX IF NOT EXISTS Cache_store_time ON'
@@ -114,6 +131,28 @@ class Disk(object):
         self._dir = directory
         self.min_file_size = min_file_size
         self.pickle_protocol = pickle_protocol
+
+
+    def hash(self, key):
+        """Compute portable hash for `key`.
+
+        :param key: key to hash
+        :return: hash value
+
+        """
+        mask = 0xFFFFFFFF
+        disk_key, _ = self.put(key)
+        type_disk_key = type(disk_key)
+
+        if type_disk_key is sqlite3.Binary:
+            return zlib.adler32(disk_key) & mask
+        elif type_disk_key is TextType:
+            return zlib.adler32(disk_key.encode('utf-8')) & mask  # pylint: disable=no-member
+        elif type_disk_key in INT_TYPES:
+            return disk_key % mask
+        else:
+            assert type_disk_key is float
+            return zlib.adler32(struct.pack('!d', disk_key)) & mask
 
 
     def put(self, key):
@@ -177,14 +216,14 @@ class Disk(object):
             else:
                 filename, full_path = self.filename()
 
-                with io.open(full_path, 'wb') as writer:
+                with open(full_path, 'wb') as writer:
                     writer.write(value)
 
                 return len(value), MODE_BINARY, filename, None
         elif type_value is TextType:
             filename, full_path = self.filename()
 
-            with io.open(full_path, 'w', encoding='UTF-8') as writer:
+            with io_open(full_path, 'w', encoding='UTF-8') as writer:
                 writer.write(value)
 
             size = op.getsize(full_path)
@@ -194,7 +233,7 @@ class Disk(object):
             reader = ft.partial(value.read, 2 ** 22)
             filename, full_path = self.filename()
 
-            with io.open(full_path, 'wb') as writer:
+            with open(full_path, 'wb') as writer:
                 for chunk in iter(reader, b''):
                     size += len(chunk)
                     writer.write(chunk)
@@ -208,7 +247,7 @@ class Disk(object):
             else:
                 filename, full_path = self.filename()
 
-                with io.open(full_path, 'wb') as writer:
+                with open(full_path, 'wb') as writer:
                     writer.write(result)
 
                 return len(result), MODE_PICKLE, filename, None
@@ -230,17 +269,17 @@ class Disk(object):
             return BytesType(value) if type(value) is sqlite3.Binary else value
         elif mode == MODE_BINARY:
             if read:
-                return io.open(op.join(self._dir, filename), 'rb')
+                return open(op.join(self._dir, filename), 'rb')
             else:
-                with io.open(op.join(self._dir, filename), 'rb') as reader:
+                with open(op.join(self._dir, filename), 'rb') as reader:
                     return reader.read()
         elif mode == MODE_TEXT:
             full_path = op.join(self._dir, filename)
-            with io.open(full_path, 'r', encoding='UTF-8') as reader:
+            with io_open(full_path, 'r', encoding='UTF-8') as reader:
                 return reader.read()
         elif mode == MODE_PICKLE:
             if value is None:
-                with io.open(op.join(self._dir, filename), 'rb') as reader:
+                with open(op.join(self._dir, filename), 'rb') as reader:
                     return pickle.load(reader)
             else:
                 return pickle.load(BytesIO(value))
@@ -461,6 +500,18 @@ class Cache(object):
 
 
     @property
+    def directory(self):
+        """Cache directory."""
+        return self._dir
+
+
+    @property
+    def disk(self):
+        """Disk used for serialization."""
+        return self._disk
+
+
+    @property
     def _sql(self):
         con = getattr(self._local, 'con', None)
 
@@ -538,6 +589,9 @@ class Cache(object):
         # to INSERT and then handling the IntegrityError that occurs from
         # violating the UNIQUE constraint. This optimistic approach was
         # rejected based on the common cache usage pattern.
+        #
+        # INSERT OR REPLACE aka UPSERT is not used because the old filename may
+        # need cleanup.
 
         with self._transact(filename) as (sql, cleanup):
             rows = sql(
@@ -646,12 +700,13 @@ class Cache(object):
             if cull_limit == 0:
                 return
 
-        if self.volume() < self.size_limit:
-            return
-
         # Evict keys by policy.
 
         select_policy_template = EVICTION_POLICY[self.eviction_policy]['cull']
+
+        if select_policy_template is None or self.volume() < self.size_limit:
+            return
+
         select_policy = select_policy_template % 'filename'
 
         rows = sql(select_policy, (cull_limit,)).fetchall()
@@ -830,6 +885,7 @@ class Cache(object):
         select = (
             'SELECT rowid, expire_time, tag, mode, filename, value'
             ' FROM Cache WHERE key = ? AND raw = ?'
+            ' AND (expire_time IS NULL OR expire_time > ?)'
         )
 
         if expire_time and tag:
@@ -840,15 +896,12 @@ class Cache(object):
         if not self.statistics and update_column is None:
             # Fast path, no transaction necessary.
 
-            rows = self._sql(select, (db_key, raw)).fetchall()
+            rows = self._sql(select, (db_key, raw, time.time())).fetchall()
 
             if not rows:
                 return default
 
             (rowid, db_expire_time, db_tag, mode, filename, db_value), = rows
-
-            if db_expire_time is not None and db_expire_time < time.time():
-                return default
 
             try:
                 value = self._disk.fetch(mode, filename, db_value, read)
@@ -869,7 +922,7 @@ class Cache(object):
             )
 
             with self._transact() as (sql, _):
-                rows = sql(select, (db_key, raw)).fetchall()
+                rows = sql(select, (db_key, raw, time.time())).fetchall()
 
                 if not rows:
                     if self.statistics:
@@ -878,11 +931,6 @@ class Cache(object):
 
                 (rowid, db_expire_time, db_tag,
                      mode, filename, db_value), = rows
-
-                if db_expire_time is not None and db_expire_time < time.time():
-                    if self.statistics:
-                        sql(cache_miss)
-                    return default
 
                 try:
                     value = self._disk.fetch(mode, filename, db_value, read)
@@ -950,18 +998,15 @@ class Cache(object):
         """
         sql = self._sql
         db_key, raw = self._disk.put(key)
+        select = (
+            'SELECT rowid FROM Cache'
+            ' WHERE key = ? AND raw = ?'
+            ' AND (expire_time IS NULL OR expire_time > ?)'
+        )
 
-        rows = sql(
-            'SELECT expire_time FROM Cache WHERE key = ? AND raw = ?',
-            (db_key, raw),
-        ).fetchall()
+        rows = sql(select, (db_key, raw, time.time())).fetchall()
 
-        if not rows:
-            return False
-
-        (expire_time,), = rows
-
-        return expire_time is None or time.time() < expire_time
+        return bool(rows)
 
 
     def pop(self, key, default=None, expire_time=False, tag=False):
@@ -984,15 +1029,16 @@ class Cache(object):
         select = (
             'SELECT rowid, expire_time, tag, mode, filename, value'
             ' FROM Cache WHERE key = ? AND raw = ?'
+            ' AND (expire_time IS NULL OR expire_time > ?)'
         )
 
         if expire_time and tag:
-            default = (default, None, None)
+            default = default, None, None
         elif expire_time or tag:
-            default = (default, None)
+            default = default, None
 
-        with self._transact() as (sql, cleanup):
-            rows = sql(select, (db_key, raw)).fetchall()
+        with self._transact() as (sql, _):
+            rows = sql(select, (db_key, raw, time.time())).fetchall()
 
             if not rows:
                 return default
@@ -1000,10 +1046,6 @@ class Cache(object):
             (rowid, db_expire_time, db_tag, mode, filename, db_value), = rows
 
             sql('DELETE FROM Cache WHERE rowid = ?', (rowid,))
-            cleanup(filename)
-
-        if db_expire_time is not None and db_expire_time < time.time():
-            return default
 
         try:
             value = self._disk.fetch(mode, filename, db_value, False)
@@ -1013,13 +1055,16 @@ class Cache(object):
                 return default
             else:
                 raise
+        finally:
+            if filename is not None:
+                self._disk.remove(filename)
 
         if expire_time and tag:
-            return (value, db_expire_time, db_tag)
+            return value, db_expire_time, db_tag
         elif expire_time:
-            return (value, db_expire_time)
+            return value, db_expire_time
         elif tag:
-            return (value, db_tag)
+            return value, db_tag
         else:
             return value
 
@@ -1036,22 +1081,20 @@ class Cache(object):
 
         with self._transact() as (sql, cleanup):
             rows = sql(
-                'SELECT rowid, expire_time, filename FROM Cache'
-                ' WHERE key = ? AND raw = ?',
-                (db_key, raw),
+                'SELECT rowid, filename FROM Cache'
+                ' WHERE key = ? AND raw = ?'
+                ' AND (expire_time IS NULL OR expire_time > ?)',
+                (db_key, raw, time.time()),
             ).fetchall()
 
             if not rows:
                 raise KeyError(key)
 
-            (rowid, expire_time, filename), = rows
+            (rowid, filename), = rows
             sql('DELETE FROM Cache WHERE rowid = ?', (rowid,))
             cleanup(filename)
 
-            if expire_time is None or time.time() < expire_time:
-                return True
-            else:
-                raise KeyError(key)
+            return True
 
 
     def delete(self, key):
@@ -1068,6 +1111,200 @@ class Cache(object):
             return self.__delitem__(key)
         except KeyError:
             return False
+
+
+    def push(self, value, prefix=None, side='back', expire=None, read=False,
+             tag=None):
+        """Push `value` onto `side` of queue identified by `prefix` in cache.
+
+        When prefix is None, integer keys are used. Otherwise, string keys are
+        used in the format "prefix-integer". Integer starts at 500 trillion.
+
+        Defaults to pushing value on back of queue. Set side to 'front' to push
+        value on front of queue. Side must be one of 'back' or 'front'.
+
+        Operation is atomic. Concurrent operations will be serialized.
+
+        When `read` is `True`, `value` should be a file-like object opened
+        for reading in binary mode.
+
+        See also `Cache.pull`.
+
+        >>> cache = Cache('/tmp/test')
+        >>> _ = cache.clear()
+        >>> cache.push('first value')
+        500000000000000
+        >>> cache.get(500000000000000)
+        'first value'
+        >>> cache.push('second value')
+        500000000000001
+        >>> cache.push('third value', side='front')
+        499999999999999
+        >>> cache.push(1234, prefix='userids')
+        'userids-500000000000000'
+
+        :param value: value for item
+        :param str prefix: key prefix (default None, key is integer)
+        :param str side: either 'back' or 'front' (default 'back')
+        :param float expire: seconds until the key expires
+            (default None, no expiry)
+        :param bool read: read value as bytes from file (default False)
+        :param str tag: text to associate with key (default None)
+        :return: key for item in cache
+        :raises Timeout: if database timeout expires
+
+        """
+        if prefix is None:
+            min_key = 0
+            max_key = 999999999999999
+        else:
+            min_key = prefix + '-000000000000000'
+            max_key = prefix + '-999999999999999'
+
+        now = time.time()
+        raw = True
+        expire_time = None if expire is None else now + expire
+        size, mode, filename, db_value = self._disk.store(value, read)
+        columns = (expire_time, tag, size, mode, filename, db_value)
+        order = {'back': 'DESC', 'front': 'ASC'}
+        select = (
+            'SELECT key FROM Cache'
+            ' WHERE ? < key AND key < ? AND raw = ?'
+            ' ORDER BY key %s LIMIT 1'
+        ) % order[side]
+
+        with self._transact(filename) as (sql, cleanup):
+            rows = sql(select, (min_key, max_key, raw)).fetchall()
+
+            if rows:
+                (key,), = rows
+
+                if prefix is not None:
+                    num = int(key[(key.rfind('-') + 1):])
+                else:
+                    num = key
+
+                if side == 'back':
+                    num += 1
+                else:
+                    assert side == 'front'
+                    num -= 1
+            else:
+                num = 500000000000000
+
+            if prefix is not None:
+                db_key = '{0}-{1:015d}'.format(prefix, num)
+            else:
+                db_key = num
+
+            self._row_insert(db_key, raw, now, columns)
+            self._cull(now, sql, cleanup)
+
+            return db_key
+
+
+    def pull(self, prefix=None, default=(None, None), side='front',
+             expire_time=False, tag=False):
+        """Pull key and value item pair from `side` of queue in cache.
+
+        When prefix is None, integer keys are used. Otherwise, string keys are
+        used in the format "prefix-integer". Integer starts at 500 trillion.
+
+        If queue is empty, return default.
+
+        Defaults to pulling key and value item pairs from front of queue. Set
+        side to 'back' to pull from back of queue. Side must be one of 'front'
+        or 'back'.
+
+        Operation is atomic. Concurrent operations will be serialized.
+
+        See also `Cache.push` and `Cache.get`.
+
+        >>> cache = Cache('/tmp/test')
+        >>> _ = cache.clear()
+        >>> cache.pull()
+        (None, None)
+        >>> for letter in 'abc':
+        ...     cache.push(letter)
+        500000000000000
+        500000000000001
+        500000000000002
+        >>> cache.pull()
+        (500000000000000, 'a')
+        >>> cache.pull(side='back')
+        (500000000000002, 'c')
+        >>> cache.push(1234, 'userids')
+        'userids-500000000000000'
+        >>> _, value = cache.pull('userids')
+        >>> value
+        1234
+
+        :param str prefix: key prefix (default None, key is integer)
+        :param default: value to return if key is missing
+            (default (None, None))
+        :param str side: either 'front' or 'back' (default 'front')
+        :param bool expire_time: if True, return expire_time in tuple
+            (default False)
+        :param bool tag: if True, return tag in tuple (default False)
+        :return: key and value item pair or default if queue is empty
+        :raises Timeout: if database timeout expires
+
+        """
+        if prefix is None:
+            min_key = 0
+            max_key = 999999999999999
+        else:
+            min_key = prefix + '-000000000000000'
+            max_key = prefix + '-999999999999999'
+
+        order = {'front': 'ASC', 'back': 'DESC'}
+        select = (
+            'SELECT rowid, key, expire_time, tag, mode, filename, value'
+            ' FROM Cache WHERE ? < key AND key < ? AND raw = 1'
+            ' ORDER BY key %s LIMIT 1'
+        ) % order[side]
+
+        if expire_time and tag:
+            default = default, None, None
+        elif expire_time or tag:
+            default = default, None
+
+        while True:
+            with self._transact() as (sql, cleanup):
+                rows = sql(select, (min_key, max_key)).fetchall()
+
+                if not rows:
+                    return default
+
+                (rowid, key, db_expire, db_tag, mode, name, db_value), = rows
+
+                sql('DELETE FROM Cache WHERE rowid = ?', (rowid,))
+
+                if db_expire is not None and db_expire < time.time():
+                    cleanup(name)
+                else:
+                    break
+
+        try:
+            value = self._disk.fetch(mode, name, db_value, False)
+        except IOError as error:
+            if error.errno == errno.ENOENT:
+                # Key was deleted before we could retrieve result.
+                return default
+            else:
+                raise
+        finally:
+            if name is not None:
+                self._disk.remove(name)
+
+        if expire_time and tag:
+            return (key, value), db_expire, db_tag
+        elif expire_time:
+            return (key, value), db_expire
+        elif tag:
+            return (key, value), db_tag
+        else:
+            return key, value
 
 
     def check(self, fix=False):
@@ -1314,6 +1551,66 @@ class Cache(object):
             raise Timeout(count)
 
         return count
+
+
+    def iterkeys(self, reverse=False):
+        """Iterate Cache keys in database sort order.
+
+        >>> cache = Cache('/tmp/diskcache')
+        >>> _ = cache.clear()
+        >>> for key in [4, 1, 3, 0, 2]:
+        ...     cache[key] = key
+        >>> list(cache.iterkeys())
+        [0, 1, 2, 3, 4]
+        >>> list(cache.iterkeys(reverse=True))
+        [4, 3, 2, 1, 0]
+
+        :param bool reverse: reverse sort order (default False)
+        :return: iterator of Cache keys
+
+        """
+        sql = self._sql
+        limit = 100
+        _disk_get = self._disk.get
+
+        if reverse:
+            select = (
+                'SELECT key, raw FROM Cache'
+                ' ORDER BY key DESC, raw DESC LIMIT 1'
+            )
+            iterate = (
+                'SELECT key, raw FROM Cache'
+                ' WHERE key = ? AND raw < ? OR key < ?'
+                ' ORDER BY key DESC, raw DESC LIMIT ?'
+            )
+        else:
+            select = (
+                'SELECT key, raw FROM Cache'
+                ' ORDER BY key ASC, raw ASC LIMIT 1'
+            )
+            iterate = (
+                'SELECT key, raw FROM Cache'
+                ' WHERE key = ? AND raw > ? OR key > ?'
+                ' ORDER BY key ASC, raw ASC LIMIT ?'
+            )
+
+        row = sql(select).fetchall()
+
+        if row:
+            (key, raw), = row
+        else:
+            return
+
+        yield _disk_get(key, raw)
+
+        while True:
+            rows = sql(iterate, (key, raw, key, limit)).fetchall()
+
+            if not rows:
+                break
+
+            for key, raw in rows:
+                yield _disk_get(key, raw)
 
 
     def _iter(self, ascending=True):
