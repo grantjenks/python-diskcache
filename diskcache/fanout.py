@@ -82,6 +82,7 @@ class FanoutCache(object):
 
         >>> cache = FanoutCache('/tmp/diskcache/fanoutcache')
         >>> index = cache.index('test')
+        >>> index.clear()
         >>> index['abc'] = 123
         >>> index['def'] = 456
         >>> index['ghi'] = 789
