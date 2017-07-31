@@ -1171,6 +1171,11 @@ def test_pull_ioerror_eacces(cache):
         cache.pull()
 
 
+@setup_cache
+def test_iterkeys(cache):
+    assert list(cache.iterkeys()) == []
+
+
 if __name__ == '__main__':
     import nose
     nose.runmodule()

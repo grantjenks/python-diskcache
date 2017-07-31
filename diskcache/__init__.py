@@ -3,9 +3,25 @@
 from .core import Cache, Disk, UnknownFileWarning, EmptyDirWarning, Timeout
 from .core import LIMITS, DEFAULT_SETTINGS, EVICTION_POLICY
 from .fanout import FanoutCache
+from .persistent import Deque, Index
+
+__all__ = [
+    'Cache',
+    'Disk',
+    'UnknownFileWarning',
+    'EmptyDirWarning',
+    'Timeout',
+    'LIMITS',
+    'DEFAULT_SETTINGS',
+    'EVICTION_POLICY',
+    'FanoutCache',
+    'Deque',
+    'Index',
+]
 
 try:
-    from .djangocache import DjangoCache
+    from .djangocache import DjangoCache  # pylint: disable=wrong-import-position
+    __all__.append('DjangoCache')
 except Exception:  # pylint: disable=broad-except
     # Django not installed or not setup so ignore.
     pass

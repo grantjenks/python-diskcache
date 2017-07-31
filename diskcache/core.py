@@ -25,14 +25,14 @@ if sys.hexversion < 0x03000000:
     BytesType = str
     INT_TYPES = int, long
     range = xrange  # pylint: disable=redefined-builtin,invalid-name
-    io_open = io.open
+    io_open = io.open  # pylint: disable=invalid-name
 else:
     import pickle
     from io import BytesIO  # pylint: disable=ungrouped-imports
     TextType = str
     BytesType = bytes
     INT_TYPES = int,
-    io_open = open
+    io_open = open  # pylint: disable=invalid-name
 
 try:
     WindowsError
@@ -41,8 +41,16 @@ except NameError:
         "Windows error place-holder on platforms without support."
         pass
 
+class Constant(tuple):
+    "Pretty display of immutable constant."
+    def __new__(cls, name):
+        return tuple.__new__(cls, (name,))
+
+    def __repr__(self):
+        return self[0]
+
 DBNAME = 'cache.db'
-ENOVAL = object()
+ENOVAL = Constant('ENOVAL')
 
 MODE_NONE = 0
 MODE_RAW = 1
@@ -139,7 +147,7 @@ class Disk(object):
         if type_disk_key is sqlite3.Binary:
             return zlib.adler32(disk_key) & mask
         elif type_disk_key is TextType:
-            return zlib.adler32(disk_key.encode('utf-8')) & mask
+            return zlib.adler32(disk_key.encode('utf-8')) & mask  # pylint: disable=no-member
         elif type_disk_key in INT_TYPES:
             return disk_key % mask
         else:
@@ -1029,7 +1037,7 @@ class Cache(object):
         elif expire_time or tag:
             default = default, None
 
-        with self._transact() as (sql, cleanup):
+        with self._transact() as (sql, _):
             rows = sql(select, (db_key, raw, time.time())).fetchall()
 
             if not rows:

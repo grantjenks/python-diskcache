@@ -90,3 +90,19 @@ Timeout
 -------
 
 .. autoexception:: diskcache.Timeout
+
+Deque
+-----
+
+.. autoclass:: diskcache.Deque
+   :members:
+   :special-members:
+   :exclude-members: __weakref__
+
+Index
+-----
+
+.. autoclass:: diskcache.Index
+   :members:
+   :special-members:
+   :exclude-members: __weakref__

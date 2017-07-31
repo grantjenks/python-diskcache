@@ -34,6 +34,26 @@ class DjangoCache(BaseCache):
         return self._dir
 
 
+    def deque(self, name):
+        """Return Deque with given `name` in subdirectory.
+
+        :param str name: subdirectory name for Deque
+        :return: Deque with given name
+
+        """
+        return self._cache.deque(name)
+
+
+    def index(self, name):
+        """Return Index with given `name` in subdirectory.
+
+        :param str name: subdirectory name for Index
+        :return: Index with given name
+
+        """
+        return self._cache.index(name)
+
+
     def add(self, key, value, timeout=DEFAULT_TIMEOUT, version=None,
             read=False, tag=None, retry=True):
         """Set a value in the cache if the key does not already exist. If
