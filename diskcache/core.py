@@ -75,7 +75,7 @@ DEFAULT_SETTINGS = {
     u'sqlite_cache_size': 2 ** 13,   # 8,192 pages
     u'sqlite_mmap_size': 2 ** 26,    # 64mb
     u'disk_min_file_size': 2 ** 10,  # 1kb
-    u'disk_pickle_protocol': max(2, pickle.HIGHEST_PROTOCOL),
+    u'disk_pickle_protocol': pickle.HIGHEST_PROTOCOL,
 }
 
 METADATA = {
