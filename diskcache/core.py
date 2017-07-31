@@ -75,7 +75,7 @@ DEFAULT_SETTINGS = {
     u'sqlite_cache_size': 2 ** 13,   # 8,192 pages
     u'sqlite_mmap_size': 2 ** 26,    # 64mb
     u'disk_min_file_size': 2 ** 10,  # 1kb
-    u'disk_pickle_protocol': pickle.HIGHEST_PROTOCOL,
+    u'disk_pickle_protocol': max(2, pickle.HIGHEST_PROTOCOL),
 }
 
 METADATA = {
@@ -1235,8 +1235,9 @@ class Cache(object):
         (500000000000002, 'c')
         >>> cache.push(1234, 'userids')
         'userids-500000000000000'
-        >>> cache.pull('userids')
-        (u'userids-500000000000000', 1234)
+        >>> _, value = cache.pull('userids')
+        >>> value
+        1234
 
         :param str prefix: key prefix (default None, key is integer)
         :param default: value to return if key is missing
