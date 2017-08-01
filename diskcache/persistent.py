@@ -103,13 +103,14 @@ class Deque(Sequence):
             raise IndexError('deque index out of range')
 
         diff = len_self - index - 1
+        _cache_iterkeys = self._cache.iterkeys
 
         try:
             if index <= diff:
-                iter_keys = self._cache.iterkeys()
+                iter_keys = _cache_iterkeys()
                 key = next(islice(iter_keys, index, index + 1))
             else:
-                iter_keys = self._cache.iterkeys(reverse=True)
+                iter_keys = _cache_iterkeys(reverse=True)
                 key = next(islice(iter_keys, diff, diff + 1))
         except StopIteration:
             raise IndexError('deque index out of range')
@@ -137,10 +138,13 @@ class Deque(Sequence):
         :raises IndexError: if index out of range
 
         """
+        _key = self._key
+        _cache = self._cache
+
         while True:
             try:
-                key = self._key(index)
-                return self._cache[key]
+                key = _key(index)
+                return _cache[key]
             except (KeyError, Timeout):
                 continue
 
@@ -164,10 +168,13 @@ class Deque(Sequence):
         :raises IndexError: if index out of range
 
         """
+        _key = self._key
+        _cache = self._cache
+
         while True:
             try:
-                key = self._key(index)
-                self._cache[key] = value
+                key = _key(index)
+                _cache[key] = value
                 return
             except Timeout:
                 continue
@@ -191,10 +198,13 @@ class Deque(Sequence):
         :raises IndexError: if index out of range
 
         """
+        _key = self._key
+        _cache = self._cache
+
         while True:
             try:
-                key = self._key(index)
-                del self._cache[key]
+                key = _key(index)
+                del _cache[key]
                 return
             except (KeyError, Timeout):
                 continue
@@ -325,9 +335,11 @@ class Deque(Sequence):
         :param value: value to add to back of deque
 
         """
+        _cache_push = self._cache.push
+
         while True:
             try:
-                self._cache.push(value)
+                _cache_push(value)
                 return
             except Timeout:
                 continue
@@ -347,9 +359,11 @@ class Deque(Sequence):
         :param value: value to add to front of deque
 
         """
+        _cache_push = self._cache.push
+
         while True:
             try:
-                self._cache.push(value, side='front')
+                _cache_push(value, side='front')
                 return
             except Timeout:
                 continue
@@ -368,7 +382,14 @@ class Deque(Sequence):
         0
 
         """
-        self._cache.clear()
+        _cache_clear = self._cache.clear
+
+        while True:
+            try:
+                _cache_clear()
+                return
+            except Timeout:
+                continue
 
 
     def count(self, value):
@@ -442,10 +463,12 @@ class Deque(Sequence):
         :raises IndexError: if deque is empty
 
         """
+        _cache_pull = self._cache.pull
+
         while True:
             try:
                 default = None, ENOVAL
-                _, value = self._cache.pull(default=default, side='back')
+                _, value = _cache_pull(default=default, side='back')
             except Timeout:
                 continue
             else:
@@ -470,10 +493,12 @@ class Deque(Sequence):
         IndexError: pop from an empty deque
 
         """
+        _cache_pull = self._cache.pull
+
         while True:
             try:
                 default = None, ENOVAL
-                _, value = self._cache.pull(default=default)
+                _, value = _cache_pull(default=default)
             except Timeout:
                 continue
             else:
@@ -538,12 +563,14 @@ class Deque(Sequence):
 
         """
         directory = mkdtemp()
+        temp = None
 
         try:
             temp = Deque(iterable=reversed(self), directory=directory)
             self.clear()
             self.extend(temp)
         finally:
+            del temp
             rmtree(directory)
 
 
@@ -897,6 +924,29 @@ class Index(MutableMapping):
         while True:
             try:
                 return _cache_pull(prefix, default, side)
+            except Timeout:
+                continue
+
+
+    def clear(self):
+        """Remove all items from index.
+
+        >>> index = Index('/tmp/diskcache/index')
+        >>> index.clear()
+        >>> index.update({'a': 0, 'b': 1, 'c': 2})
+        >>> len(index)
+        3
+        >>> index.clear()
+        >>> len(index)
+        0
+
+        """
+        _cache_clear = self._cache.clear
+
+        while True:
+            try:
+                _cache_clear()
+                return
             except Timeout:
                 continue
 

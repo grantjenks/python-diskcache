@@ -82,6 +82,7 @@ def stress_pop(deque):
 register(stress_pop)
 register(stress_pop)
 register(stress_pop)
+register(stress_pop)
 
 
 @register
@@ -92,6 +93,7 @@ def stress_popleft(deque):
         pass
 
 
+register(stress_popleft)
 register(stress_popleft)
 register(stress_popleft)
 register(stress_popleft)

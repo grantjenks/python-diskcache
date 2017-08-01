@@ -217,3 +217,12 @@ def test_pull_timeout(index):
 
     with mock.patch.object(index, '_cache', cache):
         index.pull(0)
+
+
+@setup_index
+def test_clear_timeout(index):
+    cache = mock.MagicMock()
+    cache.clear.side_effect = [dc.Timeout, None]
+
+    with mock.patch.object(index, '_cache', cache):
+        index.clear()

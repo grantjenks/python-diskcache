@@ -342,3 +342,12 @@ def test_rotate_negative(deque):
     deque += 'abcde'
     deque.rotate(-2)
     assert deque == 'cdeab'
+
+
+@setup_deque
+def test_clear_timeout(deque):
+    cache = mock.MagicMock()
+    cache.clear.side_effect = [dc.Timeout, None]
+
+    with mock.patch.object(deque, '_cache', cache):
+        deque.clear()
