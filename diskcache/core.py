@@ -70,11 +70,12 @@ DEFAULT_SETTINGS = {
     u'eviction_policy': u'least-recently-stored',
     u'size_limit': 2 ** 30,  # 1gb
     u'cull_limit': 10,
-    u'sqlite_synchronous': u'NORMAL',
-    u'sqlite_journal_mode': u'WAL',
     u'sqlite_cache_size': 2 ** 13,   # 8,192 pages
+    u'sqlite_journal_mode': u'WAL',
     u'sqlite_mmap_size': 2 ** 26,    # 64mb
-    u'disk_min_file_size': 2 ** 10,  # 1kb
+#     u'sqlite_page_size': 4096,
+    u'sqlite_synchronous': u'NORMAL',
+    u'disk_min_file_size': 2 ** 16,  # 64kb
     u'disk_pickle_protocol': pickle.HIGHEST_PROTOCOL,
 }
 
