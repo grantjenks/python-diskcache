@@ -1217,7 +1217,7 @@ class Index(MutableMapping):
 
             >>> index = Index('/tmp/diskcache/index')
             >>> index.clear()
-            >>> index.update({'a': 0, 'b', 1, 'c': 2})
+            >>> index.update({'a': 0, 'b': 1, 'c': 2})
             >>> keys_view = index.keys()
             >>> 'b' in keys_view
             True
@@ -1233,7 +1233,7 @@ class Index(MutableMapping):
 
             >>> index = Index('/tmp/diskcache/index')
             >>> index.clear()
-            >>> index.update({'a': 0, 'b', 1, 'c': 2})
+            >>> index.update({'a': 0, 'b': 1, 'c': 2})
             >>> values_view = index.values()
             >>> 1 in values_view
             True
@@ -1249,7 +1249,7 @@ class Index(MutableMapping):
 
             >>> index = Index('/tmp/diskcache/index')
             >>> index.clear()
-            >>> index.update({'a': 0, 'b', 1, 'c': 2})
+            >>> index.update({'a': 0, 'b': 1, 'c': 2})
             >>> items_view = index.items()
             >>> ('b', 1) in items_view
             True
