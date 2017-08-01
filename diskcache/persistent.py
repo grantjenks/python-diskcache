@@ -106,6 +106,7 @@ class Deque(Sequence):
         :return: initialized Deque
 
         """
+        # pylint: disable=no-member,protected-access
         self = cls.__new__(cls)
         self._cache = cache
         self.extend(iterable)
@@ -714,6 +715,7 @@ class Index(MutableMapping):
         :return: initialized Index
 
         """
+        # pylint: disable=no-member,protected-access
         self = cls.__new__(cls)
         self._cache = cache
         self.update(*args, **kwargs)
