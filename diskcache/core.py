@@ -128,7 +128,7 @@ class Disk(object):
         :param int pickle_protocol: pickle protocol for serialization
 
         """
-        self._dir = directory
+        self._directory = directory
         self.min_file_size = min_file_size
         self.pickle_protocol = pickle_protocol
 
@@ -269,17 +269,17 @@ class Disk(object):
             return BytesType(value) if type(value) is sqlite3.Binary else value
         elif mode == MODE_BINARY:
             if read:
-                return open(op.join(self._dir, filename), 'rb')
+                return open(op.join(self._directory, filename), 'rb')
             else:
-                with open(op.join(self._dir, filename), 'rb') as reader:
+                with open(op.join(self._directory, filename), 'rb') as reader:
                     return reader.read()
         elif mode == MODE_TEXT:
-            full_path = op.join(self._dir, filename)
+            full_path = op.join(self._directory, filename)
             with io_open(full_path, 'r', encoding='UTF-8') as reader:
                 return reader.read()
         elif mode == MODE_PICKLE:
             if value is None:
-                with open(op.join(self._dir, filename), 'rb') as reader:
+                with open(op.join(self._directory, filename), 'rb') as reader:
                     return pickle.load(reader)
             else:
                 return pickle.load(BytesIO(value))
@@ -297,7 +297,7 @@ class Disk(object):
         hex_name = codecs.encode(os.urandom(16), 'hex').decode('utf-8')
         sub_dir = op.join(hex_name[:2], hex_name[2:4])
         name = hex_name[4:] + '.val'
-        directory = op.join(self._dir, sub_dir)
+        directory = op.join(self._directory, sub_dir)
 
         try:
             os.makedirs(directory)
@@ -306,7 +306,7 @@ class Disk(object):
                 raise
 
         filename = op.join(sub_dir, name)
-        full_path = op.join(self._dir, filename)
+        full_path = op.join(self._directory, filename)
         return filename, full_path
 
 
@@ -319,7 +319,7 @@ class Disk(object):
         :param str filename: relative path to file
 
         """
-        full_path = op.join(self._dir, filename)
+        full_path = op.join(self._directory, filename)
 
         try:
             os.remove(full_path)
@@ -364,7 +364,7 @@ class Cache(object):
         except (TypeError, AssertionError):
             raise ValueError('disk must subclass diskcache.Disk')
 
-        self._dir = directory
+        self._directory = directory
         self._timeout = 60    # Use 1 minute timeout for initialization.
         self._local = threading.local()
 
@@ -376,7 +376,7 @@ class Cache(object):
                     raise EnvironmentError(
                         error.errno,
                         'Cache directory "%s" does not exist'
-                        ' and could not be created' % self._dir
+                        ' and could not be created' % self._directory
                     )
 
         sql = self._sql
@@ -502,7 +502,13 @@ class Cache(object):
     @property
     def directory(self):
         """Cache directory."""
-        return self._dir
+        return self._directory
+
+
+    @property
+    def timeout(self):
+        """SQLite connection timeout value in seconds."""
+        return self._timeout
 
 
     @property
@@ -517,7 +523,7 @@ class Cache(object):
 
         if con is None:
             con = self._local.con = sqlite3.connect(
-                op.join(self._dir, DBNAME),
+                op.join(self._directory, DBNAME),
                 timeout=self._timeout,
                 isolation_level=None,
             )
@@ -1351,7 +1357,7 @@ class Cache(object):
                 rows = sql(select).fetchall()
 
                 for rowid, size, filename in rows:
-                    full_path = op.join(self._dir, filename)
+                    full_path = op.join(self._directory, filename)
                     filenames.add(full_path)
 
                     if op.exists(full_path):
@@ -1377,7 +1383,7 @@ class Cache(object):
 
                 # Check file system against Cache.filename.
 
-                for dirpath, _, files in os.walk(self._dir):
+                for dirpath, _, files in os.walk(self._directory):
                     paths = [op.join(dirpath, filename) for filename in files]
                     error = set(paths) - filenames
 
@@ -1393,7 +1399,7 @@ class Cache(object):
 
                 # Check for empty directories.
 
-                for dirpath, dirs, files in os.walk(self._dir):
+                for dirpath, dirs, files in os.walk(self._directory):
                     if not (dirs or files):
                         message = 'empty directory: %s' % dirpath
                         warnings.warn(message, EmptyDirWarning)
@@ -1720,6 +1726,14 @@ class Cache(object):
     def __len__(self):
         "Count of items in cache including expired items."
         return self.reset('count')
+
+
+    def __getstate__(self):
+        return (self.directory, self.timeout, type(self.disk))
+
+
+    def __setstate__(self, state):
+        self.__init__(*state)
 
 
     def reset(self, key, value=ENOVAL):

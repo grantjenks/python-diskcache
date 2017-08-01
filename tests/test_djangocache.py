@@ -919,6 +919,19 @@ class DiskCacheTests(BaseCacheTests, TestCase):
         self.assertEqual(cache.pop(3, expire_time=True, tag=True), (3, None, None))
         self.assertEqual(cache.pop(4, retry=False), 4)
 
+    def test_pickle(self):
+        letters = 'abcde'
+        cache.clear()
+
+        for num, val in enumerate(letters):
+            cache.set(val, num)
+
+        data = pickle.dumps(cache)
+        other = pickle.loads(data)
+
+        for key in letters:
+            self.assertEqual(other.get(key), cache.get(key))
+
     def test_deque(self):
         deque = cache.deque('test')
         directory = os.path.join(cache.directory, 'deque', 'test')

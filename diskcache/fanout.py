@@ -22,7 +22,7 @@ class FanoutCache(object):
         :param settings: any of `DEFAULT_SETTINGS`
 
         """
-        self._dir = directory
+        self._directory = directory
         self._count = shards
         default_size_limit = DEFAULT_SETTINGS['size_limit']
         size_limit = settings.pop('size_limit', default_size_limit) / shards
@@ -44,70 +44,7 @@ class FanoutCache(object):
     @property
     def directory(self):
         """Cache directory."""
-        return self._dir
-
-
-    def deque(self, name):
-        """Return Deque with given `name` in subdirectory.
-
-        >>> cache = FanoutCache('/tmp/diskcache/fanoutcache')
-        >>> deque = cache.deque('test')
-        >>> deque.clear()
-        >>> deque.extend('abc')
-        >>> deque.popleft()
-        'a'
-        >>> deque.pop()
-        'c'
-        >>> len(deque)
-        1
-
-        :param str name: subdirectory name for Deque
-        :return: Deque with given name
-
-        """
-        _deques = self._deques
-
-        try:
-            return _deques[name]
-        except KeyError:
-            parts = name.split('/')
-            directory = op.join(self._dir, 'deque', *parts)
-            temp = Deque(directory=directory)
-            _deques[name] = temp
-            return temp
-
-
-    def index(self, name):
-        """Return Index with given `name` in subdirectory.
-
-        >>> cache = FanoutCache('/tmp/diskcache/fanoutcache')
-        >>> index = cache.index('test')
-        >>> index.clear()
-        >>> index['abc'] = 123
-        >>> index['def'] = 456
-        >>> index['ghi'] = 789
-        >>> index.popitem()
-        ('ghi', 789)
-        >>> del index['abc']
-        >>> len(index)
-        1
-        >>> index['def']
-        456
-
-        :param str name: subdirectory name for Index
-        :return: Index with given name
-
-        """
-        _indexes = self._indexes
-
-        try:
-            return _indexes[name]
-        except KeyError:
-            parts = name.split('/')
-            directory = op.join(self._dir, 'index', *parts)
-            temp = Index(directory)
-            _indexes[name] = temp
-            return temp
+        return self._directory
 
 
     def __getattr__(self, name):
@@ -521,6 +458,14 @@ class FanoutCache(object):
         self.close()
 
 
+    def __getstate__(self):
+        return (self._directory, self._count, self.timeout, type(self.disk))
+
+
+    def __setstate__(self, state):
+        self.__init__(*state)
+
+
     def __iter__(self):
         "Iterate keys in cache including expired items."
         iterators = [iter(shard) for shard in self._shards]
@@ -566,3 +511,66 @@ class FanoutCache(object):
                 else:
                     break
         return result
+
+
+    def deque(self, name):
+        """Return Deque with given `name` in subdirectory.
+
+        >>> cache = FanoutCache('/tmp/diskcache/fanoutcache')
+        >>> deque = cache.deque('test')
+        >>> deque.clear()
+        >>> deque.extend('abc')
+        >>> deque.popleft()
+        'a'
+        >>> deque.pop()
+        'c'
+        >>> len(deque)
+        1
+
+        :param str name: subdirectory name for Deque
+        :return: Deque with given name
+
+        """
+        _deques = self._deques
+
+        try:
+            return _deques[name]
+        except KeyError:
+            parts = name.split('/')
+            directory = op.join(self._directory, 'deque', *parts)
+            temp = Deque(directory=directory)
+            _deques[name] = temp
+            return temp
+
+
+    def index(self, name):
+        """Return Index with given `name` in subdirectory.
+
+        >>> cache = FanoutCache('/tmp/diskcache/fanoutcache')
+        >>> index = cache.index('test')
+        >>> index.clear()
+        >>> index['abc'] = 123
+        >>> index['def'] = 456
+        >>> index['ghi'] = 789
+        >>> index.popitem()
+        ('ghi', 789)
+        >>> del index['abc']
+        >>> len(index)
+        1
+        >>> index['def']
+        456
+
+        :param str name: subdirectory name for Index
+        :return: Index with given name
+
+        """
+        _indexes = self._indexes
+
+        try:
+            return _indexes[name]
+        except KeyError:
+            parts = name.split('/')
+            directory = op.join(self._directory, 'index', *parts)
+            temp = Index(directory)
+            _indexes[name] = temp
+            return temp

@@ -77,11 +77,11 @@ Cache objects may also reference the same directory from separate threads or
 processes. In this way, they are also process-safe and support cross-process
 communication.
 
-When created, Cache objects open and maintain a file handle. As such, they may
-not be pickled and do not survive process forking. Each thread that accesses a
-cache is also responsible for calling :meth:`close <diskcache.Cache.close>` on
-the cache. You can use a Cache reference in a `with` statement to safeguard
-calling :meth:`close <diskcache.Cache.close>`.
+When created, Cache objects open and maintain a file handle. As such, they do
+not survive process forking but they may be serialized using Pickle. Each
+thread that accesses a cache is also responsible for calling :meth:`close
+<diskcache.Cache.close>` on the cache. You can use a Cache reference in a
+`with` statement to safeguard calling :meth:`close <diskcache.Cache.close>`.
 
     >>> cache.close()
     >>> with Cache('/tmp/mycachedir') as reference:

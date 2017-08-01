@@ -24,14 +24,14 @@ class DjangoCache(BaseCache):
         shards = params.get('SHARDS', 8)
         timeout = params.get('DATABASE_TIMEOUT', 0.025)
         options = params.get('OPTIONS', {})
-        self._dir = directory
+        self._directory = directory
         self._cache = FanoutCache(directory, shards, timeout, **options)
 
 
     @property
     def directory(self):
         """Cache directory."""
-        return self._dir
+        return self._directory
 
 
     def deque(self, name):

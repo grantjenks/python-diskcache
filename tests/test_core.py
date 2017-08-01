@@ -1176,6 +1176,18 @@ def test_iterkeys(cache):
     assert list(cache.iterkeys()) == []
 
 
+@setup_cache
+def test_pickle(cache):
+    for num, val in enumerate('abcde'):
+        cache[val] = num
+
+    data = pickle.dumps(cache)
+    other = pickle.loads(data)
+
+    for key in other:
+        assert other[key] == cache[key]
+
+
 if __name__ == '__main__':
     import nose
     nose.runmodule()
