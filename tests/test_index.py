@@ -226,3 +226,23 @@ def test_clear_timeout(index):
 
     with mock.patch.object(index, '_cache', cache):
         index.clear()
+
+
+@setup_index
+def test_itervalues_timeout(index):
+    cache = mock.MagicMock()
+    cache.__iter__.side_effect = [iter([0, 1, 2])]
+    cache.__getitem__.side_effect = [KeyError, 1, 2]
+
+    with mock.patch.object(index, '_cache', cache):
+        assert list(index.itervalues()) == [1, 2]
+
+
+@setup_index
+def test_iteritems_timeout(index):
+    cache = mock.MagicMock()
+    cache.__iter__.side_effect = [iter([0, 1, 2])]
+    cache.__getitem__.side_effect = [KeyError, 1, 2]
+
+    with mock.patch.object(index, '_cache', cache):
+        assert list(index.iteritems()) == [(1, 1), (2, 2)]

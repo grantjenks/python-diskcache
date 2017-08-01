@@ -6,6 +6,7 @@ import operator as op
 import sys
 
 from collections import MutableMapping, OrderedDict, Sequence
+from collections import KeysView, ValuesView, ItemsView
 from itertools import islice
 from shutil import rmtree
 from tempfile import mkdtemp
@@ -84,6 +85,31 @@ class Deque(Sequence):
             directory = mkdtemp()
         self._cache = Cache(directory, eviction_policy='none')
         self.extend(iterable)
+
+
+    @classmethod
+    def fromcache(cls, cache, iterable=()):
+        """Initialize deque using `cache`.
+
+        >>> cache = Cache('/tmp/diskcache/index')
+        >>> _ = cache.clear()
+        >>> deque = Deque.fromcache(cache, [5, 6, 7, 8])
+        >>> len(deque)
+        4
+        >>> 7 in deque
+        True
+        >>> deque.popleft()
+        5
+
+        :param Cache cache: cache to use
+        :param iterable: iterable of items
+        :return: initialized Deque
+
+        """
+        self = cls.__new__(cls)
+        self._cache = cache
+        self.extend(iterable)
+        return self
 
 
     @property
@@ -664,8 +690,34 @@ class Index(MutableMapping):
             if args and args[0] is None:
                 args = args[1:]
             directory = mkdtemp(prefix='diskcache-')
-        self._cache = Cache(directory, eviction_policy='none', timeout=0.001)
+        self._cache = Cache(directory, eviction_policy='none')
         self.update(*args, **kwargs)
+
+
+    @classmethod
+    def fromcache(cls, cache, *args, **kwargs):
+        """Initialize index using `cache` and update items.
+
+        >>> cache = Cache('/tmp/diskcache/index')
+        >>> _ = cache.clear()
+        >>> index = Index.fromcache(cache, {'a': 0, 'b': 1, 'c': 2})
+        >>> len(index)
+        3
+        >>> 'b' in index
+        True
+        >>> index['c']
+        2
+
+        :param Cache cache: cache to use
+        :param args: mapping or sequence of items
+        :param kwargs: mapping of items
+        :return: initialized Index
+
+        """
+        self = cls.__new__(cls)
+        self._cache = cache
+        self.update(*args, **kwargs)
+        return self
 
 
     @property
@@ -1004,6 +1056,206 @@ class Index(MutableMapping):
 
         """
         return len(self._cache)
+
+
+    if sys.hexversion < 0x03000000:
+        def keys(self):
+            """List of index keys.
+
+            >>> index = Index('/tmp/diskcache/index')
+            >>> index.clear()
+            >>> index.update([('a', 0), ('b', 1), ('c', 2)])
+            >>> index.keys()
+            ['a', 'b', 'c']
+
+            :return: list of keys
+
+            """
+            return list(self._cache)
+
+
+        def values(self):
+            """List of index values.
+
+            >>> index = Index('/tmp/diskcache/index')
+            >>> index.clear()
+            >>> index.update([('a', 0), ('b', 1), ('c', 2)])
+            >>> index.values()
+            [0, 1, 2]
+
+            :return: list of values
+
+            """
+            return list(self.itervalues())
+
+
+        def items(self):
+            """List of index items.
+
+            >>> index = Index('/tmp/diskcache/index')
+            >>> index.clear()
+            >>> index.update([('a', 0), ('b', 1), ('c', 2)])
+            >>> index.items()
+            [('a', 0), ('b', 1), ('c', 2)]
+
+            :return: list of items
+
+            """
+            return list(self.iteritems())
+
+
+        def iterkeys(self):
+            """Iterator of index keys.
+
+            >>> index = Index('/tmp/diskcache/index')
+            >>> index.clear()
+            >>> index.update([('a', 0), ('b', 1), ('c', 2)])
+            >>> list(index.iterkeys())
+            ['a', 'b', 'c']
+
+            :return: iterator of keys
+
+            """
+            return iter(self._cache)
+
+
+        def itervalues(self):
+            """Iterator of index values.
+
+            >>> index = Index('/tmp/diskcache/index')
+            >>> index.clear()
+            >>> index.update([('a', 0), ('b', 1), ('c', 2)])
+            >>> list(index.itervalues())
+            [0, 1, 2]
+
+            :return: iterator of values
+
+            """
+            _cache = self._cache
+
+            for key in _cache:
+                try:
+                    yield _cache[key]
+                except KeyError:
+                    continue
+
+
+        def iteritems(self):
+            """Iterator of index items.
+
+            >>> index = Index('/tmp/diskcache/index')
+            >>> index.clear()
+            >>> index.update([('a', 0), ('b', 1), ('c', 2)])
+            >>> list(index.iteritems())
+            [('a', 0), ('b', 1), ('c', 2)]
+
+            :return: iterator of items
+
+            """
+            _cache = self._cache
+
+            for key in _cache:
+                try:
+                    yield key, _cache[key]
+                except KeyError:
+                    continue
+
+
+        def viewkeys(self):
+            """Set-like object providing a view of index keys.
+
+            >>> index = Index('/tmp/diskcache/index')
+            >>> index.clear()
+            >>> index.update({'a': 0, 'b': 1, 'c': 2})
+            >>> keys_view = index.viewkeys()
+            >>> 'b' in keys_view
+            True
+
+            :return: keys view
+
+            """
+            return KeysView(self)
+
+
+        def viewvalues(self):
+            """Set-like object providing a view of index values.
+
+            >>> index = Index('/tmp/diskcache/index')
+            >>> index.clear()
+            >>> index.update({'a': 0, 'b': 1, 'c': 2})
+            >>> values_view = index.viewvalues()
+            >>> 1 in values_view
+            True
+
+            :return: values view
+
+            """
+            return ValuesView(self)
+
+
+        def viewitems(self):
+            """Set-like object providing a view of index items.
+
+            >>> index = Index('/tmp/diskcache/index')
+            >>> index.clear()
+            >>> index.update({'a': 0, 'b': 1, 'c': 2})
+            >>> items_view = index.viewitems()
+            >>> ('b', 1) in items_view
+            True
+
+            :return: items view
+
+            """
+            return ItemsView(self)
+
+
+    else:
+        def keys(self):
+            """Set-like object providing a view of index keys.
+
+            >>> index = Index('/tmp/diskcache/index')
+            >>> index.clear()
+            >>> index.update({'a': 0, 'b', 1, 'c': 2})
+            >>> keys_view = index.keys()
+            >>> 'b' in keys_view
+            True
+
+            :return: keys view
+
+            """
+            return KeysView(self)
+
+
+        def values(self):
+            """Set-like object providing a view of index values.
+
+            >>> index = Index('/tmp/diskcache/index')
+            >>> index.clear()
+            >>> index.update({'a': 0, 'b', 1, 'c': 2})
+            >>> values_view = index.values()
+            >>> 1 in values_view
+            True
+
+            :return: values view
+
+            """
+            return ValuesView(self)
+
+
+        def items(self):
+            """Set-like object providing a view of index items.
+
+            >>> index = Index('/tmp/diskcache/index')
+            >>> index.clear()
+            >>> index.update({'a': 0, 'b', 1, 'c': 2})
+            >>> items_view = index.items()
+            >>> ('b', 1) in items_view
+            True
+
+            :return: items view
+
+            """
+            return ItemsView(self)
 
 
     __hash__ = None
