@@ -99,6 +99,9 @@ def test(status=False):
     if os.environ.get('TRAVIS') == 'true':
         return
 
+    if os.environ.get('APPVEYOR') == 'True':
+        return
+
     random.seed(SEED)
     index = dc.Index(enumerate(range(KEYS)))
     processes = []
