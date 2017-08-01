@@ -562,6 +562,7 @@ class Deque(Sequence):
         ['c', 'b', 'a']
 
         """
+        # pylint: disable=protected-access
         directory = mkdtemp()
         temp = None
 
