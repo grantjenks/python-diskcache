@@ -358,7 +358,7 @@ def test_tag_index(cache):
 
 @setup_cache
 def test_read(cache):
-    cache.set(0, b'abcd' * 2 ** 12)
+    cache.set(0, b'abcd' * 2 ** 20)
     with cache.read(0) as reader:
         assert reader is not None
 

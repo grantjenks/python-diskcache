@@ -78,13 +78,13 @@ def make_vals():
     def make_unicode():
         word_size = random.randint(1, 26)
         word = u''.join(random.sample(u'abcdefghijklmnopqrstuvwxyz', word_size))
-        size = random.randint(1, int(2000 / 13))
+        size = random.randint(1, int(2 ** 16 / 13))
         return word * size
 
     def make_bytes():
         word_size = random.randint(1, 26)
         word = u''.join(random.sample(u'abcdefghijklmnopqrstuvwxyz', word_size)).encode('utf-8')
-        size = random.randint(1, int(2000 / 13))
+        size = random.randint(1, int(2 ** 16 / 13))
         return word * size
 
     def make_float():

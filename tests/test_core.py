@@ -210,15 +210,15 @@ def test_close_error(cache):
 def test_getsetdel(cache):
     values = [
         (None, False),
-        ((None,) * 2 ** 12, False),
+        ((None,) * 2 ** 20, False),
         (1234, False),
         (2 ** 512, False),
         (56.78, False),
         (u'hello', False),
-        (u'hello' * 2 ** 12, False),
+        (u'hello' * 2 ** 20, False),
         (b'world', False),
-        (b'world' * 2 ** 12, False),
-        (io.BytesIO(b'world' * 2 ** 12), True),
+        (b'world' * 2 ** 20, False),
+        (io.BytesIO(b'world' * 2 ** 20), True),
     ]
 
     for key, (value, file_like) in enumerate(values):
@@ -265,7 +265,7 @@ def test_get_keyerror4(cache):
     func = mock.Mock(side_effect=IOError(errno.ENOENT, ''))
 
     cache.reset('statistics', True)
-    cache[0] = b'abcd' * 2 ** 12
+    cache[0] = b'abcd' * 2 ** 20
 
     with mock.patch('diskcache.core.open', func):
         cache[0]
@@ -276,7 +276,7 @@ def test_get_keyerror4(cache):
 def test_get_keyerror5(cache):
     func = mock.Mock(side_effect=IOError(errno.EACCES, ''))
 
-    cache[0] = b'abcd' * 2 ** 12
+    cache[0] = b'abcd' * 2 ** 20
 
     with mock.patch('diskcache.core.open', func):
         cache[0]
@@ -284,7 +284,7 @@ def test_get_keyerror5(cache):
 
 @setup_cache
 def test_read(cache):
-    cache.set(0, b'abcd' * 2 ** 12)
+    cache.set(0, b'abcd' * 2 ** 20)
     with cache.read(0) as reader:
         assert reader is not None
 
@@ -298,7 +298,7 @@ def test_read_keyerror(cache):
 
 @setup_cache
 def test_set_twice(cache):
-    large_value = b'abcd' * 2 ** 12
+    large_value = b'abcd' * 2 ** 20
 
     cache[0] = 0
     cache[0] = 1
@@ -332,7 +332,7 @@ def test_set_timeout(cache):
 
     try:
         with mock.patch.object(cache, '_local', local):
-            cache.set('a', 'b' * 2 ** 12)
+            cache.set('a', 'b' * 2 ** 20)
     finally:
         cache.check()
 
@@ -434,8 +434,8 @@ def test_pop(cache):
     assert cache.set('delta', 210)
     assert cache.pop('delta', expire_time=True) == (210, None)
 
-    assert cache.set('epsilon', '0' * 2 ** 12)
-    assert cache.pop('epsilon') == '0' * 2 ** 12
+    assert cache.set('epsilon', '0' * 2 ** 20)
+    assert cache.pop('epsilon') == '0' * 2 ** 20
 
 
 @setup_cache
@@ -528,7 +528,7 @@ def test_stats(cache):
 @setup_cache
 def test_path(cache):
     cache[0] = u'abc'
-    large_value = b'abc' * 2 ** 12
+    large_value = b'abc' * 2 ** 20
     cache[1] = large_value
 
     assert cache.get(0, read=True) == u'abc'
@@ -689,7 +689,7 @@ def test_remove_error(cache):
 
 @setup_cache
 def test_check(cache):
-    blob = b'a' * 2 ** 14
+    blob = b'a' * 2 ** 20
     keys = (0, 1, 1234, 56.78, u'hello', b'world', None)
 
     for key in keys:
@@ -899,7 +899,7 @@ def test_add(cache):
 
 @setup_cache
 def test_add_large_value(cache):
-    value = b'abcd' * 2 ** 12
+    value = b'abcd' * 2 ** 20
     assert cache.add(b'test-key', value)
     assert cache.get(b'test-key') == value
     assert not cache.add(b'test-key', value * 2)
@@ -1125,7 +1125,7 @@ def test_push_pull_expire(cache):
 
 @setup_cache
 def test_push_pull_large_value(cache):
-    value = b'test' * (2 ** 12)
+    value = b'test' * (2 ** 20)
     cache.push(value)
     assert cache.pull() == (500000000000000, value)
     assert len(cache) == 0

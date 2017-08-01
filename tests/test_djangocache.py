@@ -871,7 +871,7 @@ class DiskCacheTests(BaseCacheTests, TestCase):
         self.assertTrue('tmp' in cache.directory)
 
     def test_read(self):
-        value = b'abcd' * 2 ** 12
+        value = b'abcd' * 2 ** 20
         result = cache.set(b'test-key', value)
 
         self.assertTrue(result)
