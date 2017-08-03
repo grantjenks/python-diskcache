@@ -56,19 +56,26 @@ class Deque(Sequence):
     Items are serialized to disk. Deque may be initialized from directory path
     where items are stored.
 
-    >>> deque = Deque()
-    >>> for value in range(5):
-    ...     deque.append(value)
+    >>> deque = Deque(directory='/tmp/diskcache/deque')
+    >>> deque
+    Deque(directory='/tmp/diskcache/deque')
+    >>> deque.clear()
+    >>> deque += range(5)
     >>> list(deque)
     [0, 1, 2, 3, 4]
     >>> for value in range(5):
     ...     deque.appendleft(-value)
+    >>> len(deque)
+    10
     >>> list(deque)
     [-4, -3, -2, -1, 0, 0, 1, 2, 3, 4]
     >>> deque.pop()
     4
     >>> deque.popleft()
     -4
+    >>> deque.reverse()
+    >>> list(deque)
+    [3, 2, 1, 0, 0, -1, -2, -3]
 
     """
     def __init__(self, iterable=(), directory=None):
@@ -242,10 +249,6 @@ class Deque(Sequence):
 
         Return string with printable representation of deque.
 
-        >>> deque = Deque(directory='/tmp/diskcache/deque')
-        >>> deque
-        Deque(directory='/tmp/diskcache/deque')
-
         """
         name = type(self).__name__
         return '{0}(directory={1!r})'.format(name, self.directory)
@@ -264,12 +267,6 @@ class Deque(Sequence):
 
         Extend back side of deque with items from iterable.
 
-        >>> deque = Deque(directory='/tmp/diskcache/deque')
-        >>> deque.clear()
-        >>> deque += 'abc'
-        >>> list(deque)
-        ['a', 'b', 'c']
-
         """
         self.extend(iterable)
         return self
@@ -279,15 +276,6 @@ class Deque(Sequence):
         """deque.__iter__() <==> iter(deque)
 
         Return iterator of deque from front to back.
-
-        >>> deque = Deque(directory='/tmp/diskcache/deque')
-        >>> deque.clear()
-        >>> deque += 'abc'
-        >>> iterator = iter(deque)
-        >>> next(iterator)
-        'a'
-        >>> list(iterator)
-        ['b', 'c']
 
         """
         _cache = self._cache
@@ -304,14 +292,6 @@ class Deque(Sequence):
 
         Return length of deque.
 
-        >>> deque = Deque(directory='/tmp/diskcache/deque')
-        >>> deque.clear()
-        >>> len(deque)
-        0
-        >>> deque.extend('abc')
-        >>> len(deque)
-        3
-
         """
         return len(self._cache)
 
@@ -323,12 +303,12 @@ class Deque(Sequence):
 
         >>> deque = Deque(directory='/tmp/diskcache/deque')
         >>> deque.clear()
-        >>> deque.extend('abc')
+        >>> deque.extend('abcd')
         >>> iterator = reversed(deque)
         >>> next(iterator)
-        'c'
+        'd'
         >>> list(iterator)
-        ['b', 'a']
+        ['c', 'b', 'a']
 
         """
         _cache = self._cache
@@ -399,15 +379,6 @@ class Deque(Sequence):
     def clear(self):
         """Remove all elements from deque.
 
-        >>> deque = Deque(directory='/tmp/diskcache/deque')
-        >>> deque.clear()
-        >>> deque += range(10)
-        >>> len(deque)
-        10
-        >>> deque.clear()
-        >>> len(deque)
-        0
-
         """
         _cache_clear = self._cache.clear
 
@@ -440,12 +411,6 @@ class Deque(Sequence):
 
     def extend(self, iterable):
         """Extend back side of deque with values from `iterable`.
-
-        >>> deque = Deque(directory='/tmp/diskcache/deque')
-        >>> deque.clear()
-        >>> deque.extend('abc')
-        >>> list(deque)
-        ['a', 'b', 'c']
 
         :param iterable: iterable of values
 
@@ -586,13 +551,6 @@ class Deque(Sequence):
 
     def reverse(self):
         """Reverse deque in place.
-
-        >>> deque = Deque(directory='/tmp/diskcache/deque')
-        >>> deque.clear()
-        >>> deque.extend('abc')
-        >>> deque.reverse()
-        >>> list(deque)
-        ['c', 'b', 'a']
 
         """
         # pylint: disable=protected-access
