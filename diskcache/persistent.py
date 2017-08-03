@@ -559,7 +559,13 @@ class Deque(Sequence):
 
         for key in _cache.iterkeys():
             try:
-                item = _cache[key]
+                while True:
+                    try:
+                        item = _cache[key]
+                    except Timeout:
+                        continue
+                    else:
+                        break
             except KeyError:
                 continue
             else:

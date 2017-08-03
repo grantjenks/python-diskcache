@@ -302,7 +302,7 @@ def test_remove(deque):
 def test_remove_timeout(deque):
     cache = mock.MagicMock()
     cache.iterkeys.side_effect = [iter([0, 1, 2, 3, 4])]
-    cache.__getitem__.side_effect = [0, KeyError, 3, 3]
+    cache.__getitem__.side_effect = [0, dc.Timeout, KeyError, 3, 3]
     cache.__delitem__.side_effect = [KeyError, dc.Timeout, None]
 
     with mock.patch.object(deque, '_cache', cache):
