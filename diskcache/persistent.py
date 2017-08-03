@@ -643,6 +643,10 @@ class Deque(Sequence):
                     self.append(value)
 
 
+    def __del__(self):
+        self._cache.close()
+
+
     __hash__ = None
 
 
@@ -1341,3 +1345,7 @@ class Index(MutableMapping):
         """
         name = type(self).__name__
         return '{0}({1!r})'.format(name, self.directory)
+
+
+    def __del__(self):
+        self._cache.close()
