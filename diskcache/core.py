@@ -58,12 +58,6 @@ MODE_BINARY = 2
 MODE_TEXT = 3
 MODE_PICKLE = 4
 
-LIMITS = {
-    u'min_int': -sys.maxsize - 1,
-    u'max_int': sys.maxsize,
-    u'pragma_timeout': 60,
-}
-
 DEFAULT_SETTINGS = {
     u'statistics': 0,  # False
     u'tag_index': 0,   # False
@@ -169,7 +163,7 @@ class Disk(object):
             return sqlite3.Binary(key), True
         elif ((type_key is TextType)
                 or (type_key in INT_TYPES
-                    and LIMITS[u'min_int'] <= key <= LIMITS[u'max_int'])
+                    and -9223372036854775808 <= key <= 9223372036854775807)
                 or (type_key is float)):
             return key, True
         else:
@@ -207,7 +201,7 @@ class Disk(object):
 
         if ((type_value is TextType and len(value) < min_file_size)
                 or (type_value in INT_TYPES
-                    and LIMITS[u'min_int'] <= value <= LIMITS[u'max_int'])
+                    and -9223372036854775808 <= value <= 9223372036854775807)
                 or (type_value is float)):
             return 0, MODE_RAW, None, value
         elif type_value is BytesType:
@@ -1780,10 +1774,11 @@ class Cache(object):
                 # processes.
 
                 pause = 0.001
+                count = 60000  # 60 / 0.001
                 error = sqlite3.OperationalError
                 pragma = key[7:]
 
-                for _ in range(int(LIMITS[u'pragma_timeout'] / pause)):
+                for _ in range(count):
                     try:
                         args = pragma, value
                         sql('PRAGMA %s = %s' % args).fetchall()

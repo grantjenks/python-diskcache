@@ -61,15 +61,6 @@ Read the :ref:`Settings tutorial <tutorial-settings>` for details.
    * `disk_pickle_protocol` (int) default highest Pickle protocol - the Pickle
      protocol to use for data types that are not natively supported.
 
-.. data:: diskcache.LIMITS
-
-   * `min_int` (int) default ``-sys.maxsize - 1`` - smallest integer stored
-     natively in SQLite.
-   * `max_int` (int) default ``sys.maxsize`` - largest integer stored natively
-     in SQLite.
-   * `pragma_timeout` (int) default 60 - seconds to retry setting SQLite
-     pragmas.
-
 .. data:: diskcache.EVICTION_POLICY
 
    * `least-recently-stored` (default) - evict least recently stored keys first.
