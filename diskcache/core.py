@@ -1132,13 +1132,13 @@ class Cache(object):
 
         >>> cache = Cache('/tmp/test')
         >>> _ = cache.clear()
-        >>> cache.push('first value')
+        >>> print(cache.push('first value'))
         500000000000000
         >>> cache.get(500000000000000)
         'first value'
-        >>> cache.push('second value')
+        >>> print(cache.push('second value'))
         500000000000001
-        >>> cache.push('third value', side='front')
+        >>> print(cache.push('third value', side='front'))
         499999999999999
         >>> cache.push(1234, prefix='userids')
         'userids-500000000000000'
@@ -1225,14 +1225,18 @@ class Cache(object):
         >>> cache.pull()
         (None, None)
         >>> for letter in 'abc':
-        ...     cache.push(letter)
+        ...     print(cache.push(letter))
         500000000000000
         500000000000001
         500000000000002
-        >>> cache.pull()
-        (500000000000000, 'a')
-        >>> cache.pull(side='back')
-        (500000000000002, 'c')
+        >>> key, value = cache.pull()
+        >>> print(key)
+        500000000000000
+        >>> value
+        'a'
+        >>> _, value = cache.pull(side='back')
+        >>> value
+        'c'
         >>> cache.push(1234, 'userids')
         'userids-500000000000000'
         >>> _, value = cache.pull('userids')

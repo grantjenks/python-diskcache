@@ -934,11 +934,11 @@ class Index(MutableMapping):
 
         >>> index = Index('/tmp/diskcache/index')
         >>> index.clear()
-        >>> index.push('apples')
+        >>> print(index.push('apples'))
         500000000000000
-        >>> index.push('beans')
+        >>> print(index.push('beans'))
         500000000000001
-        >>> index.push('cherries', side='front')
+        >>> print(index.push('cherries', side='front'))
         499999999999999
         >>> index[500000000000001]
         'beans'
@@ -977,14 +977,18 @@ class Index(MutableMapping):
         >>> index = Index('/tmp/diskcache/index')
         >>> index.clear()
         >>> for letter in 'abc':
-        ...     index.push(letter)
+        ...     print(index.push(letter))
         500000000000000
         500000000000001
         500000000000002
-        >>> index.pull()
-        (500000000000000, 'a')
-        >>> index.pull(side='back')
-        (500000000000002, 'c')
+        >>> key, value = index.pull()
+        >>> print(key)
+        500000000000000
+        >>> value
+        'a'
+        >>> _, value = index.pull(side='back')
+        >>> value
+        'c'
         >>> index.pull(prefix='fruit')
         (None, None)
 
