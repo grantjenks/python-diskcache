@@ -362,6 +362,70 @@ file handle in the `name` attribute. Remember to also include the
 
 .. _`Django documentation on caching`: https://docs.djangoproject.com/en/1.9/topics/cache/#the-low-level-cache-api
 
+Deque
+-----
+
+:class:`diskcache.Deque` (pronounced "deck") uses a :class:`Cache
+<diskcache.Cache>` to provide a `collections.deque
+<https://docs.python.org/3/library/collections.html#collections.deque>`_-compatible
+double-ended queue. Deques are a generalization of stacks and queues with fast
+access and editing at both front and back sides. :class:`Deque
+<diskcache.Deque>` objects inherit the benefits of the :class:`Cache
+<diskcache.Cache>` objects but never evict items.
+
+    >>> from diskcache import Deque
+    >>> deque = Deque(range(5, 10))
+    >>> deque.pop()
+    9
+    >>> deque.popleft()
+    5
+    >>> deque.appendleft('foo')
+    >>> len(deque)
+    4
+    >>> deque.directory
+    '/tmp/...'
+    >>> other = Deque(directory=deque.directory)
+    >>> len(other)
+    4
+    >>> other.popleft()
+    'foo'
+
+:class:`Deque <diskcache.Deque>` objects provide an efficient and safe means of
+cross-thread and cross-process communication. :class:`Deque <diskcache.Deque>`
+objects are also useful in scenarios where contents should remain persistent or
+limitations prohibit holding all items in memory at the same time.
+
+Index
+-----
+
+:class:`diskcache.Index` uses a :class:`Cache <diskcache.Cache>` to provide a
+`mutable mapping
+<https://docs.python.org/3/library/collections.abc.html#collections-abstract-base-classes>`_
+and `ordered dictionary
+<https://docs.python.org/3/library/collections.html#collections.OrderedDict>`_
+interface. :class:`Index <diskcache.Index>` objects inherit the benefits of
+:class:`Cache <diskcache.Cache>` objects but never evict items.
+
+    >>> from diskcache import Index
+    >>> index = Index([('a', 1), ('b', 2), ('c', 3)])
+    >>> 'b' in index
+    True
+    >>> index['c']
+    3
+    >>> del index['a']
+    >>> len(index)
+    2
+    >>> other = Index(index.directory)
+    >>> len(other)
+    2
+    >>> other.popitem(last=False)
+    ('b', 2)
+
+:class:`Index <diskcache.Index>` objects provide an efficient and safe means of
+cross-thread and cross-process communication. :class:`Index <diskcache.Index>`
+objects are also useful in scenarios where contents should remain persistent or
+limitations prohibit holding all items in memory at the same time.
+
 .. _tutorial-settings:
 
 Settings
