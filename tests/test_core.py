@@ -178,16 +178,13 @@ def test_pragma_error(cache):
     con.execute = execute
     execute.return_value = cursor
     cursor.fetchall = fetchall
-    fetchall.side_effect = [sqlite3.OperationalError]
+    fetchall.side_effect = [sqlite3.OperationalError] * 60000
 
     size = 2 ** 28
-    dc.LIMITS[u'pragma_timeout'] = 0
 
-    try:
+    with mock.patch('time.sleep', lambda num: 0):
         with mock.patch.object(cache, '_local', local):
             cache.reset('sqlite_mmap_size', size)
-    finally:
-        dc.LIMITS[u'pragma_timeout'] = 60
 
 
 @setup_cache
