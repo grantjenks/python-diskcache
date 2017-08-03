@@ -7,6 +7,7 @@ import pickle
 import shutil
 
 import diskcache as dc
+from diskcache.core import ENOVAL
 
 
 def rmdir(directory):
@@ -342,6 +343,30 @@ def test_rotate_negative(deque):
     deque += 'abcde'
     deque.rotate(-2)
     assert deque == 'cdeab'
+
+
+@setup_deque
+def test_rotate_indexerror(deque):
+    deque += 'abc'
+
+    cache = mock.MagicMock()
+    cache.__len__.return_value = 3
+    cache.pull.side_effect = [(None, ENOVAL)]
+
+    with mock.patch.object(deque, '_cache', cache):
+        deque.rotate(1)
+
+
+@setup_deque
+def test_rotate_indexerror_negative(deque):
+    deque += 'abc'
+
+    cache = mock.MagicMock()
+    cache.__len__.return_value = 3
+    cache.pull.side_effect = [(None, ENOVAL)]
+
+    with mock.patch.object(deque, '_cache', cache):
+        deque.rotate(-1)
 
 
 @setup_deque
