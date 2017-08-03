@@ -1156,10 +1156,15 @@ class Index(MutableMapping):
             _cache = self._cache
 
             for key in _cache:
-                try:
-                    yield _cache[key]
-                except KeyError:
-                    continue
+                while True:
+                    try:
+                        yield _cache[key]
+                    except KeyError:
+                        break
+                    except Timeout:
+                        continue
+                    else:
+                        break
 
 
         def iteritems(self):
@@ -1177,10 +1182,15 @@ class Index(MutableMapping):
             _cache = self._cache
 
             for key in _cache:
-                try:
-                    yield key, _cache[key]
-                except KeyError:
-                    continue
+                while True:
+                    try:
+                        yield key, _cache[key]
+                    except KeyError:
+                        break
+                    except Timeout:
+                        continue
+                    else:
+                        break
 
 
         def viewkeys(self):
