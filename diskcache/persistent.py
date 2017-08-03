@@ -633,16 +633,20 @@ class Index(MutableMapping):
     Hashing protocol is not used. Keys are looked up by their serialized
     format. See ``diskcache.Disk`` for details.
 
-    >>> index = Index([('apple', 1), ('beans', 2), ('cherries', 3)])
-    >>> index['apple']
+    >>> index = Index('/tmp/diskcache/index')
+    >>> index
+    Index('/tmp/diskcache/index')
+    >>> index.clear()
+    >>> index.update([('a', 1), ('b', 2), ('c', 3)])
+    >>> index['a']
     1
     >>> list(index)
-    ['apple', 'beans', 'cherries']
+    ['a', 'b', 'c']
     >>> len(index)
     3
-    >>> del index['beans']
+    >>> del index['b']
     >>> index.popitem()
-    ('cherries', 3)
+    ('c', 3)
 
     """
     def __init__(self, *args, **kwargs):
@@ -651,12 +655,12 @@ class Index(MutableMapping):
         Optional first argument may be string specifying directory where items
         are stored. When None or not given, temporary directory is created.
 
-        >>> index = Index({'apples': 1, 'beans': 2, 'cherries': 3})
+        >>> index = Index({'a': 1, 'b': 2, 'c': 3})
         >>> len(index)
         3
         >>> directory = index.directory
-        >>> inventory = Index(directory, dates=4)
-        >>> inventory['beans']
+        >>> inventory = Index(directory, d=4)
+        >>> inventory['b']
         2
         >>> len(inventory)
         4
@@ -679,13 +683,13 @@ class Index(MutableMapping):
 
         >>> cache = Cache('/tmp/diskcache/index')
         >>> _ = cache.clear()
-        >>> index = Index.fromcache(cache, {'a': 0, 'b': 1, 'c': 2})
+        >>> index = Index.fromcache(cache, {'a': 1, 'b': 2, 'c': 3})
         >>> len(index)
         3
         >>> 'b' in index
         True
         >>> index['c']
-        2
+        3
 
         :param Cache cache: cache to use
         :param args: mapping or sequence of items
@@ -713,11 +717,11 @@ class Index(MutableMapping):
 
         >>> index = Index('/tmp/diskcache/index')
         >>> index.clear()
-        >>> index.update({'a': 0, 'b': 1})
+        >>> index.update({'a': 1, 'b': 2})
         >>> index['a']
-        0
-        >>> index['b']
         1
+        >>> index['b']
+        2
         >>> index['c']
         Traceback (most recent call last):
             ...
@@ -743,7 +747,7 @@ class Index(MutableMapping):
 
         >>> index = Index('/tmp/diskcache/index')
         >>> index.clear()
-        >>> index['a'] = 0
+        >>> index['a'] = 1
         >>> index[0] = None
         >>> len(index)
         2
@@ -770,7 +774,7 @@ class Index(MutableMapping):
 
         >>> index = Index('/tmp/diskcache/index')
         >>> index.clear()
-        >>> index.update({'a': 0, 'b': 1})
+        >>> index.update({'a': 1, 'b': 2})
         >>> del index['a']
         >>> del index['b']
         >>> len(index)
@@ -801,13 +805,13 @@ class Index(MutableMapping):
         If `key` is missing then return `default`. If `default` is `ENOVAL`
         then raise KeyError.
 
-        >>> index = Index('/tmp/diskcache/index', {'a': 0, 'b': 1})
+        >>> index = Index('/tmp/diskcache/index', {'a': 1, 'b': 2})
         >>> index.pop('a')
-        0
-        >>> index.pop('b')
         1
-        >>> index.pop('c', default=2)
+        >>> index.pop('b')
         2
+        >>> index.pop('c', default=3)
+        3
         >>> index.pop('d')
         Traceback (most recent call last):
             ...
@@ -842,13 +846,13 @@ class Index(MutableMapping):
 
         >>> index = Index('/tmp/diskcache/index')
         >>> index.clear()
-        >>> index.update([('apples', 1), ('beans', 2), ('cherries', 3)])
+        >>> index.update([('a', 1), ('b', 2), ('c', 3)])
         >>> index.popitem()
-        ('cherries', 3)
+        ('c', 3)
+        >>> index.popitem(last=False)
+        ('a', 1)
         >>> index.popitem()
-        ('beans', 2)
-        >>> index.popitem()
-        ('apples', 1)
+        ('b', 2)
         >>> index.popitem()
         Traceback (most recent call last):
           ...
@@ -969,15 +973,6 @@ class Index(MutableMapping):
     def clear(self):
         """Remove all items from index.
 
-        >>> index = Index('/tmp/diskcache/index')
-        >>> index.clear()
-        >>> index.update({'a': 0, 'b': 1, 'c': 2})
-        >>> len(index)
-        3
-        >>> index.clear()
-        >>> len(index)
-        0
-
         """
         _cache_clear = self._cache.clear
 
@@ -994,15 +989,6 @@ class Index(MutableMapping):
 
         Return iterator of index keys in insertion order.
 
-        >>> index = Index('/tmp/diskcache/index')
-        >>> index.clear()
-        >>> index.update([('a', 0), ('b', 1), ('c', 2)])
-        >>> iterator = iter(index)
-        >>> next(iterator)
-        'a'
-        >>> list(iterator)
-        ['b', 'c']
-
         """
         return iter(self._cache)
 
@@ -1014,7 +1000,7 @@ class Index(MutableMapping):
 
         >>> index = Index('/tmp/diskcache/index')
         >>> index.clear()
-        >>> index.update([('a', 0), ('b', 1), ('c', 2)])
+        >>> index.update([('a', 1), ('b', 2), ('c', 3)])
         >>> iterator = reversed(index)
         >>> next(iterator)
         'c'
@@ -1030,14 +1016,6 @@ class Index(MutableMapping):
 
         Return length of index.
 
-        >>> index = Index('/tmp/diskcache/index')
-        >>> index.clear()
-        >>> len(index)
-        0
-        >>> index.update({'a': 0, 'b': 1, 'c': 2})
-        >>> len(index)
-        3
-
         """
         return len(self._cache)
 
@@ -1048,7 +1026,7 @@ class Index(MutableMapping):
 
             >>> index = Index('/tmp/diskcache/index')
             >>> index.clear()
-            >>> index.update([('a', 0), ('b', 1), ('c', 2)])
+            >>> index.update([('a', 1), ('b', 2), ('c', 3)])
             >>> index.keys()
             ['a', 'b', 'c']
 
@@ -1063,9 +1041,9 @@ class Index(MutableMapping):
 
             >>> index = Index('/tmp/diskcache/index')
             >>> index.clear()
-            >>> index.update([('a', 0), ('b', 1), ('c', 2)])
+            >>> index.update([('a', 1), ('b', 2), ('c', 3)])
             >>> index.values()
-            [0, 1, 2]
+            [1, 2, 3]
 
             :return: list of values
 
@@ -1078,9 +1056,9 @@ class Index(MutableMapping):
 
             >>> index = Index('/tmp/diskcache/index')
             >>> index.clear()
-            >>> index.update([('a', 0), ('b', 1), ('c', 2)])
+            >>> index.update([('a', 1), ('b', 2), ('c', 3)])
             >>> index.items()
-            [('a', 0), ('b', 1), ('c', 2)]
+            [('a', 1), ('b', 2), ('c', 3)]
 
             :return: list of items
 
@@ -1093,7 +1071,7 @@ class Index(MutableMapping):
 
             >>> index = Index('/tmp/diskcache/index')
             >>> index.clear()
-            >>> index.update([('a', 0), ('b', 1), ('c', 2)])
+            >>> index.update([('a', 1), ('b', 2), ('c', 3)])
             >>> list(index.iterkeys())
             ['a', 'b', 'c']
 
@@ -1108,9 +1086,9 @@ class Index(MutableMapping):
 
             >>> index = Index('/tmp/diskcache/index')
             >>> index.clear()
-            >>> index.update([('a', 0), ('b', 1), ('c', 2)])
+            >>> index.update([('a', 1), ('b', 2), ('c', 3)])
             >>> list(index.itervalues())
-            [0, 1, 2]
+            [1, 2, 3]
 
             :return: iterator of values
 
@@ -1134,9 +1112,9 @@ class Index(MutableMapping):
 
             >>> index = Index('/tmp/diskcache/index')
             >>> index.clear()
-            >>> index.update([('a', 0), ('b', 1), ('c', 2)])
+            >>> index.update([('a', 1), ('b', 2), ('c', 3)])
             >>> list(index.iteritems())
-            [('a', 0), ('b', 1), ('c', 2)]
+            [('a', 1), ('b', 2), ('c', 3)]
 
             :return: iterator of items
 
@@ -1160,7 +1138,7 @@ class Index(MutableMapping):
 
             >>> index = Index('/tmp/diskcache/index')
             >>> index.clear()
-            >>> index.update({'a': 0, 'b': 1, 'c': 2})
+            >>> index.update({'a': 1, 'b': 2, 'c': 3})
             >>> keys_view = index.viewkeys()
             >>> 'b' in keys_view
             True
@@ -1176,9 +1154,9 @@ class Index(MutableMapping):
 
             >>> index = Index('/tmp/diskcache/index')
             >>> index.clear()
-            >>> index.update({'a': 0, 'b': 1, 'c': 2})
+            >>> index.update({'a': 1, 'b': 2, 'c': 3})
             >>> values_view = index.viewvalues()
-            >>> 1 in values_view
+            >>> 2 in values_view
             True
 
             :return: values view
@@ -1192,9 +1170,9 @@ class Index(MutableMapping):
 
             >>> index = Index('/tmp/diskcache/index')
             >>> index.clear()
-            >>> index.update({'a': 0, 'b': 1, 'c': 2})
+            >>> index.update({'a': 1, 'b': 2, 'c': 3})
             >>> items_view = index.viewitems()
-            >>> ('b', 1) in items_view
+            >>> ('b', 2) in items_view
             True
 
             :return: items view
@@ -1209,7 +1187,7 @@ class Index(MutableMapping):
 
             >>> index = Index('/tmp/diskcache/index')
             >>> index.clear()
-            >>> index.update({'a': 0, 'b': 1, 'c': 2})
+            >>> index.update({'a': 1, 'b': 2, 'c': 3})
             >>> keys_view = index.keys()
             >>> 'b' in keys_view
             True
@@ -1225,9 +1203,9 @@ class Index(MutableMapping):
 
             >>> index = Index('/tmp/diskcache/index')
             >>> index.clear()
-            >>> index.update({'a': 0, 'b': 1, 'c': 2})
+            >>> index.update({'a': 1, 'b': 2, 'c': 3})
             >>> values_view = index.values()
-            >>> 1 in values_view
+            >>> 2 in values_view
             True
 
             :return: values view
@@ -1241,9 +1219,9 @@ class Index(MutableMapping):
 
             >>> index = Index('/tmp/diskcache/index')
             >>> index.clear()
-            >>> index.update({'a': 0, 'b': 1, 'c': 2})
+            >>> index.update({'a': 1, 'b': 2, 'c': 3})
             >>> items_view = index.items()
-            >>> ('b', 1) in items_view
+            >>> ('b', 2) in items_view
             True
 
             :return: items view
@@ -1273,13 +1251,13 @@ class Index(MutableMapping):
 
         >>> index = Index('/tmp/diskcache/index')
         >>> index.clear()
-        >>> pairs = [('a', 0), ('b', 1), ('c', 2)]
+        >>> pairs = [('a', 1), ('b', 2), ('c', 3)]
         >>> index.update(pairs)
         >>> from collections import OrderedDict
         >>> od = OrderedDict(pairs)
         >>> index == od
         True
-        >>> index == {'c': 2, 'b': 1, 'a': 0}
+        >>> index == {'c': 3, 'b': 2, 'a': 1}
         True
 
         :param other: other mapping in equality comparison
@@ -1307,12 +1285,12 @@ class Index(MutableMapping):
 
         >>> index = Index('/tmp/diskcache/index')
         >>> index.clear()
-        >>> index.update([('a', 0), ('b', 1), ('c', 2)])
+        >>> index.update([('a', 1), ('b', 2), ('c', 3)])
         >>> from collections import OrderedDict
-        >>> od = OrderedDict([('c', 2), ('b', 1), ('a', 0)])
+        >>> od = OrderedDict([('c', 3), ('b', 2), ('a', 1)])
         >>> index != od
         True
-        >>> index != {'a': 0, 'b': 1}
+        >>> index != {'a': 1, 'b': 2}
         True
 
         :param other: other mapping in inequality comparison
@@ -1325,10 +1303,6 @@ class Index(MutableMapping):
         """index.__repr__() <==> repr(index)
 
         Return string with printable representation of index.
-
-        >>> index = Index('/tmp/diskcache/index')
-        >>> index
-        Index('/tmp/diskcache/index')
 
         """
         name = type(self).__name__
