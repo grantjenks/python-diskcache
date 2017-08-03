@@ -631,7 +631,14 @@ class Deque(Sequence):
             type_name = type(steps).__name__
             raise TypeError('integer argument expected, got %s' % type_name)
 
+        len_self = len(self)
+
+        if not len_self:
+            return
+
         if steps >= 0:
+            steps %= len_self
+
             for _ in range(steps):
                 try:
                     value = self.pop()
@@ -640,7 +647,10 @@ class Deque(Sequence):
                 else:
                     self.appendleft(value)
         else:
-            for _ in range(-steps):
+            steps *= -1
+            steps %= len_self
+
+            for _ in range(steps):
                 try:
                     value = self.popleft()
                 except IndexError:
