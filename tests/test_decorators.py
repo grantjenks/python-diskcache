@@ -8,7 +8,7 @@ if sys.hexversion < 0x03000000:
 
 def test_lru_cache_decorator_with_infinite_cache_size():
     # settings cache_size to infinite (fib function will cache every value)
-    @lru_cache(maxsize=None)
+    @lru_cache(use_statistics=True)
     def fib(num):
         if num <= 2:
             return 1
@@ -26,36 +26,3 @@ def test_lru_cache_decorator_with_infinite_cache_size():
     assert fib.cache_info().hits == hist_counter + 1000
     # ensuring that no miss were made during second for loop
     assert fib.cache_info().misses == initial_miss_counter
-
-
-def test_lru_cache_decorator_with_empty_cache_size():
-    # settings cache_size to zero (this function won't cache any value at all)
-    @lru_cache(maxsize=0)
-    def fib(num):
-        if num <= 2:
-            return 1
-        return fib(num - 1) + fib(num - 2)
-
-    for i in range(20):
-        fib(i)
-
-    assert fib.cache_info().hits == 0
-
-
-def test_lru_cache_decorator():
-    @lru_cache(maxsize=10)
-    def printer(x):
-        return x
-
-    for i in range(100):
-        printer(i)
-
-    hist_counter = printer.cache_info().hits
-    initial_miss_counter = printer.cache_info().misses
-
-    for i in range(90, 100):
-        printer(i)
-
-    # ensuring that no miss were made during second for loop
-    assert printer.cache_info().misses == initial_miss_counter
-    assert printer.cache_info().hits == hist_counter + 10
