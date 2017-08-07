@@ -66,6 +66,7 @@ Read the :ref:`Settings tutorial <tutorial-settings>` for details.
    * `least-recently-stored` (default) - evict least recently stored keys first.
    * `least-recently-used` - evict least recently used keys first.
    * `least-frequently-used` - evict least frequently used keys first.
+   * `none` - never evict keys.
 
 Disk
 ----
