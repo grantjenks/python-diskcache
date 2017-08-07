@@ -9,7 +9,6 @@ except ImportError:
     DEFAULT_TIMEOUT = 300
 
 from .fanout import FanoutCache
-from .memo import memoize
 
 
 class DjangoCache(BaseCache):
