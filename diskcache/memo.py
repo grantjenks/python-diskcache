@@ -74,7 +74,6 @@ def memoize(cache, name=None, typed=False, expire=None, tag=None):
         @wraps(function)
         def wrapper(*args, **kwargs):
             "Wrapper for callable to cache arguments and return values."
-            # Create key from reference, args and kwargs.
 
             key = reference + args
 
@@ -90,8 +89,6 @@ def memoize(cache, name=None, typed=False, expire=None, tag=None):
 
                 if kwargs:
                     key += tuple(type(value) for _, value in sorted_items)
-
-            # Lookup result.
 
             result = cache.get(key, default=ENOVAL, retry=True)
 
