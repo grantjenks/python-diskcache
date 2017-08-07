@@ -525,7 +525,7 @@ def test_memoize(cache):
 
         return alpha
 
-    @cache.memoize(name='callable_name')
+    @cache.memoize(name='fib')
     def fibrec(num):
         if num == 0:
             return 0

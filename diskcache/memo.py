@@ -61,8 +61,6 @@ def memoize(cache, name=None, typed=False, expire=None, tag=None):
 
     def decorator(function):
         "Decorator created by memoize call for callable."
-        reference = name
-
         if name is None:
             try:
                 reference = function.__qualname__
@@ -70,6 +68,8 @@ def memoize(cache, name=None, typed=False, expire=None, tag=None):
                 reference = function.__name__
 
             reference = function.__module__ + reference
+        else:
+            reference = name
 
         reference = (reference,)
 
