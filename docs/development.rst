@@ -24,7 +24,6 @@ Requests for Contributions
 #. Cache stampede barrier (source prototype in repo).
 #. API Compatibility
 
-   #. `lru_cache-like decorator <https://docs.python.org/3/library/functools.html#functools.lru_cache>`_
    #. `Shelf interface <https://docs.python.org/2/library/shelve.html>`_
    #. `DBM interface <https://docs.python.org/2/library/anydbm.html>`_
 
