@@ -60,6 +60,7 @@ def memoize(cache, name=None, typed=False, expire=None, tag=None):
         raise TypeError('name cannot be callable')
 
     def decorator(function):
+        "Decorator created by memoize call for callable."
         if name is None:
             try:
                 reference = function.__qualname__
@@ -72,6 +73,7 @@ def memoize(cache, name=None, typed=False, expire=None, tag=None):
 
         @wraps(function)
         def wrapper(*args, **kwargs):
+            "Wrapper for callable to cache arguments and return values."
             # Create key from reference, args and kwargs.
 
             key = reference + args
