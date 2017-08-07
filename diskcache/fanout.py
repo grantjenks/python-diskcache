@@ -6,6 +6,7 @@ import sqlite3
 import time
 
 from .core import ENOVAL, DEFAULT_SETTINGS, Cache, Disk, Timeout
+from .memo import memoize
 from .persistent import Deque, Index
 
 
@@ -334,6 +335,9 @@ class FanoutCache(object):
                 return del_func(key)
             except Timeout:
                 continue
+
+
+    memoize = memoize
 
 
     def check(self, fix=False):

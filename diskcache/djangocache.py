@@ -9,6 +9,7 @@ except ImportError:
     DEFAULT_TIMEOUT = 300
 
 from .fanout import FanoutCache
+from .memo import memoize
 
 
 class DjangoCache(BaseCache):
@@ -26,6 +27,7 @@ class DjangoCache(BaseCache):
         options = params.get('OPTIONS', {})
         self._directory = directory
         self._cache = FanoutCache(directory, shards, timeout, **options)
+        self.memoize = self._cache.memoize
 
 
     @property
@@ -250,6 +252,17 @@ class DjangoCache(BaseCache):
 
         """
         return self._cache.expire()
+
+
+    def stats(self, enable=True, reset=False):
+        """Return cache statistics hits and misses.
+
+        :param bool enable: enable collecting statistics (default True)
+        :param bool reset: reset hits and misses to 0 (default False)
+        :return: (hits, misses)
+
+        """
+        return self._cache.stats(enable=enable, reset=reset)
 
 
     def create_tag_index(self):

@@ -1,130 +1,104 @@
-from collections import namedtuple
+"""Memoization utilities.
 
-from diskcache import EVICTION_POLICY
-from .fanout import FanoutCache
+"""
 
-from tempfile import mkdtemp
+from functools import wraps
 
-_CacheInfo = namedtuple("CacheInfo", ["hits", "misses"])
+from .core import ENOVAL
 
-try:
-    from _thread import RLock
-except ImportError:
-    class RLock:
-        'Dummy reentrant lock for builds without threads'
+def memoize(cache, name=None, typed=False, expire=None, tag=None):
+    """Memoizing cache decorator.
 
-        def __enter__(self): pass
+    Decorator to wrap callable with memoizing function using cache. Repeated
+    calls with the same arguments will lookup result in cache and avoid
+    function evaluation.
 
-        def __exit__(self, exctype, excinst, exctb): pass
+    If name is set to None (default), the callable name will be determined
+    automatically.
 
+    If typed is set to True, function arguments of different types will be
+    cached separately. For example, f(3) and f(3.0) will be treated as distinct
+    calls with distinct results.
 
-WRAPPER_ASSIGNMENTS = ('__module__', '__name__', '__qualname__', '__doc__',
-                       '__annotations__')
-WRAPPER_UPDATES = ('__dict__',)
+    The original underlying function is accessible through the __wrapped__
+    attribute. This is useful for introspection, for bypassing the cache, or
+    for rewrapping the function with a different cache.
 
+    >>> from diskcache import FanoutCache
+    >>> cache = FanoutCache('/tmp/diskcache/fanoutcache')
+    >>> @cache.memoize(typed=True, expire=1, tag='fib')
+    ... def fibonacci(number):
+    ...     if number == 0:
+    ...         return 0
+    ...     elif number == 1:
+    ...         return 1
+    ...     else:
+    ...         return fibonacci(number - 1) + fibonacci(number - 2)
+    >>> print(sum(fibonacci(number=value) for value in range(100)))
+    573147844013817084100
 
-def update_wrapper(wrapper,
-                   wrapped,
-                   assigned=WRAPPER_ASSIGNMENTS,
-                   updated=WRAPPER_UPDATES):
-    """Update a wrapper function to look like the wrapped function
+    Remember to call memoize when decorating a callable. If you forget, then a
+    TypeError will occur. Note the lack of parenthenses after memoize below:
 
-       wrapper is the function to be updated
-       wrapped is the original function
-       assigned is a tuple naming the attributes assigned directly
-       from the wrapped function to the wrapper function (defaults to
-       functools.WRAPPER_ASSIGNMENTS)
-       updated is a tuple naming the attributes of the wrapper that
-       are updated with the corresponding attribute from the wrapped
-       function (defaults to functools.WRAPPER_UPDATES)
-    """
-    for attr in assigned:
-        try:
-            value = getattr(wrapped, attr)
-        except AttributeError:
-            pass
-        else:
-            setattr(wrapper, attr, value)
-    for attr in updated:
-        getattr(wrapper, attr).update(getattr(wrapped, attr, {}))
-    # Issue #17482: set __wrapped__ last so we don't inadvertently copy it
-    # from the wrapped function when updating __dict__
-    wrapper.__wrapped__ = wrapped
-    # Return the wrapper so this can be used as a decorator via partial()
-    return wrapper
+    >>> @cache.memoize
+    ... def test():
+    ...     pass
+    Traceback (most recent call last):
+        ...
+    TypeError: name cannot be callable
 
-
-def _make_key(args, kwds,
-              kwd_mark=(object(),),
-              sorted=sorted, tuple=tuple, type=type, len=len):
-    # Make a cache key from optionally typed positional and keyword arguments
-
-    key = args
-    if kwds:
-        sorted_items = sorted(kwds.items())
-        key += kwd_mark
-        for item in sorted_items:
-            key += item
-    return key
-
-
-def lru_cache(directory=None, use_statistics=False):
-    """Least-recently-used cache decorator.
-
-    If *maxsize* is set to None, the LRU features are disabled and the cache
-    can grow without bound.
-
-    View the cache statistics named tuple (hits, misses, maxsize, currsize)
-    with f.cache_info().  Clear the cache and statistics with f.cache_clear().
-    Access the underlying function with f.__wrapped__.
-
-    See:  http://en.wikipedia.org/wiki/Cache_algorithms#Least_Recently_Used
+    :param cache: cache to store callable arguments and return values
+    :param str name: name given for callable (default None, automatic)
+    :param bool typed: cache different types separately (default False)
+    :param float expire: seconds until arguments expire
+        (default None, no expiry)
+    :param str tag: text to associate with arguments (default None)
+    :return: callable decorator
 
     """
+    if callable(name):
+        raise TypeError('name cannot be callable')
 
-    # Users should only access the lru_cache through its public API:
-    #       cache_info, cache_clear, and f.__wrapped__
-    # The internals of the lru_cache are encapsulated for thread safety and
-    # to allow the implementation to change (including a possible C version).
+    def decorator(function):
+        if name is None:
+            try:
+                reference = function.__qualname__
+            except AttributeError:
+                reference = function.__name__
 
-    def decorating_function(user_function):
-        wrapper = _lru_cache_wrapper(user_function, directory, use_statistics)
-        return update_wrapper(wrapper, user_function)
+            reference = function.__module__ + reference
 
-    return decorating_function
+        reference = (reference,)
 
+        @wraps(function)
+        def wrapper(*args, **kwargs):
+            # Create key from reference, args and kwargs.
 
-def _lru_cache_wrapper(user_function, directory=None, use_statistics=False):
-    # Constants shared by all lru cache instances:
-    sentinel = object()  # unique object used to signal cache misses
-    make_key = _make_key  # build a key from the function arguments
+            key = reference + args
 
-    if directory is None:
-        directory = mkdtemp()
+            if kwargs:
+                key += (ENOVAL,)
+                sorted_items = sorted(kwargs.items())
 
-    with FanoutCache(directory, statistics=use_statistics, eviction_policy='least-recently-used') as cache:
-        cache_get = cache.get  # bound method to lookup a key or return None
+                for item in sorted_items:
+                    key += item
 
-        def wrapper(*args, **kwds):
-            key = make_key(args, kwds)
-            result = cache_get(key)
-            if result:
-                return result
-            result = user_function(*args, **kwds)
-            cache[key] = result
+            if typed:
+                key += tuple(type(arg) for arg in args)
+
+                if kwargs:
+                    key += tuple(type(value) for _, value in sorted_items)
+
+            # Lookup result.
+
+            result = cache.get(key, default=ENOVAL, retry=True)
+
+            if result is ENOVAL:
+                result = function(*args, **kwargs)
+                cache.set(key, result, expire=expire, tag=tag, retry=True)
+
             return result
 
-    def cache_info():
-        """Report cache statistics"""
-        return _CacheInfo(*cache.stats()) if use_statistics else _CacheInfo(0, 0)
+        return wrapper
 
-    def cache_clear():
-        """Clear the cache and cache statistics"""
-        if use_statistics:
-            cache.clear()
-            cache.stats(reset=True)
-
-    wrapper.cache_info = cache_info
-    wrapper.cache_clear = cache_clear
-    return wrapper
-
+    return decorator

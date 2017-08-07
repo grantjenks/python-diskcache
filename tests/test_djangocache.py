@@ -941,3 +941,38 @@ class DiskCacheTests(BaseCacheTests, TestCase):
         index = cache.index('test')
         directory = os.path.join(cache.directory, 'index', 'test')
         self.assertEqual(index.directory, directory)
+
+    def test_memoize(self):
+        count = 1000
+
+        def fibiter(num):
+            alpha, beta = 0, 1
+
+            for _ in range(num):
+                alpha, beta = beta, alpha + beta
+
+            return alpha
+
+        @cache.memoize()
+        def fibrec(num):
+            if num == 0:
+                return 0
+            elif num == 1:
+                return 1
+            else:
+                return fibrec(num - 1) + fibrec(num - 2)
+
+        cache.stats(enable=True)
+
+        for value in range(count):
+            self.assertEqual(fibrec(value), fibiter(value))
+
+        hits1, misses1 = cache.stats()
+
+        for value in range(count):
+            self.assertEqual(fibrec(value), fibiter(value))
+
+        hits2, misses2 = cache.stats()
+
+        self.assertEqual(hits2, hits1 + count)
+        self.assertEqual(misses2, misses1)
