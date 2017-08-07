@@ -296,10 +296,42 @@ timeout. :class:`FanoutCache <diskcache.FanoutCache>` will never raise a
 
 The example above creates a cache in the local ``/tmp/mycachedir`` directory
 with four shards and a one second timeout. Operations will attempt to abort if
-they take longer than one second.
+they take longer than one second. The remaining API of :class:`FanoutCache
+<diskcache.FanoutCache>` matches :class:`Cache <diskcache.Cache>` as described
+above.
 
-The remaining API of :class:`FanoutCache <diskcache.FanoutCache>` matches
-:class:`Cache <diskcache.Cache>` as described above.
+:class:`FanoutCache <diskcache.FanoutCache>` adds an additional feature:
+:meth:`memoizing <diskcache.FanoutCache.memoize>` cache decorator. The
+decorator wraps a callable and caches arguments and return values.
+
+    >>> from diskcache import FanoutCache
+    >>> cache = FanoutCache('/tmp/diskcache/fanoutcache')
+    >>> @cache.memoize(typed=True, expire=1, tag='fib')
+    ... def fibonacci(number):
+    ...     if number == 0:
+    ...         return 0
+    ...     elif number == 1:
+    ...         return 1
+    ...     else:
+    ...         return fibonacci(number - 1) + fibonacci(number - 2)
+    >>> print(sum(fibonacci(number=value) for value in range(100)))
+    573147844013817084100
+
+The arguments to memoize are like those for `functools.lru_cache
+<https://docs.python.org/3/library/functools.html#functools.lru_cache>`_ and
+:meth:`FanoutCache.set <diskcache.FanoutCache.set>`. Remember to call
+:meth:`memoize <diskcache.FanoutCache.memoize>` when decorating a callable. If
+you forget, then a TypeError will occur.
+
+    >>> @cache.memoize
+    ... def test():
+    ...     pass
+    Traceback (most recent call last):
+        ...
+    TypeError: name cannot be callable
+
+Observe the lack of parenthenses after :meth:`memoize
+<diskcache.FanoutCache.set>` above.
 
 .. _`Sharding`: https://en.wikipedia.org/wiki/Shard_(database_architecture)
 
