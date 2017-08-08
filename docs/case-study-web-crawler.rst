@@ -3,7 +3,7 @@ Case Study: Web Crawler
 
 :doc:`DiskCache <index>` version 2.7 added a couple persistent data
 structures. Let's see how they're useful with a case study in crawling the
-web. Easy enough, right? Let's start with code to retrieve urls:
+web. Easy enough, right? We'll start with code to retrieve urls:
 
     >>> from time import sleep
     >>> def get(url):
