@@ -98,12 +98,14 @@ introduction, benchmarks, development, and API.
 * `DiskCache Tutorial`_
 * `DiskCache Cache Benchmarks`_
 * `DiskCache DjangoCache Benchmarks`_
+* `Case Study: Web Crawler`_
 * `DiskCache API Reference`_
 * `DiskCache Development`_
 
 .. _`DiskCache Tutorial`: http://www.grantjenks.com/docs/diskcache/tutorial.html
 .. _`DiskCache Cache Benchmarks`: http://www.grantjenks.com/docs/diskcache/cache-benchmarks.html
 .. _`DiskCache DjangoCache Benchmarks`: http://www.grantjenks.com/docs/diskcache/djangocache-benchmarks.html
+.. _`Case Study: Web Crawler`: http://www.grantjenks.com/docs/diskcache/case-study-web-crawler.html
 .. _`DiskCache API Reference`: http://www.grantjenks.com/docs/diskcache/api.html
 .. _`DiskCache Development`: http://www.grantjenks.com/docs/diskcache/development.html
 

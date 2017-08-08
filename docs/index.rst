@@ -101,6 +101,7 @@ introduction, benchmarks, development, and API.
    tutorial
    cache-benchmarks
    djangocache-benchmarks
+   case-study-web-crawler
    api
    development
 
