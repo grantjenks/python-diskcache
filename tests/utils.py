@@ -22,7 +22,9 @@ def secs(value):
     units = ['s ', 'ms', 'us', 'ns']
     pos = 0
 
-    if value == 0:
+    if value is None:
+        return '  0.000ns'
+    elif value == 0:
         return '  0.000ns'
     else:
         for unit in units:
