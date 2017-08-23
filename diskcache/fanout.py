@@ -81,9 +81,6 @@ class FanoutCache(object):
                     return False
 
 
-    __set = set
-
-
     def __setitem__(self, key, value):
         """Set `key` and `value` item in cache.
 
@@ -91,7 +88,7 @@ class FanoutCache(object):
         :param value: value for item
 
         """
-        self.__set(key, value, retry=True)
+        self.set(key, value, retry=True)
 
 
     def add(self, key, value, expire=None, read=False, tag=None, retry=False):
@@ -220,9 +217,6 @@ class FanoutCache(object):
                     return default
 
 
-    __get = get
-
-
     def __getitem__(self, key):
         """Return corresponding value for `key` from cache.
 
@@ -231,7 +225,7 @@ class FanoutCache(object):
         :raises KeyError: if key is not found
 
         """
-        value = self.__get(key, default=ENOVAL, retry=True)
+        value = self.get(key, default=ENOVAL, retry=True)
 
         if value is ENOVAL:
             raise KeyError(key)
@@ -321,9 +315,6 @@ class FanoutCache(object):
                 return False
 
 
-    __delete = delete
-
-
     def __delitem__(self, key):
         """Delete corresponding item for `key` from cache.
 
@@ -331,7 +322,7 @@ class FanoutCache(object):
         :raises KeyError: if key is not found
 
         """
-        deleted = self.__delete(key, retry=True)
+        deleted = self.delete(key, retry=True)
 
         if not deleted:
             raise KeyError(key)
