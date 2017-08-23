@@ -1,6 +1,5 @@
-TODO
-* Rename to delay-fuzzer so: case-study-delay-fuzzer
-* Check the line numbers! I don't think it's working :(
+Case Study: Delay Fuzzer
+========================
 
 Raymond keynote:
 https://dl.dropboxusercontent.com/u/3967849/pybay2017_keynote/_build/html/index.html
@@ -13,24 +12,19 @@ testing.
 
 // discuss sys.settrace
 
-    >>> def fuzzdelays(function):
-    ...     """Insert random delays into function using `sys.settrace`.
+    >>> def delayfuzzer(function):
+    ...     """Insert random delays into function.
     ...
-    ...     WARNING: The use of `sys.settrace` will affect other Python tools like
-    ...     `pdb` and `coverage`. Use only in testing scenarios!
+    ...     WARNING: Not to be used in production scenarios.
+    ...     The use of `sys.settrace` may affect other Python
+    ...     tools like `pdb` and `coverage`.
     ...
-    ...     Decorator to insert random delays into a function to encourage race
-    ...     conditions in multi-threaded code.
+    ...     Decorator to insert random delays into a function to
+    ...     encourage race conditions in multi-threaded code.
     ...
     ...     """
     ...     from functools import wraps
     ...     from sys import settrace
-    ...     from time import sleep
-    ...     from random import random
-    ...
-    ...     def sleeper(frame, event, arg):
-    ...         "Sleep for random period between 0 and 100 milliseconds."
-    ...         sleep(random() / 10)
     ...
     ...     try:
     ...         code = function.__code__
@@ -38,17 +32,16 @@ testing.
     ...         code = function.co_code
     ...
     ...     def tracer(frame, event, arg):
-    ...         "Tracer looking for call events with matching function code."
+    ...         "Activate sleeper in calls to function."
     ...         if event == 'call' and frame.f_code is code:
-    ...             sleep(random() / 10)
     ...             return sleeper
     ...
     ...     @wraps(function)
     ...     def wrapper(*args, **kwargs):
-    ...         """Wrap function to set tracer before calling function.
+    ...         """Set tracer before calling function.
     ...
-    ...         Tracing is thread-local so set the tracer before every function
-    ...         call.
+    ...         Tracing is thread-local so set the tracer before
+    ...         every function call.
     ...
     ...         """
     ...         settrace(tracer)
@@ -56,11 +49,44 @@ testing.
     ...
     ...     return wrapper
 
-Create a test:
+Sleeper function that prints location:
+
+    >>> from time import sleep
+    >>> from random import expovariate
+    >>> def sleeper(frame, event, arg):
+    ...     "Sleep for random period."
+    ...     lineno = frame.f_lineno
+    ...     print('Tracing line %s in diskcache/core.py' % lineno)
+    ...     sleep(expovariate(100))
+
+Check that it's working:
 
     >>> import diskcache
-    >>> import multiprocessing
-    >>> import threading
+    >>> diskcache.Cache.incr = delayfuzzer(diskcache.Cache.incr)
+    >>> cache = diskcache.FanoutCache('tmp')
+    >>> cache.incr(0)
+    Tracing line 797 in diskcache/core.py
+    Tracing line 798 in diskcache/core.py
+    Tracing line 800 in diskcache/core.py
+    Tracing line 804 in diskcache/core.py
+    Tracing line 805 in diskcache/core.py
+    Tracing line 807 in diskcache/core.py
+    Tracing line 808 in diskcache/core.py
+    Tracing line 811 in diskcache/core.py
+    Tracing line 812 in diskcache/core.py
+    Tracing line 813 in diskcache/core.py
+    Tracing line 814 in diskcache/core.py
+    Tracing line 815 in diskcache/core.py
+    Tracing line 815 in diskcache/core.py
+    1
+    >>> cache.clear()
+    1
+
+Simple sleeper function:
+
+    >>> def sleeper(frame, event, arg):
+    ...     "Sleep for random period."
+    ...     sleep(expovariate(100))
 
 Increment all numbers in a range:
 
@@ -70,10 +96,8 @@ Increment all numbers in a range:
 
 Process worker to start many tasks in separate threads.
 
+    >>> import threading
     >>> def worker():
-    ...     # WARNING: Monkey-patch incr method to use fuzzdelays.
-    ...     diskcache.FanoutCache.incr = fuzzdelays(diskcache.FanoutCache.incr)
-    ...
     ...     cache = diskcache.FanoutCache('tmp')
     ...     threads = []
     ...
@@ -89,13 +113,11 @@ Process worker to start many tasks in separate threads.
 
 Start many worker processes:
 
+    >>> import multiprocessing
     >>> def main():
-    ...     cache = diskcache.FanoutCache('tmp')
-    ...     cache.clear()
-    ...
     ...     processes = []
     ...
-    ...     for num in range(8):
+    ...     for _ in range(8):
     ...         process = multiprocessing.Process(target=worker)
     ...         processes.append(process)
     ...
@@ -104,12 +126,13 @@ Start many worker processes:
     ...
     ...     for process in processes:
     ...         process.join()
-    ...
-    ...     assert sorted(cache) == list(range(100))
-    ...     assert all(cache[key] == 64 for key in cache)
 
 Ok, here goes:
 
     >>> main()
+    >>> sorted(cache) == list(range(100))
+    True
+    >>> all(cache[key] == 64 for key in cache)
+    True
 
 Yaay! It worked.
