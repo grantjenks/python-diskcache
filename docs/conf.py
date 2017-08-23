@@ -225,6 +225,10 @@ html_sidebars = {
 # Output file base name for HTML help builder.
 htmlhelp_basename = 'DiskCacheDoc'
 
+def setup(app):
+    app.add_stylesheet('custom.css')
+
+
 # -- Options for LaTeX output ---------------------------------------------
 
 latex_elements = {
