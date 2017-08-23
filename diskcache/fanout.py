@@ -12,7 +12,7 @@ from .persistent import Deque, Index
 
 class FanoutCache(object):
     "Cache that shards keys and values."
-    def __init__(self, directory, shards=8, timeout=0.025, disk=Disk,
+    def __init__(self, directory, shards=8, timeout=0.010, disk=Disk,
                  **settings):
         """Initialize cache instance.
 

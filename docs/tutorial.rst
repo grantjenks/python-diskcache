@@ -288,8 +288,8 @@ methods may silently fail. Most methods that handle :exc:`Timeout
 <diskcache.Timeout>` exceptions also include a `retry` keyword parameter
 (default ``False``) to automatically repeat attempts that
 timeout. :class:`FanoutCache <diskcache.FanoutCache>` will never raise a
-:exc:`Timeout <diskcache.Timeout>` exception. The default `timeout` is 0.025
-(25 milliseconds).
+:exc:`Timeout <diskcache.Timeout>` exception. The default `timeout` is 0.010
+(10 milliseconds).
 
     >>> from diskcache import FanoutCache
     >>> cache = FanoutCache('/tmp/mycachedir', shards=4, timeout=1)

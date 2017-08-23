@@ -41,10 +41,10 @@ caches.append((
     {'shards': 4, 'timeout': 1.0}
 ))
 caches.append((
-    'diskcache.FanoutCache(shards=8, timeout=0.025)',
+    'diskcache.FanoutCache(shards=8, timeout=0.010)',
     diskcache.FanoutCache,
     ('tmp',),
-    {'shards': 8, 'timeout': 0.025}
+    {'shards': 8, 'timeout': 0.010}
 ))
 
 

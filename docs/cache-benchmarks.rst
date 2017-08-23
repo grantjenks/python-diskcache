@@ -91,14 +91,14 @@ Timings for diskcache.FanoutCache(shards=4, timeout=1.0)
 The high maximum store latency is likely an artifact of disk/OS interactions.
 
 ========= ========= ========= ========= ========= ========= ========= =========
-Timings for diskcache.FanoutCache(shards=8, timeout=0.025)
+Timings for diskcache.FanoutCache(shards=8, timeout=0.010)
 -------------------------------------------------------------------------------
    Action     Count      Miss    Median       P90       P99       Max     Total
 ========= ========= ========= ========= ========= ========= ========= =========
-      get     88966      9705  15.974us  27.895us  41.008us 562.906us   1.570s
-      set      9021         0 281.811us 316.858us 398.159us   1.189ms   2.526s
-   delete      1012       104 240.803us 283.003us 321.150us 499.964us 229.842ms
-    Total     98999                                                     4.326s
+      get     88966      9705  16.928us  29.087us  40.054us 141.859us   1.692s
+      set      9021         0 275.850us 312.090us 386.953us 611.067us   2.486s
+   delete      1012       104 236.034us 282.049us 354.052us 546.932us 228.918ms
+    Total     98999                                                     4.407s
 ========= ========= ========= ========= ========= ========= ========= =========
 
 Notice the low overhead of the :class:`FanoutCache
@@ -203,20 +203,21 @@ the miss rate is variable due to the interleaved operations of concurrent
 workers.
 
 ========= ========= ========= ========= ========= ========= ========= =========
-Timings for diskcache.FanoutCache(shards=8, timeout=0.025)
+Timings for diskcache.FanoutCache(shards=8, timeout=0.010)
 -------------------------------------------------------------------------------
    Action     Count      Miss    Median       P90       P99       Max     Total
 ========= ========= ========= ========= ========= ========= ========= =========
-      get    712546     70780  23.127us  45.061us  86.069us   7.667ms  19.697s
-      set     71530        31 257.015us   1.410ms   8.780ms  27.772ms  51.284s
-   delete      7916       767 219.822us   1.366ms   8.804ms  26.998ms   5.474s
-    Total    791992                                                    76.455s
+      get    712546     71626  24.080us  46.015us  72.956us   6.997ms  20.241s
+      set     71530       106 253.916us   1.400ms   8.787ms  15.915ms  47.683s
+   delete      7916       779 216.961us   1.345ms   8.602ms  11.446ms   4.516s
+    Total    791992                                                    72.440s
 ========= ========= ========= ========= ========= ========= ========= =========
 
 With one shard allocated per worker and a low timeout, the maximum latency is
-more reasonable and corresponds to the specified 25 millisecond timeout. Some
+more reasonable and corresponds to the specified 10 millisecond timeout. Some
 set and delete operations were therefore canceled and recorded as cache
-misses. The miss rate due to timeout is less than 0.05%.
+misses. The miss rate due to timeout is about 0.01% so our success rate is
+four-nines or 99.99%.
 
 ========= ========= ========= ========= ========= ========= ========= =========
 Timings for pylibmc.Client

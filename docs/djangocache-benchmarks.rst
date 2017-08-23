@@ -179,16 +179,18 @@ Timings for diskcache
 -------------------------------------------------------------------------------
    Action     Count      Miss    Median       P90       P99       Max     Total
 ========= ========= ========= ========= ========= ========= ========= =========
-      get    712546     68585  35.048us  61.989us 107.050us  11.898ms  28.819s
-      set     71530         0 324.011us   1.491ms   8.872ms  36.179ms  56.072s
-   delete      7916         0 254.154us   1.410ms   8.748ms  27.164ms   5.651s
-    Total    791992                                                    90.542s
+      get    712546     69423  36.001us  59.128us  92.983us   7.305ms  28.354s
+      set     71530         0 300.169us   1.451ms   8.877ms  39.359ms  51.403s
+   delete      7916         0 239.134us   1.378ms   8.740ms  14.397ms   4.926s
+    Total    791992                                                    84.683s
 ========= ========= ========= ========= ========= ========= ========= =========
 
 :class:`DjangoCache <diskcache.DjangoCache>` defaults to using eight shards
-with a 25 millisecond timeout. Notice that cache get operations are in
-aggregate twice as fast as Memcached. And total cache time for all operations
-is only 30% slower.
+with a 10 millisecond timeout. Notice that cache get operations are in
+aggregate more than twice as fast as Memcached. And total cache time for all
+operations is only 20% slower. The higher set and delete latencies are due to
+the retry behavior of :class:`DjangoCache <diskcache.DjangoCache>` objects. If
+lower latency is required then the retry behavior can be disabled.
 
 ========= ========= ========= ========= ========= ========= ========= =========
 Timings for filebased
