@@ -16,7 +16,7 @@ def parse_timing(timing, limit):
     else:
         assert timing.endswith('s')
         value = float(timing[:-1])
-    return 0.0 if value > limit else value
+    return 0.0 if value > limit else value * 1e6
 
 
 def parse_row(row, line):
@@ -95,7 +95,7 @@ def make_plot(data, action, save=False, show=False, limit=0.005):
             color=color,
         ))
 
-    ax.set_ylabel('Time (s)')
+    ax.set_ylabel('Time (microseconds)')
     ax.set_title('"%s" Time vs Percentile' % action)
     ax.set_xticks([val + width * (len(data) / 2) for val in index])
     ax.set_xticklabels(ticks)
@@ -106,14 +106,14 @@ def make_plot(data, action, save=False, show=False, limit=0.005):
         [bar[0] for bar in bars],
         names,
         loc='lower center',
-        bbox_to_anchor=(0.5, -0.3)
+        bbox_to_anchor=(0.5, -0.25)
     )
 
     if show:
         plt.show()
 
     if save:
-        plt.savefig('%s-%s.png' % (save, action), dpi=80, bbox_inches='tight')
+        plt.savefig('%s-%s.png' % (save, action), dpi=120, bbox_inches='tight')
 
     plt.close()
 
