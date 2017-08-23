@@ -1,3 +1,7 @@
+TODO
+* Rename to delay-fuzzer so: case-study-delay-fuzzer
+* Check the line numbers! I don't think it's working :(
+
 Raymond keynote:
 https://dl.dropboxusercontent.com/u/3967849/pybay2017_keynote/_build/html/index.html
 
