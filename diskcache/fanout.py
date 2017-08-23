@@ -81,6 +81,9 @@ class FanoutCache(object):
                     return False
 
 
+    __set = set
+
+
     def __setitem__(self, key, value):
         """Set `key` and `value` item in cache.
 
@@ -88,14 +91,7 @@ class FanoutCache(object):
         :param value: value for item
 
         """
-        index = self._hash(key) % self._count
-        set_func = self._shards[index].set
-
-        while True:
-            try:
-                return set_func(key, value)
-            except Timeout:
-                continue
+        self.__set(key, value, retry=True)
 
 
     def add(self, key, value, expire=None, read=False, tag=None, retry=False):
@@ -224,6 +220,9 @@ class FanoutCache(object):
                     return default
 
 
+    __get = get
+
+
     def __getitem__(self, key):
         """Return corresponding value for `key` from cache.
 
@@ -232,9 +231,11 @@ class FanoutCache(object):
         :raises KeyError: if key is not found
 
         """
-        value = self.get(key, default=ENOVAL)
+        value = self.__get(key, default=ENOVAL, retry=True)
+
         if value is ENOVAL:
             raise KeyError(key)
+
         return value
 
 
@@ -320,6 +321,9 @@ class FanoutCache(object):
                 return False
 
 
+    __delete = delete
+
+
     def __delitem__(self, key):
         """Delete corresponding item for `key` from cache.
 
@@ -327,14 +331,10 @@ class FanoutCache(object):
         :raises KeyError: if key is not found
 
         """
-        index = self._hash(key) % self._count
-        del_func = self._shards[index].__delitem__
+        deleted = self.__delete(key, retry=True)
 
-        while True:
-            try:
-                return del_func(key)
-            except Timeout:
-                continue
+        if not deleted:
+            raise KeyError(key)
 
 
     memoize = memoize
