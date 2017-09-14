@@ -17,6 +17,18 @@ thread.daemon = True
 thread.start()
 
 
+# Histogram of expovariate values:
+# value | count
+# ----- | -----
+#    64 | *************************************************************
+#   127 | ********************************
+#   191 | ***************
+#   254 | ******
+#   318 | ***
+#   382 | **
+#   445 | *
+#   509 |
+
 while True:
     value = int(random.expovariate(1) * 100)
     response = requests.get(f'http://127.0.0.1:8000/echo/{value}')
