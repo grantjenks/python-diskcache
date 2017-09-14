@@ -102,6 +102,7 @@ introduction, benchmarks, development, and API.
    cache-benchmarks
    djangocache-benchmarks
    case-study-web-crawler
+   sf-python-2017-meetup-talk
    api
    development
 

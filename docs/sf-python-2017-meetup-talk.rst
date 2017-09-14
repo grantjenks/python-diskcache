@@ -1,10 +1,7 @@
-SF Python 2017 Meetup Talk
-==========================
+Talk: All Things Cached - SF Python 2017 Meetup
+===============================================
 
-.. raw:: html
-
-   <style>body { font-size: 150% }</style>
-
+* `Python All Things Cached Slides`_
 * Can we have some fun together in this talk?
 * Can I show you some code that I would not run in production?
 * Great talk by David Beazley at PyCon Israel this year.
@@ -23,7 +20,7 @@ Landscape
 Backends
 --------
 
-* Choices have very different designs and tradeoffs.
+* Backends have very different designs and tradeoffs.
 
 
 Frameworks
@@ -59,19 +56,19 @@ I can haz mor memory?
 
 * I dislike benchmarks in general so don't copy this code. I kind of stole it
   from Beazley in another great talk he did on concurrency in Python. He said
-  it was kind of lousy code but it's just so simple.
+  not to copy it so I'm telling you not to copy it.
 
 ::
 
     $ python manage.py shell
 
-::
+.. code-block:: pycon
 
     >>> import time
     >>> from django.conf import settings
     >>> from django.core.cache import caches
 
-::
+.. code-block:: pycon
 
     >>> for key in settings.CACHES.keys():
     ...     caches[key].clear()
@@ -109,7 +106,7 @@ I'd rather drive a slow car fast than a fast car slow
 Features
 --------
 
-* Lot's of features. Maybe a few too many. Ex. never used the tag metadata and
+* Lot's of features. Maybe a few too many. Ex: never used the tag metadata and
   eviction feature.
 
 
@@ -148,10 +145,16 @@ Case Study: Baby Web Crawler
 Design
 ------
 
-* Cache is a single shard. FanoutCache uses multiple shards. Trick is cross-platform hash.
-* Pickle can actually be fast if you use a higher protocol. Default 0. Up to 4 now.
-  * Don't choose higher than 2 if you want to be portable between Python 2 and 3.
-* Size limit really indicates when to start culling. Limit number of items deleted.
+* Cache is a single shard. FanoutCache uses multiple shards. Trick is
+  cross-platform hash.
+* Pickle can actually be fast if you use a higher protocol. Default 0. Up to 4
+  now.
+
+  * Don't choose higher than 2 if you want to be portable between Python 2
+    and 3.
+
+* Size limit really indicates when to start culling. Limit number of items
+  deleted.
 
 
 SQLite
@@ -173,30 +176,32 @@ Best way to make money in photography? Sell all your gear.
 * Who saw eclipse? Awesome, right?
 
   * Hard to really photograph the experience.
-  * This is me, staring up at the sun, blinding myself as I hold my glasses
-    and my phone to take a photo. Clearly lousy.
+  * This is me, staring up at the sun, blinding myself as I hold my glasses and
+    my phone to take a photo. Clearly lousy.
 
-* Software talks are hard to get right and I can't cover everything related
-  to caching in 20 minutes. I hope you've learned something tonight or at
-  least seen something interesting.
+* Software talks are hard to get right and I can't cover everything related to
+  caching in 20 minutes. I hope you've learned something tonight or at least
+  seen something interesting.
 
 
 Conclusion
 ----------
 
-* Windows support mostly "just worked"
+* Windows support mostly "just worked".
 
-  * SQLite is truly cross-platform
-  * Filesystems are a little different
-  * AppVeyor was about half as fast as Travis
-  * check() to fix inconsistencies
+  * SQLite is truly cross-platform.
+  * Filesystems are a little different.
+  * AppVeyor was about half as fast as Travis.
+  * check() to fix inconsistencies.
 
-* Caveats
+* Caveats:
 
-  * Not well suited to queues (want read:write at 10:1 or higher)
-  * NFS and SQLite do not play nice
+  * NFS and SQLite do not play nice.
+  * Not well suited to queues (want read:write at 10:1 or higher).
 
 * Alternative databases: BerkeleyDB, LMDB, RocksDB, LevelDB, etc.
 * Engage with me on Github, find bugs, complain about performance.
 * If you like the project, star-it on Github and share it with friends.
 * Thanks for letting me share tonight. Questions?
+
+.. _`Python All Things Cached Slides`: http://bit.ly/dc-2017-slides
