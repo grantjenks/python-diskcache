@@ -20,4 +20,6 @@ from . import views
 
 urlpatterns = [
     url(r'^echo/(?P<value>.*)$', views.echo),
+    url(r'^$', views.index),
+    url(r'^crawl/(?P<value>.*)$', views.crawl),
 ]

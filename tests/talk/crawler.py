@@ -2,6 +2,8 @@ import bs4, requests, signal, urllib.parse
 
 signal.signal(signal.SIGINT, lambda signum, frame: exit())
 
+root='http://127.0.0.1:8000/'
+
 
 def get(url):
     "Get url and return response text."
@@ -24,7 +26,7 @@ def parse(url, text):
 
 from collections import deque
 
-def crawl(root='http://www.grantjenks.com'):
+def crawl():
     "Crawl root url."
     urls = deque([root])
     results = dict()
