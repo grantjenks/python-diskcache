@@ -1,6 +1,10 @@
 SF Python 2017 Meetup Talk
 ==========================
 
+.. raw:: html
+
+   <style>body { font-size: 150% }</style>
+
 * Can we have some fun together in this talk?
 * Can I show you some code that I would not run in production?
 * Great talk by David Beazley at PyCon Israel this year.
