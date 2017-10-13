@@ -5,12 +5,12 @@ import os.path as op
 import sqlite3
 import time
 
-from .core import ENOVAL, DEFAULT_SETTINGS, Cache, Disk, Timeout
+from .core import ENOVAL, DEFAULT_SETTINGS, BaseCache, Cache, Disk, Timeout
 from .memo import memoize
 from .persistent import Deque, Index
 
 
-class FanoutCache(object):
+class FanoutCache(BaseCache):
     "Cache that shards keys and values."
     def __init__(self, directory, shards=8, timeout=0.010, disk=Disk,
                  **settings):

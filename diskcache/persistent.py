@@ -11,7 +11,7 @@ from itertools import islice
 from shutil import rmtree
 from tempfile import mkdtemp
 
-from .core import BytesType, Cache, ENOVAL, TextType, Timeout
+from .core import BaseCache, BytesType, Cache, ENOVAL, TextType, Timeout
 
 if sys.hexversion < 0x03000000:
     from itertools import izip as zip  # pylint: disable=redefined-builtin,ungrouped-imports,wrong-import-order
@@ -652,8 +652,9 @@ class Index(MutableMapping):
     def __init__(self, *args, **kwargs):
         """Initialize index in directory and update items.
 
-        Optional first argument may be string specifying directory where items
-        are stored. When None or not given, temporary directory is created.
+        Optional first argument may be (a) a string specifying directory where
+        items are stored or (b) an existing Cache or FanoutCache. When None or
+        not given, temporary directory is created.
 
         >>> index = Index({'a': 1, 'b': 2, 'c': 3})
         >>> len(index)
@@ -665,15 +666,25 @@ class Index(MutableMapping):
         >>> len(inventory)
         4
 
+        Using an existing cache:
+
+        >>> cache = FanoutCache('/tmp/mycache', shards=4)
+        >>> index = Index(cache)
+
         """
         if args and isinstance(args[0], (BytesType, TextType)):
             directory = args[0]
+            args = args[1:]
+        elif args and isinstance(args[0], BaseCache):
+            self._cache = args[0]
             args = args[1:]
         else:
             if args and args[0] is None:
                 args = args[1:]
             directory = mkdtemp(prefix='diskcache-')
-        self._cache = Cache(directory, eviction_policy='none')
+
+        if not hasattr(self, '_cache'):
+            self._cache = Cache(directory, eviction_policy='none')
         self.update(*args, **kwargs)
 
 
