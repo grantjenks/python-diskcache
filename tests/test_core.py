@@ -14,6 +14,7 @@ import sqlite3
 import sys
 import threading
 import time
+import unittest
 import warnings
 import zlib
 
@@ -1183,6 +1184,26 @@ def test_pickle(cache):
 
     for key in other:
         assert other[key] == cache[key]
+
+
+@unittest.skip('Issue #54')
+@setup_cache
+def test_key_roundtrip(cache):
+    key_part_0 = u"part0"
+    key_part_1 = u"part1"
+    to_test = [
+        (key_part_0, key_part_1),
+        [key_part_0, key_part_1],
+    ]
+
+    for key in to_test:
+        cache.clear()
+        cache[key] = {'example0': ['value0']}
+        keys = list(cache)
+        assert len(keys) == 1
+        cache_key = keys[0]
+        assert cache[key] == {'example0': ['value0']}
+        assert cache[cache_key] == {'example0': ['value0']}
 
 
 if __name__ == '__main__':
