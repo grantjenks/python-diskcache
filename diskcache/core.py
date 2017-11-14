@@ -64,6 +64,7 @@ DEFAULT_SETTINGS = {
     u'eviction_policy': u'least-recently-stored',
     u'size_limit': 2 ** 30,  # 1gb
     u'cull_limit': 10,
+    u'sqlite_auto_vacuum': 1,        # FULL
     u'sqlite_cache_size': 2 ** 13,   # 8,192 pages
     u'sqlite_journal_mode': u'WAL',
     u'sqlite_mmap_size': 2 ** 26,    # 64mb
@@ -377,14 +378,12 @@ class Cache(object):
 
         # Setup Settings table.
 
-        sql('CREATE TABLE IF NOT EXISTS Settings ('
-            ' key TEXT NOT NULL UNIQUE,'
-            ' value)'
-        )
-
-        current_settings = dict(sql(
-            'SELECT key, value FROM Settings'
-        ).fetchall())
+        try:
+            current_settings = dict(sql(
+                'SELECT key, value FROM Settings'
+            ).fetchall())
+        except sqlite3.OperationalError:
+            current_settings = {}
 
         sets = DEFAULT_SETTINGS.copy()
         sets.update(current_settings)
@@ -392,6 +391,19 @@ class Cache(object):
 
         for key in METADATA:
             sets.pop(key, None)
+
+        # Chance to set pragmas before any tables are created.
+
+        for key, value in sorted(sets.items()):
+            if not key.startswith('sqlite_'):
+                continue
+
+            self.reset(key, value, update=False)
+
+        sql('CREATE TABLE IF NOT EXISTS Settings ('
+            ' key TEXT NOT NULL UNIQUE,'
+            ' value)'
+        )
 
         # Setup Disk object (must happen after settings initialized).
 
@@ -668,8 +680,8 @@ class Cache(object):
         )
 
 
-    def _cull(self, now, sql, cleanup):
-        cull_limit = self.cull_limit
+    def _cull(self, now, sql, cleanup, limit=None):
+        cull_limit = self.cull_limit if limit is None else limit
 
         if cull_limit == 0:
             return
@@ -1509,6 +1521,42 @@ class Cache(object):
         return self._select_delete(select, args, row_index=1)
 
 
+    def cull(self):
+        """Cull items from cache.
+
+        """
+        now = time.time()
+
+        # Remove expired items.
+
+        self.expire(now)
+
+        # Remove items by policy.
+
+        select_policy_template = EVICTION_POLICY[self.eviction_policy]['cull']
+
+        if select_policy_template is None:
+            return
+
+        select_policy = select_policy_template % 'filename'
+
+        while self.volume() > self.size_limit:
+            with self._transact() as (sql, cleanup):
+                rows = sql(select_policy, (100,)).fetchall()
+
+                if not rows:
+                    break
+
+                delete_policy = (
+                    'DELETE FROM Cache WHERE rowid IN (%s)'
+                    % (select_policy_template % 'rowid')
+                )
+                sql(delete_policy, (100,))
+
+                for filename, in rows:
+                    cleanup(filename)
+
+
     def clear(self):
         """Remove all items from cache.
 
@@ -1734,14 +1782,15 @@ class Cache(object):
         self.__init__(*state)
 
 
-    def reset(self, key, value=ENOVAL):
+    def reset(self, key, value=ENOVAL, update=True):
         """Reset `key` and `value` item from Settings table.
+
+        Use `reset` to update the value of Cache settings correctly. Cache
+        settings are stored in the Settings table of the SQLite database. If
+        `update` is ``False`` then no attempt is made to update the database.
 
         If `value` is not given, it is reloaded from the Settings
         table. Otherwise, the Settings table is updated.
-
-        Settings attributes on cache objects are lazy-loaded and
-        read-only. Use `reset` to update the value.
 
         Settings with the ``disk_`` prefix correspond to Disk
         attributes. Updating the value will change the unprefixed attribute on
@@ -1750,6 +1799,9 @@ class Cache(object):
         Settings with the ``sqlite_`` prefix correspond to SQLite
         pragmas. Updating the value will execute the corresponding PRAGMA
         statement.
+
+        SQLite PRAGMA statements may be executed before the Settings table
+        exists in the database by setting `update` to ``False``.
 
         :param str key: Settings key for item
         :param value: value for item (optional)
@@ -1763,9 +1815,12 @@ class Cache(object):
             setattr(self, key, value)
             return value
         else:
-            with self._transact() as (sql, _):
-                update = 'UPDATE Settings SET value = ? WHERE key = ?'
-                sql(update, (value, key))
+            if update:
+                with self._transact() as (sql, _):
+                    statement = 'UPDATE Settings SET value = ? WHERE key = ?'
+                    sql(statement, (value, key))
+            else:
+                sql = self._sql
 
             if key.startswith('sqlite_'):
 

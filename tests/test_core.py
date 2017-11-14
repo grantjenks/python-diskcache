@@ -1186,6 +1186,42 @@ def test_pickle(cache):
         assert other[key] == cache[key]
 
 
+@setup_cache
+def test_auto_vacuum(cache):
+    assert cache._sql('PRAGMA auto_vacuum').fetchall() == [(1,)]
+
+
+@setup_cache
+def test_size_limit_with_files(cache):
+    cache.reset('cull_limit', 0)
+    size_limit = 30 * cache.disk_min_file_size
+    cache.reset('size_limit', size_limit)
+    value = b'foo' * cache.disk_min_file_size
+
+    for key in range(40):
+        cache.set(key, value)
+
+    assert cache.volume() > size_limit
+    cache.cull()
+    assert cache.volume() < size_limit
+
+
+@setup_cache
+def test_size_limit_with_database(cache):
+    cache.reset('cull_limit', 0)
+    size_limit = 2 * cache.disk_min_file_size
+    cache.reset('size_limit', size_limit)
+    value = b'0123456789' * 10
+    count = size_limit // (8 + len(value))
+
+    for key in range(count):
+        cache.set(key, value)
+
+    assert cache.volume() > size_limit
+    cache.cull()
+    assert cache.volume() <= size_limit
+
+
 @unittest.skip('Issue #54')
 @setup_cache
 def test_key_roundtrip(cache):
