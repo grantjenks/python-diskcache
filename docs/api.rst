@@ -50,8 +50,9 @@ Read the :ref:`Settings tutorial <tutorial-settings>` for details.
      of cache.
    * `cull_limit` (int) default ten - maximum number of items culled during
      `set` or `add` operations.
-   * `sqlite_synchronous` (str) default "NORMAL" - SQLite synchronous pragma.
-   * `sqlite_journal_mode` (str) default "WAL" - SQLite journal mode pragma.
+   * `sqlite_synchronous` (int) default 1, "NORMAL" - SQLite synchronous
+     pragma.
+   * `sqlite_journal_mode` (str) default "wal" - SQLite journal mode pragma.
    * `sqlite_cache_size` (int, in pages) default 8,192 - SQLite cache size
      pragma.
    * `sqlite_mmap_size` (int, in bytes) default 64 megabytes - SQLite mmap size

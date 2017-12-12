@@ -66,9 +66,9 @@ DEFAULT_SETTINGS = {
     u'cull_limit': 10,
     u'sqlite_auto_vacuum': 1,        # FULL
     u'sqlite_cache_size': 2 ** 13,   # 8,192 pages
-    u'sqlite_journal_mode': u'WAL',
+    u'sqlite_journal_mode': u'wal',
     u'sqlite_mmap_size': 2 ** 26,    # 64mb
-    u'sqlite_synchronous': u'NORMAL',
+    u'sqlite_synchronous': 1,        # NORMAL
     u'disk_min_file_size': 2 ** 15,  # 32kb
     u'disk_pickle_protocol': pickle.HIGHEST_PROTOCOL,
 }
@@ -502,7 +502,7 @@ class Cache(object):
 
         self.close()
         self._timeout = timeout
-        assert self._sql
+        self._sql  # pylint: disable=pointless-statement
 
 
     @property
@@ -533,6 +533,20 @@ class Cache(object):
                 timeout=self._timeout,
                 isolation_level=None,
             )
+
+            # Some SQLite pragmas work on a per-connection basis so query the
+            # Settings table and reset the pragmas. The Settings table may not
+            # exist so catch and ignore the OperationalError that may occur.
+
+            try:
+                select = 'SELECT key, value FROM Settings'
+                settings = con.execute(select).fetchall()
+            except sqlite3.OperationalError:
+                pass
+            else:
+                for key, value in settings:
+                    if key.startswith('sqlite_'):
+                        self.reset(key, value, update=False)
 
         return con.execute
 

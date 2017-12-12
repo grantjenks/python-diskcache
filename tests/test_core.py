@@ -1187,8 +1187,40 @@ def test_pickle(cache):
 
 
 @setup_cache
-def test_auto_vacuum(cache):
-    assert cache._sql('PRAGMA auto_vacuum').fetchall() == [(1,)]
+def test_pragmas(cache):
+    results = []
+
+    def compare_pragmas():
+        valid = True
+
+        for key, value in dc.DEFAULT_SETTINGS.items():
+            if not key.startswith('sqlite_'):
+                continue
+
+            pragma = key[7:]
+
+            result = cache._sql('PRAGMA %s' % pragma).fetchall()
+
+            if result == [(value,)]:
+                continue
+
+            args = pragma, result, [(value,)]
+            print('pragma %s mismatch: %r != %r' % args)
+            valid = False
+
+        results.append(valid)
+
+    threads = []
+
+    for count in range(8):
+        thread = threading.Thread(target=compare_pragmas)
+        thread.start()
+        threads.append(thread)
+
+    for thread in threads:
+        thread.join()
+
+    assert all(results)
 
 
 @setup_cache

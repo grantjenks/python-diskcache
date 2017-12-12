@@ -519,8 +519,8 @@ An additional set of attributes correspond to SQLite pragmas. Changing these
 values will also execute the appropriate ``PRAGMA`` statement. See the `SQLite
 pragma documentation`_ for more details.
 
-* `sqlite_synchronous`, default NORMAL.
-* `sqlite_journal_mode`, default WAL.
+* `sqlite_synchronous`, default 1, "NORMAL".
+* `sqlite_journal_mode`, default "wal".
 * `sqlite_cache_size`, default 8,192 pages.
 * `sqlite_mmap_size`, default 64 megabytes.
 
