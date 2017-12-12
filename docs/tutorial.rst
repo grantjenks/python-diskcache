@@ -174,7 +174,7 @@ The :meth:`pop <diskcache.Cache.pop>` operation is atomic and using :meth:`incr
 statistics in long-running systems. Unlike :meth:`get <diskcache.Cache.get>`
 the `read` argument is not supported.
 
-Another three methods remove items from the cache.
+Another four methods remove items from the cache.
 
     >>> cache.reset('cull_limit', 0)       # Disable automatic evictions.
     >>> for num in range(10):
@@ -187,13 +187,13 @@ Another three methods remove items from the cache.
     10
 
 :meth:`Expire <diskcache.Cache.expire>` removes all expired keys from the
-cache. Resetting the `cull_limit` to zero will disable culling during
-:meth:`set <diskcache.Cache.set>` and :meth:`add <diskcache.Cache.add>`
-operations. Because culling is performed lazily, the reported length of the
-cache includes expired items. Iteration likewise includes expired items because
-it is a read-only operation. To exclude expired items you must explicitly call
-:meth:`expire <diskcache.Cache.expire>` which works regardless of the
-`cull_limit`.
+cache. Resetting the :ref:`cull_limit <tutorial-settings>` to zero will disable
+culling during :meth:`set <diskcache.Cache.set>` and :meth:`add
+<diskcache.Cache.add>` operations. Because culling is performed lazily, the
+reported length of the cache includes expired items. Iteration likewise
+includes expired items because it is a read-only operation. To exclude expired
+items you must explicitly call :meth:`expire <diskcache.Cache.expire>` which
+works regardless of the :ref:`cull_limit <tutorial-settings>`.
 
     >>> for num in range(100):
     ...     cache.set(num, num, tag=u'odd' if num % 2 else u'even')
@@ -222,6 +222,30 @@ Likewise, the tag index may be created or dropped using methods::
 
 But prefer initializing the cache with a tag index rather than explicitly
 creating or dropping the tag index.
+
+To manually enforce the cache's size limit, use the :meth:`cull
+<diskcache.Cache.cull>` method. :meth:`Cull <diskcache.Cache.cull>` begins by
+removing expired items from the cache and then uses the eviction policy to
+remove items until the cache volume is less than the size limit.
+
+    >>> cache.clear()
+    >>> cache.reset('size_limit', int(1e6))
+    >>> cache.reset('cull_limit', 0)
+    >>> for count in range(1000):
+    >>>     cache[count] = b'A' * 1000
+    >>> cache.volume()
+    1437696
+    >>> cache.cull()
+    320
+    >>> cache.volume()
+    999424
+
+Some users may defer all culling to a cron-like process by setting the
+:ref:`cull_limit <tutorial-settings>` to zero and calling :meth:`cull
+<diskcache.Cache.cull>` to manually remove items. Like :meth:`evict
+<diskcache.Cache.evict>` and :meth:`expire <diskcache.Cache.expire>`, calls to
+:meth:`cull <diskache.Cache.cull>` will work regardless of the :ref:`cull_limit
+<tutorial-settings>`.
 
 :meth:`Clear <diskcache.Cache.clear>` simply removes all items from the cache.
 
@@ -473,7 +497,7 @@ during initialization when passed as keyword arguments.
 * `cull_limit`, default ten. The maximum number of keys to cull when adding a
   new item. Set to zero to disable automatic culling. Some systems may disable
   automatic culling in exchange for a cron-like job that regularly calls
-  :meth:`expire <diskcache.DjangoCache.expire>` in a separate process.
+  :meth:`cull <diskcache.Cache.cull>` in a separate process.
 * `statistics`, default False, disabled. The setting to collect :ref:`cache
   statistics <tutorial-statistics>`.
 * `tag_index`, default False, disabled. The setting to create a database

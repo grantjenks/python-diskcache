@@ -391,6 +391,15 @@ class FanoutCache(object):
         return self._remove('evict', args=(tag,))
 
 
+    def cull(self):
+        """Cull items from cache until volume is less than size limit.
+
+        :return: count of items removed
+
+        """
+        return self._remove('cull')
+
+
     def clear(self):
         """Remove all items from cache.
 

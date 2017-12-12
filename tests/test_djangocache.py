@@ -859,7 +859,7 @@ class DiskCacheTests(BaseCacheTests, TestCase):
         pass
 
     def test_cull(self):
-        pass # DiskCache has its own cull strategy.
+        cache.cull()
 
     def test_zero_cull(self):
         pass # DiskCache has its own cull strategy.

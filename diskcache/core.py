@@ -1536,14 +1536,24 @@ class Cache(object):
 
 
     def cull(self):
-        """Cull items from cache.
+        """Cull items from cache until volume is less than size limit.
+
+        Removing items is an iterative process. In each iteration, a subset of
+        items is removed. Concurrent writes may occur between iterations.
+
+        If a :exc:`Timeout` occurs, the first element of the exception's
+        `args` attribute will be the number of items removed before the
+        exception occurred.
+
+        :return: count of items removed
+        :raises Timeout: if database timeout expires
 
         """
         now = time.time()
 
         # Remove expired items.
 
-        self.expire(now)
+        count = self.expire(now)
 
         # Remove items by policy.
 
@@ -1554,21 +1564,27 @@ class Cache(object):
 
         select_policy = select_policy_template % 'filename'
 
-        while self.volume() > self.size_limit:
-            with self._transact() as (sql, cleanup):
-                rows = sql(select_policy, (100,)).fetchall()
+        try:
+            while self.volume() > self.size_limit:
+                with self._transact() as (sql, cleanup):
+                    rows = sql(select_policy, (10,)).fetchall()
 
-                if not rows:
-                    break
+                    if not rows:
+                        break
 
-                delete_policy = (
-                    'DELETE FROM Cache WHERE rowid IN (%s)'
-                    % (select_policy_template % 'rowid')
-                )
-                sql(delete_policy, (100,))
+                    count += len(rows)
+                    delete = (
+                        'DELETE FROM Cache WHERE rowid IN (%s)'
+                        % (select_policy_template % 'rowid')
+                    )
+                    sql(delete, (10,))
 
-                for filename, in rows:
-                    cleanup(filename)
+                    for filename, in rows:
+                        cleanup(filename)
+        except Timeout:
+            raise Timeout(count)
+
+        return count
 
 
     def clear(self):
@@ -1819,6 +1835,7 @@ class Cache(object):
 
         :param str key: Settings key for item
         :param value: value for item (optional)
+        :param bool update: update database Settings table (default True)
         :return: updated value for item
         :raises Timeout: if database timeout expires
 

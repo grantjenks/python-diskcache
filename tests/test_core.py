@@ -1235,7 +1235,7 @@ def test_size_limit_with_files(cache):
 
     assert cache.volume() > size_limit
     cache.cull()
-    assert cache.volume() < size_limit
+    assert cache.volume() <= size_limit
 
 
 @setup_cache
@@ -1252,6 +1252,50 @@ def test_size_limit_with_database(cache):
     assert cache.volume() > size_limit
     cache.cull()
     assert cache.volume() <= size_limit
+
+
+@setup_cache
+def test_cull_eviction_policy_none(cache):
+    cache.reset('eviction_policy', 'none')
+    size_limit = 2 * cache.disk_min_file_size
+    cache.reset('size_limit', size_limit)
+    value = b'0123456789' * 10
+    count = size_limit // (8 + len(value))
+
+    for key in range(count):
+        cache.set(key, value)
+
+    assert cache.volume() > size_limit
+    cache.cull()
+    assert cache.volume() > size_limit
+
+
+@setup_cache
+def test_cull_size_limit_0(cache):
+    cache.reset('cull_limit', 0)
+    size_limit = 2 * cache.disk_min_file_size
+    cache.reset('size_limit', 0)
+    value = b'0123456789' * 10
+    count = size_limit // (8 + len(value))
+
+    for key in range(count):
+        cache.set(key, value)
+
+    assert cache.volume() > size_limit
+    cache.cull()
+    assert cache.volume() <= size_limit
+
+
+@setup_cache
+@nt.raises(dc.Timeout)
+def test_cull_timeout(cache):
+    transact = mock.Mock()
+    transact.side_effect = [dc.Timeout]
+
+    with mock.patch.object(cache, 'expire', lambda now: 0):
+        with mock.patch.object(cache, 'volume', lambda: int(1e12)):
+            with mock.patch.object(cache, '_transact', transact):
+                cache.cull()
 
 
 @unittest.skip('Issue #54')
@@ -1272,6 +1316,11 @@ def test_key_roundtrip(cache):
         cache_key = keys[0]
         assert cache[key] == {'example0': ['value0']}
         assert cache[cache_key] == {'example0': ['value0']}
+
+
+def test_constant():
+    import diskcache.core
+    assert repr(diskcache.core.ENOVAL) == 'ENOVAL'
 
 
 if __name__ == '__main__':

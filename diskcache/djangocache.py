@@ -294,6 +294,15 @@ class DjangoCache(BaseCache):
         return self._cache.evict(tag)
 
 
+    def cull(self):
+        """Cull items from cache until volume is less than size limit.
+
+        :return: count of items removed
+
+        """
+        return self._cache.cull()
+
+
     def clear(self, **kwargs):
         "Remove *all* values from the cache at once."
         # pylint: disable=unused-argument
