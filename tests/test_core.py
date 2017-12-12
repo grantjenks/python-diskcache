@@ -1298,7 +1298,6 @@ def test_cull_timeout(cache):
                 cache.cull()
 
 
-@unittest.skip('Issue #54')
 @setup_cache
 def test_key_roundtrip(cache):
     key_part_0 = u"part0"

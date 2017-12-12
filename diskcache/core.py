@@ -9,6 +9,7 @@ import functools as ft
 import io
 import os
 import os.path as op
+import pickletools
 import sqlite3
 import struct
 import sys
@@ -168,7 +169,8 @@ class Disk(object):
                 or (type_key is float)):
             return key, True
         else:
-            result = pickle.dumps(key, protocol=self.pickle_protocol)
+            data = pickle.dumps(key, protocol=self.pickle_protocol)
+            result = pickletools.optimize(data)
             return sqlite3.Binary(result), False
 
 
@@ -235,7 +237,8 @@ class Disk(object):
 
             return size, MODE_BINARY, filename, None
         else:
-            result = pickle.dumps(value, protocol=self.pickle_protocol)
+            data = pickle.dumps(value, protocol=self.pickle_protocol)
+            result = pickletools.optimize(data)
 
             if len(result) < min_file_size:
                 return 0, MODE_PICKLE, None, sqlite3.Binary(result)
