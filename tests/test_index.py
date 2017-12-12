@@ -171,6 +171,25 @@ def test_popitem_timeout(index):
 
 
 @setup_index
+def test_setdefault(index):
+    assert index.setdefault('a', 0) == 0
+    assert index.setdefault('a', 1) == 0
+
+
+@setup_index
+def test_setdefault_timeout(index):
+    cache = mock.MagicMock()
+    cache.__getitem__ = mock.Mock()
+    cache.__getitem__.side_effect = [KeyError, 0]
+    cache.add = mock.Mock()
+    cache.add.side_effect = [dc.Timeout, 0]
+
+    with mock.patch.object(index, '_cache', cache):
+        value = index.setdefault('a', 0)
+        assert value == 0
+
+
+@setup_index
 def test_iter(index):
     letters = 'abcde'
 

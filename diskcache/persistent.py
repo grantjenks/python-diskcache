@@ -728,6 +728,7 @@ class Index(MutableMapping):
         KeyError: 'c'
 
         :param key: key for item
+        :return: value for item in index with given key
         :raises KeyError: if key is not found
 
         """
@@ -797,6 +798,39 @@ class Index(MutableMapping):
                 continue
             else:
                 return
+
+
+    def setdefault(self, key, default=None):
+        """Set and get value for `key` in index using `default`.
+
+        If `key` is not in index then set corresponding value to `default`. If
+        `key` is in index then ignore `default` and return existing value.
+
+        >>> index = Index('/tmp/diskcache/index')
+        >>> index.clear()
+        >>> index.setdefault('a', 0)
+        0
+        >>> index.setdefault('a', 1)
+        0
+
+        :param key: key for item
+        :param default: value if key is missing (default None)
+        :return: value for item in index with given key
+
+        """
+        _cache = self._cache
+
+        while True:
+            try:
+                return self[key]
+            except KeyError:
+                while True:
+                    try:
+                        _cache.add(key, default)
+                    except Timeout:
+                        continue
+                    else:
+                        break
 
 
     def pop(self, key, default=ENOVAL):

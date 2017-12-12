@@ -21,10 +21,13 @@ class StampedeBarrier(object):
 
     Example:
 
-    >>> stampede_barrier = StampedeBarrier('/tmp/user_data', expire=3)
-    >>> @stampede_barrier
+    ```python
+    stampede_barrier = StampedeBarrier('/tmp/user_data', expire=3)
+
+    @stampede_barrier
     def load_user_info(user_id):
         return database.lookup_user_info_by_id(user_id)
+    ```
 
     """
     # pylint: disable=too-few-public-methods
