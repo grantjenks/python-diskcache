@@ -543,10 +543,11 @@ An additional set of attributes correspond to SQLite pragmas. Changing these
 values will also execute the appropriate ``PRAGMA`` statement. See the `SQLite
 pragma documentation`_ for more details.
 
-* `sqlite_synchronous`, default 1, "NORMAL".
-* `sqlite_journal_mode`, default "wal".
+* `sqlite_auto_vacuum`, default 1, "FULL".
 * `sqlite_cache_size`, default 8,192 pages.
+* `sqlite_journal_mode`, default "wal".
 * `sqlite_mmap_size`, default 64 megabytes.
+* `sqlite_synchronous`, default 1, "NORMAL".
 
 Each of these settings can passed to :class:`DjangoCache
 <diskcache.DjangoCache>` via the ``OPTIONS`` key mapping. Always measure before
