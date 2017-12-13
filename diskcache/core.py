@@ -189,12 +189,13 @@ class Disk(object):
             return pickle.load(BytesIO(key))
 
 
-    def store(self, value, read):
+    def store(self, value, read, key=None):
         """Convert `value` to fields size, mode, filename, and value for Cache
         table.
 
         :param value: value to convert
         :param bool read: True when value is file-like object
+        :param key: key for item. Can be None.
         :return: (size, mode, filename, value) tuple for Cache table
 
         """
@@ -211,14 +212,14 @@ class Disk(object):
             if len(value) < min_file_size:
                 return 0, MODE_RAW, None, sqlite3.Binary(value)
             else:
-                filename, full_path = self.filename()
+                filename, full_path = self.filename(key, value)
 
                 with open(full_path, 'wb') as writer:
                     writer.write(value)
 
                 return len(value), MODE_BINARY, filename, None
         elif type_value is TextType:
-            filename, full_path = self.filename()
+            filename, full_path = self.filename(key, value)
 
             with io_open(full_path, 'w', encoding='UTF-8') as writer:
                 writer.write(value)
@@ -228,7 +229,7 @@ class Disk(object):
         elif read:
             size = 0
             reader = ft.partial(value.read, 2 ** 22)
-            filename, full_path = self.filename()
+            filename, full_path = self.filename(key, value)
 
             with open(full_path, 'wb') as writer:
                 for chunk in iter(reader, b''):
@@ -243,7 +244,7 @@ class Disk(object):
             if len(result) < min_file_size:
                 return 0, MODE_PICKLE, None, sqlite3.Binary(result)
             else:
-                filename, full_path = self.filename()
+                filename, full_path = self.filename(key, value)
 
                 with open(full_path, 'wb') as writer:
                     writer.write(result)
@@ -283,7 +284,7 @@ class Disk(object):
                 return pickle.load(BytesIO(value))
 
 
-    def filename(self):
+    def filename(self, key=None, value=None):
         """Return filename and full-path tuple for file storage.
 
         Filename will be a randomly generated 28 character hexadecimal string
@@ -291,6 +292,8 @@ class Disk(object):
         reduce the size of directories. On older filesystems, lookups in
         directories with many files are slow.
 
+        :param key: key for item. Ignored by default implementation. Can be None.
+        :param value: value for item. Ignored by default implementation.
         """
         hex_name = codecs.encode(os.urandom(16), 'hex').decode('utf-8')
         sub_dir = op.join(hex_name[:2], hex_name[2:4])
@@ -598,7 +601,7 @@ class Cache(object):
         now = time.time()
         db_key, raw = self._disk.put(key)
         expire_time = None if expire is None else now + expire
-        size, mode, filename, db_value = self._disk.store(value, read)
+        size, mode, filename, db_value = self._disk.store(value, read, key=key)
         columns = (expire_time, tag, size, mode, filename, db_value)
 
         # The order of SELECT, UPDATE, and INSERT is important below.
@@ -775,7 +778,7 @@ class Cache(object):
         now = time.time()
         db_key, raw = self._disk.put(key)
         expire_time = None if expire is None else now + expire
-        size, mode, filename, db_value = self._disk.store(value, read)
+        size, mode, filename, db_value = self._disk.store(value, read, key=key)
         columns = (expire_time, tag, size, mode, filename, db_value)
 
         with self._transact(filename) as (sql, cleanup):
@@ -838,7 +841,7 @@ class Cache(object):
                     raise KeyError(key)
 
                 value = default + delta
-                columns = (None, None) + self._disk.store(value, False)
+                columns = (None, None) + self._disk.store(value, False, key=key)
                 self._row_insert(db_key, raw, now, columns)
                 self._cull(now, sql, cleanup)
                 return value
@@ -850,7 +853,7 @@ class Cache(object):
                     raise KeyError(key)
 
                 value = default + delta
-                columns = (None, None) + self._disk.store(value, False)
+                columns = (None, None) + self._disk.store(value, False, key=key)
                 self._row_update(rowid, now, columns)
                 self._cull(now, sql, cleanup)
                 cleanup(filename)
