@@ -1,14 +1,18 @@
 "Test diskcache.fanout.FanoutCache."
 
+from __future__ import print_function
+
 import errno
 import functools as ft
 import io
 import mock
 import nose.tools as nt
 import os
+import os.path as op
 import random
 import shutil
 import sqlite3
+import subprocess as sp
 import sys
 import threading
 import time
@@ -581,6 +585,103 @@ def test_memoize(cache):
 
     assert hits2 == hits1 + count
     assert misses2 == misses1
+
+
+def test_copy():
+    cache_dir1 = op.join('tmp', 'foo')
+
+    with dc.FanoutCache(cache_dir1) as cache1:
+        for count in range(10):
+            cache1[count] = str(count)
+
+        for count in range(10, 20):
+            cache1[count] = str(count) * int(1e5)
+
+    cache_dir2 = op.join('tmp', 'bar')
+    shutil.copytree(cache_dir1, cache_dir2)
+
+    with dc.FanoutCache(cache_dir2) as cache2:
+        for count in range(10):
+            assert cache2[count] == str(count)
+
+        for count in range(10, 20):
+            assert cache2[count] == str(count) * int(1e5)
+
+    shutil.rmtree('tmp', ignore_errors=True)
+
+
+def run(command):
+    print('run$ %r' % command)
+    try:
+        result = sp.check_output(command, stderr=sp.STDOUT)
+        print(result)
+    except sp.CalledProcessError as exc:
+        print(exc.output)
+        raise
+
+
+def test_rsync():
+    try:
+        run(['rsync', '--version'])
+    except OSError:
+        return  # No rsync installed. Skip test.
+
+    cache_dir1 = op.join('tmp', 'foo') + os.sep
+    cache_dir2 = op.join('tmp', 'bar') + os.sep
+
+    # Store some items in cache_dir1.
+
+    with dc.FanoutCache(cache_dir1) as cache1:
+        for count in range(100):
+            cache1[count] = str(count)
+
+        for count in range(100, 200):
+            cache1[count] = str(count) * int(1e5)
+
+    # Rsync cache_dir1 to cache_dir2.
+
+    args = ['rsync', '-a', '--stats', cache_dir1, cache_dir2]
+    run(args)
+
+    # Validate items in cache_dir2.
+
+    with dc.FanoutCache(cache_dir2) as cache2:
+        for count in range(100):
+            assert cache2[count] == str(count)
+
+        for count in range(100, 200):
+            assert cache2[count] == str(count) * int(1e5)
+
+    # Store more items in cache_dir2.
+
+    with dc.FanoutCache(cache_dir2) as cache2:
+        for count in range(200, 300):
+            cache2[count] = str(count)
+
+        for count in range(300, 400):
+            cache2[count] = str(count) * int(1e5)
+
+    # Rsync cache_dir2 to cache_dir1.
+
+    args = ['rsync', '-a', '--stats', cache_dir2, cache_dir1]
+    run(args)
+
+    # Validate items in cache_dir1.
+
+    with dc.FanoutCache(cache_dir1) as cache1:
+        for count in range(100):
+            assert cache1[count] == str(count)
+
+        for count in range(100, 200):
+            assert cache1[count] == str(count) * int(1e5)
+
+        for count in range(200, 300):
+            assert cache1[count] == str(count)
+
+        for count in range(300, 400):
+            assert cache1[count] == str(count) * int(1e5)
+
+    shutil.rmtree('tmp', ignore_errors=True)
 
 
 if __name__ == '__main__':
