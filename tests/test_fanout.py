@@ -4,6 +4,7 @@ from __future__ import print_function
 
 import errno
 import functools as ft
+import hashlib
 import io
 import mock
 import nose.tools as nt
@@ -680,6 +681,34 @@ def test_rsync():
 
         for count in range(300, 400):
             assert cache1[count] == str(count) * int(1e5)
+
+    shutil.rmtree('tmp', ignore_errors=True)
+
+
+class SHA256FilenameDisk(dc.Disk):
+    def filename(self, key=dc.UNKNOWN, value=dc.UNKNOWN):
+        filename = hashlib.sha256(key).hexdigest()[:32]
+        full_path = op.join(self._directory, filename)
+        return filename, full_path
+
+
+def test_custom_filename_disk():
+    with dc.FanoutCache('tmp', disk=SHA256FilenameDisk) as cache:
+        for count in range(100, 200):
+            key = str(count).encode('ascii')
+            cache[str(count)] = str(count) * int(1e5)
+
+    disk = SHA256FilenameDisk('tmp')
+
+    for count in range(100, 200):
+        key = str(count).encode('ascii')
+        subdir = '%03d' % (disk.hash(key) % 8)
+        filename = hashlib.sha256(key).hexdigest()[:32]
+        full_path = op.join('tmp', subdir, filename)
+
+        with open(full_path) as reader:
+            content = reader.read()
+            assert content == str(count) * int(1e5)
 
     shutil.rmtree('tmp', ignore_errors=True)
 

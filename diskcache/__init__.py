@@ -1,7 +1,7 @@
 "DiskCache: disk and file backed cache."
 
 from .core import Cache, Disk, UnknownFileWarning, EmptyDirWarning, Timeout
-from .core import DEFAULT_SETTINGS, EVICTION_POLICY
+from .core import DEFAULT_SETTINGS, ENOVAL, EVICTION_POLICY, UNKNOWN
 from .fanout import FanoutCache
 from .persistent import Deque, Index
 
@@ -12,7 +12,9 @@ __all__ = [
     'EmptyDirWarning',
     'Timeout',
     'DEFAULT_SETTINGS',
+    'ENOVAL',
     'EVICTION_POLICY',
+    'UNKNOWN',
     'FanoutCache',
     'Deque',
     'Index',

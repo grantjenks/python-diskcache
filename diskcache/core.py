@@ -48,10 +48,11 @@ class Constant(tuple):
         return tuple.__new__(cls, (name,))
 
     def __repr__(self):
-        return self[0]
+        return '%s' % self[0]
 
 DBNAME = 'cache.db'
 ENOVAL = Constant('ENOVAL')
+UNKNOWN = Constant('UNKNOWN')
 
 MODE_NONE = 0
 MODE_RAW = 1
@@ -189,13 +190,13 @@ class Disk(object):
             return pickle.load(BytesIO(key))
 
 
-    def store(self, value, read, key=None):
+    def store(self, value, read, key=UNKNOWN):
         """Convert `value` to fields size, mode, filename, and value for Cache
         table.
 
         :param value: value to convert
         :param bool read: True when value is file-like object
-        :param key: key for item. Can be None.
+        :param key: key for item (default UNKNOWN)
         :return: (size, mode, filename, value) tuple for Cache table
 
         """
@@ -284,16 +285,23 @@ class Disk(object):
                 return pickle.load(BytesIO(value))
 
 
-    def filename(self, key=None, value=None):
+    def filename(self, key=UNKNOWN, value=UNKNOWN):
         """Return filename and full-path tuple for file storage.
 
         Filename will be a randomly generated 28 character hexadecimal string
         with ".val" suffixed. Two levels of sub-directories will be used to
         reduce the size of directories. On older filesystems, lookups in
-        directories with many files are slow.
+        directories with many files may be slow.
 
-        :param key: key for item. Ignored by default implementation. Can be None.
-        :param value: value for item. Ignored by default implementation.
+        The default implementation ignores the `key` and `value` parameters.
+
+        In some scenarios, for example :meth:`Cache.push
+        <diskcache.Cache.push>`, the `key` or `value` may not be known when the
+        item is stored in the cache.
+
+        :param key: key for item (default UNKNOWN)
+        :param value: value for item (default UNKNOWN)
+
         """
         hex_name = codecs.encode(os.urandom(16), 'hex').decode('utf-8')
         sub_dir = op.join(hex_name[:2], hex_name[2:4])
