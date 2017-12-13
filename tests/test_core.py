@@ -107,11 +107,11 @@ class JSONDisk(diskcache.Disk):
         data = super(JSONDisk, self).get(key, raw)
         return json.loads(zlib.decompress(data).decode('utf-8'))
 
-    def store(self, value, read):
+    def store(self, value, read, key=None):
         if not read:
             json_bytes = json.dumps(value).encode('utf-8')
             value = zlib.compress(json_bytes, self.compress_level)
-        return super(JSONDisk, self).store(value, read)
+        return super(JSONDisk, self).store(value, read, key=key)
 
     def fetch(self, mode, filename, value, read):
         data = super(JSONDisk, self).fetch(mode, filename, value, read)
@@ -129,6 +129,26 @@ def test_custom_disk():
 
         for value in values:
             assert cache[value] == value
+
+    shutil.rmtree('tmp', ignore_errors=True)
+
+
+class FilenameDisk(diskcache.Disk):
+    def filename(self, key=None, value=None):
+        self.last_key = key
+        self.last_value = value
+        return super(FilenameDisk, self).filename(key, value)
+
+
+def test_custom_filename_disk():
+    with dc.Cache('tmp', disk=FilenameDisk) as cache:
+        values = [False, True, 0, 1.23]
+
+        for value in values:
+            # The value has to be large enough to trigger getting sent to disk.
+            cache[value] = [value] * int(1e6)
+            assert getattr(cache.disk, 'last_key', None) == value
+            assert getattr(cache.disk, 'last_value', None) == [value] * int(1e6)
 
     shutil.rmtree('tmp', ignore_errors=True)
 
