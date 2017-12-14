@@ -641,7 +641,7 @@ def test_rsync():
 
     # Rsync cache_dir1 to cache_dir2.
 
-    args = ['rsync', '-a', '--stats', cache_dir1, cache_dir2]
+    args = ['rsync', '-a', '--stats', '--checksum', cache_dir1, cache_dir2]
     run(args)
 
     # Validate items in cache_dir2.
@@ -664,7 +664,7 @@ def test_rsync():
 
     # Rsync cache_dir2 to cache_dir1.
 
-    args = ['rsync', '-a', '--stats', cache_dir2, cache_dir1]
+    args = ['rsync', '-a', '--stats', '--checksum', cache_dir2, cache_dir1]
     run(args)
 
     # Validate items in cache_dir1.
