@@ -447,7 +447,6 @@ class Cache(object):
             ' rowid INTEGER PRIMARY KEY,'
             ' key BLOB,'
             ' raw INTEGER,'
-            ' version INTEGER DEFAULT 0,'
             ' store_time REAL,'
             ' expire_time REAL,'
             ' access_time REAL,'
@@ -659,7 +658,6 @@ class Cache(object):
         sql = self._sql
         expire_time, tag, size, mode, filename, value = columns
         sql('UPDATE Cache SET'
-            ' version = ?,'
             ' store_time = ?,'
             ' expire_time = ?,'
             ' access_time = ?,'
@@ -670,7 +668,6 @@ class Cache(object):
             ' filename = ?,'
             ' value = ?'
             ' WHERE rowid = ?', (
-                0,            # version
                 now,          # store_time
                 expire_time,
                 now,          # access_time
@@ -689,12 +686,11 @@ class Cache(object):
         sql = self._sql
         expire_time, tag, size, mode, filename, value = columns
         sql('INSERT INTO Cache('
-            ' key, raw, version, store_time, expire_time, access_time,'
+            ' key, raw, store_time, expire_time, access_time,'
             ' access_count, tag, size, mode, filename, value'
-            ') VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)', (
+            ') VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)', (
                 key,
                 raw,
-                0,           # version
                 now,         # store_time
                 expire_time,
                 now,         # access_time
