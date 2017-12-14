@@ -150,7 +150,7 @@ def test_custom_filename_disk():
     with dc.Cache('tmp', disk=SHA256FilenameDisk) as cache:
         for count in range(100, 200):
             key = str(count).encode('ascii')
-            cache[str(count)] = str(count) * int(1e5)
+            cache[key] = str(count) * int(1e5)
 
     for count in range(100, 200):
         key = str(count).encode('ascii')
