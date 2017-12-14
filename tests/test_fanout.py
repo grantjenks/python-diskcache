@@ -627,6 +627,7 @@ def test_rsync():
     except OSError:
         return  # No rsync installed. Skip test.
 
+    rsync_args = ['rsync', '-a', '--checksum', '--delete', '--stats']
     cache_dir1 = op.join('tmp', 'foo') + os.sep
     cache_dir2 = op.join('tmp', 'bar') + os.sep
 
@@ -641,8 +642,7 @@ def test_rsync():
 
     # Rsync cache_dir1 to cache_dir2.
 
-    args = ['rsync', '-a', '--stats', '--checksum', cache_dir1, cache_dir2]
-    run(args)
+    run(rsync_args + [cache_dir1, cache_dir2])
 
     # Validate items in cache_dir2.
 
@@ -664,8 +664,7 @@ def test_rsync():
 
     # Rsync cache_dir2 to cache_dir1.
 
-    args = ['rsync', '-a', '--stats', '--checksum', cache_dir2, cache_dir1]
-    run(args)
+    run(rsync_args + [cache_dir2, cache_dir1])
 
     # Validate items in cache_dir1.
 
