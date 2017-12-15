@@ -1448,6 +1448,43 @@ def test_rsync():
     shutil.rmtree('tmp', ignore_errors=True)
 
 
+@setup_cache
+def test_custom_eviction_policy(cache):
+    dc.EVICTION_POLICY['lru-gt-1s'] = {
+        'init': (
+            'CREATE INDEX IF NOT EXISTS Cache_access_time ON'
+            ' Cache (access_time)'
+        ),
+        'get': 'access_time = {now}',
+        'cull': (
+            'SELECT {fields} FROM Cache'
+            ' WHERE access_time < ({now} - 1)'
+            ' ORDER BY access_time LIMIT ?'
+        ),
+    }
+
+    size_limit = int(1e5)
+
+    cache.reset('eviction_policy', 'lru-gt-1s')
+    cache.reset('size_limit', size_limit)
+
+    for count in range(100, 150):
+        cache[count] = str(count) * 500
+
+    size = cache.volume()
+    assert size > size_limit
+    assert cache.cull() == 0
+    assert size == cache.volume()
+
+    for count in range(100, 150):
+        assert cache[count] == str(count) * 500
+
+    time.sleep(1.1)
+
+    assert cache.cull() == 20
+    assert cache.volume() < size_limit
+
+
 if __name__ == '__main__':
     import nose
     nose.runmodule()

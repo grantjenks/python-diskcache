@@ -95,15 +95,15 @@ EVICTION_POLICY = {
             ' Cache (store_time)'
         ),
         'get': None,
-        'cull': 'SELECT %s FROM Cache ORDER BY store_time LIMIT ?',
+        'cull': 'SELECT {fields} FROM Cache ORDER BY store_time LIMIT ?',
     },
     'least-recently-used': {
         'init': (
             'CREATE INDEX IF NOT EXISTS Cache_access_time ON'
             ' Cache (access_time)'
         ),
-        'get': 'access_time = ((julianday("now") - 2440587.5) * 86400.0)',
-        'cull': 'SELECT %s FROM Cache ORDER BY access_time LIMIT ?',
+        'get': 'access_time = {now}',
+        'cull': 'SELECT {fields} FROM Cache ORDER BY access_time LIMIT ?',
     },
     'least-frequently-used': {
         'init': (
@@ -111,7 +111,7 @@ EVICTION_POLICY = {
             ' Cache (access_count)'
         ),
         'get': 'access_count = access_count + 1',
-        'cull': 'SELECT %s FROM Cache ORDER BY access_count LIMIT ?',
+        'cull': 'SELECT {fields} FROM Cache ORDER BY access_count LIMIT ?',
     },
 }
 
@@ -739,21 +739,20 @@ class Cache(object):
 
         # Evict keys by policy.
 
-        select_policy_template = EVICTION_POLICY[self.eviction_policy]['cull']
+        select_policy = EVICTION_POLICY[self.eviction_policy]['cull']
 
-        if select_policy_template is None or self.volume() < self.size_limit:
+        if select_policy is None or self.volume() < self.size_limit:
             return
 
-        select_policy = select_policy_template % 'filename'
-
-        rows = sql(select_policy, (cull_limit,)).fetchall()
+        select_filename = select_policy.format(fields='filename', now=now)
+        rows = sql(select_filename, (cull_limit,)).fetchall()
 
         if rows:
-            delete_policy = (
+            delete = (
                 'DELETE FROM Cache WHERE rowid IN (%s)'
-                % (select_policy_template % 'rowid')
+                % (select_policy.format(fields='rowid', now=now))
             )
-            sql(delete_policy, (cull_limit,))
+            sql(delete, (cull_limit,))
 
             for filename, in rows:
                 cleanup(filename)
@@ -868,7 +867,10 @@ class Cache(object):
 
             columns = 'store_time = ?, value = ?'
             update_column = EVICTION_POLICY[self.eviction_policy]['get']
-            columns += '' if update_column is None else ', ' + update_column
+
+            if update_column is not None:
+                columns += ', ' + update_column.format(now=now)
+
             update = 'UPDATE Cache SET %s WHERE rowid = ?' % columns
             sql(update, (now, value, rowid))
 
@@ -918,7 +920,6 @@ class Cache(object):
         """
         db_key, raw = self._disk.put(key)
         update_column = EVICTION_POLICY[self.eviction_policy]['get']
-        update = 'UPDATE Cache SET %s WHERE rowid = ?'
         select = (
             'SELECT rowid, expire_time, tag, mode, filename, value'
             ' FROM Cache WHERE key = ? AND raw = ?'
@@ -950,7 +951,6 @@ class Cache(object):
                     raise
 
         else:  # Slow path, transaction required.
-
             cache_hit = (
                 'UPDATE Settings SET value = value + 1 WHERE key = "hits"'
             )
@@ -983,8 +983,11 @@ class Cache(object):
                 if self.statistics:
                     sql(cache_hit)
 
+                now = time.time()
+                update = 'UPDATE Cache SET %s WHERE rowid = ?'
+
                 if update_column is not None:
-                    sql(update % update_column, (rowid,))
+                    sql(update % update_column.format(now=now), (rowid,))
 
         if expire_time and tag:
             return (value, db_expire_time, db_tag)
@@ -1568,17 +1571,17 @@ class Cache(object):
 
         # Remove items by policy.
 
-        select_policy_template = EVICTION_POLICY[self.eviction_policy]['cull']
+        select_policy = EVICTION_POLICY[self.eviction_policy]['cull']
 
-        if select_policy_template is None:
+        if select_policy is None:
             return
 
-        select_policy = select_policy_template % 'filename'
+        select_filename = select_policy.format(fields='filename', now=now)
 
         try:
             while self.volume() > self.size_limit:
                 with self._transact() as (sql, cleanup):
-                    rows = sql(select_policy, (10,)).fetchall()
+                    rows = sql(select_filename, (10,)).fetchall()
 
                     if not rows:
                         break
@@ -1586,7 +1589,7 @@ class Cache(object):
                     count += len(rows)
                     delete = (
                         'DELETE FROM Cache WHERE rowid IN (%s)'
-                        % (select_policy_template % 'rowid')
+                        % select_policy.format(fields='rowid', now=now)
                     )
                     sql(delete, (10,))
 
