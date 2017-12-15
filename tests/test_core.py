@@ -1485,6 +1485,14 @@ def test_custom_eviction_policy(cache):
     assert cache.volume() < size_limit
 
 
+@setup_cache
+def test_lru_incr(cache):
+    cache.reset('eviction_policy', 'least-recently-used')
+    cache.incr(0)
+    cache.decr(0)
+    assert cache[0] == 0
+
+
 if __name__ == '__main__':
     import nose
     nose.runmodule()
