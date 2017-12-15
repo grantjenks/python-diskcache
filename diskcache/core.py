@@ -304,6 +304,7 @@ class Disk(object):
         :param value: value for item (default UNKNOWN)
 
         """
+        # pylint: disable=unused-argument
         hex_name = codecs.encode(os.urandom(16), 'hex').decode('utf-8')
         sub_dir = op.join(hex_name[:2], hex_name[2:4])
         name = hex_name[4:] + '.val'
