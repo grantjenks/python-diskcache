@@ -68,10 +68,10 @@ Timings for diskcache.Cache
 -------------------------------------------------------------------------------
    Action     Count      Miss    Median       P90       P99       Max     Total
 ========= ========= ========= ========= ========= ========= ========= =========
-      get     88966      9705  17.881us  28.849us  41.962us 472.069us   1.701s
-      set      9021         0 300.884us 338.078us 394.106us 658.989us   2.736s
-   delete      1012       104 261.068us 299.931us 338.078us 598.907us 248.081ms
-    Total     98999                                                     4.686s
+      get     88966      9705  12.159us  17.166us  28.849us 174.999us   1.206s
+      set      9021         0  68.903us  93.937us 188.112us  10.297ms 875.907ms
+   delete      1012       104  47.207us  66.042us 128.031us   7.160ms  89.599ms
+    Total     98999                                                     2.171s
 ========= ========= ========= ========= ========= ========= ========= =========
 
 The generated workload includes a ~1% cache miss rate. All items were stored
@@ -82,10 +82,10 @@ Timings for diskcache.FanoutCache(shards=4, timeout=1.0)
 -------------------------------------------------------------------------------
    Action     Count      Miss    Median       P90       P99       Max     Total
 ========= ========= ========= ========= ========= ========= ========= =========
-      get     88966      9705  15.974us  28.133us  41.962us 522.852us   1.605s
-      set      9021         0 281.096us 318.050us 388.145us   5.438ms   2.537s
-   delete      1012       104 237.942us 283.003us 345.945us   2.058ms 231.609ms
-    Total     98999                                                     4.374s
+      get     88966      9705  15.020us  20.027us  33.855us 437.021us   1.425s
+      set      9021         0  71.049us 100.136us 203.133us   9.186ms 892.262ms
+   delete      1012       104  48.161us  69.141us 129.952us   5.216ms  87.294ms
+    Total     98999                                                     2.405s
 ========= ========= ========= ========= ========= ========= ========= =========
 
 The high maximum store latency is likely an artifact of disk/OS interactions.
@@ -95,25 +95,25 @@ Timings for diskcache.FanoutCache(shards=8, timeout=0.010)
 -------------------------------------------------------------------------------
    Action     Count      Miss    Median       P90       P99       Max     Total
 ========= ========= ========= ========= ========= ========= ========= =========
-      get     88966      9705  16.928us  29.087us  40.054us 141.859us   1.692s
-      set      9021         0 275.850us 312.090us 386.953us 611.067us   2.486s
-   delete      1012       104 236.034us 282.049us 354.052us 546.932us 228.918ms
-    Total     98999                                                     4.407s
+      get     88966      9705  15.020us  20.027us  34.094us 627.995us   1.420s
+      set      9021         0  72.956us 100.851us 203.133us   9.623ms 927.824ms
+   delete      1012       104  50.783us  72.002us 132.084us   8.396ms  78.898ms
+    Total     98999                                                     2.426s
 ========= ========= ========= ========= ========= ========= ========= =========
 
 Notice the low overhead of the :class:`FanoutCache
-<diskcache.FanoutCache>`. Even without concurrent access, a slight benefit is
-observable.
+<diskcache.FanoutCache>`. Increasing the number of shards from four to eight
+has a negligible impact on performance.
 
 ========= ========= ========= ========= ========= ========= ========= =========
 Timings for pylibmc.Client
 -------------------------------------------------------------------------------
    Action     Count      Miss    Median       P90       P99       Max     Total
 ========= ========= ========= ========= ========= ========= ========= =========
-      get     88966      9705  25.988us  30.041us  41.962us 269.890us   2.407s
-      set      9021         0  28.133us  31.948us  45.061us  88.930us 262.482ms
-   delete      1012       104  25.988us  29.087us  39.101us  65.804us  27.031ms
-    Total     98999                                                     2.697s
+      get     88966      9705  25.988us  29.802us  41.008us 139.952us   2.388s
+      set      9021         0  27.895us  30.994us  40.054us  97.990us 254.248ms
+   delete      1012       104  25.988us  29.087us  38.147us  89.169us  27.159ms
+    Total     98999                                                     2.669s
 ========= ========= ========= ========= ========= ========= ========= =========
 
 Memcached performance is low latency and very stable.
@@ -123,14 +123,14 @@ Timings for redis.StrictRedis
 -------------------------------------------------------------------------------
    Action     Count      Miss    Median       P90       P99       Max     Total
 ========= ========= ========= ========= ========= ========= ========= =========
-      get     88966      9705  45.061us  49.114us  77.009us 197.887us   4.171s
-      set      9021         0  46.015us  50.068us  77.963us 179.052us 429.199ms
-   delete      1012       104  44.823us  56.982us  77.009us 104.189us  47.746ms
-    Total     98999                                                     4.648s
+      get     88966      9705  44.107us  54.121us  73.910us 204.086us   4.125s
+      set      9021         0  45.061us  56.028us  75.102us 237.942us 427.197ms
+   delete      1012       104  44.107us  54.836us  72.002us 126.839us  46.771ms
+    Total     98999                                                     4.599s
 ========= ========= ========= ========= ========= ========= ========= =========
 
 Redis performance is roughly half that of Memcached. :doc:`DiskCache <index>`
-performs better than Redis for get operations through the 99th percentile.
+performs better than Redis for get operations through the Max percentile.
 
 Concurrent Access
 -----------------
@@ -176,10 +176,10 @@ Timings for diskcache.Cache
 -------------------------------------------------------------------------------
    Action     Count      Miss    Median       P90       P99       Max     Total
 ========= ========= ========= ========= ========= ========= ========= =========
-      get    712546     72929  16.928us  29.802us  45.061us 517.130us  13.617s
-      set     71530         0 303.030us 360.966us  36.302ms   6.251s  269.090s
-   delete      7916       773 265.837us 330.925us  35.141ms   1.339s   17.652s
-    Total    791992                                                   300.358s
+      get    712546     71214  15.974us  23.127us  40.054us   4.953ms  12.349s
+      set     71530         0  94.891us   1.328ms  21.307ms   1.846s  131.728s
+   delete      7916       807  65.088us   1.278ms  19.610ms   1.244s   13.811s
+    Total    791992                                                   157.888s
 ========= ========= ========= ========= ========= ========= ========= =========
 
 Notice the unacceptably high maximum store and delete latency. Without
@@ -191,10 +191,10 @@ Timings for diskcache.FanoutCache(shards=4, timeout=1.0)
 -------------------------------------------------------------------------------
    Action     Count      Miss    Median       P90       P99       Max     Total
 ========= ========= ========= ========= ========= ========= ========= =========
-      get    712546     72975  17.166us  34.094us  73.195us   8.381ms  15.575s
-      set     71530         0 228.882us   1.421ms  19.039ms 333.486ms  79.159s
-   delete      7916       784 198.126us   1.385ms  19.165ms 107.130ms   8.838s
-    Total    791992                                                   103.572s
+      get    712546     71623  19.073us  35.048us  59.843us  12.980ms  16.849s
+      set     71530         0 108.004us   1.313ms   9.176ms 333.361ms  50.821s
+   delete      7916       767  73.195us   1.264ms   9.033ms 108.232ms   4.964s
+    Total    791992                                                    72.634s
 ========= ========= ========= ========= ========= ========= ========= =========
 
 Here :class:`FanoutCache <diskcache.FanoutCache>` uses four shards to
@@ -207,10 +207,10 @@ Timings for diskcache.FanoutCache(shards=8, timeout=0.010)
 -------------------------------------------------------------------------------
    Action     Count      Miss    Median       P90       P99       Max     Total
 ========= ========= ========= ========= ========= ========= ========= =========
-      get    712546     71626  24.080us  46.015us  72.956us   6.997ms  20.241s
-      set     71530       106 253.916us   1.400ms   8.787ms  15.915ms  47.683s
-   delete      7916       779 216.961us   1.345ms   8.602ms  11.446ms   4.516s
-    Total    791992                                                    72.440s
+      get    712546     71106  25.034us  47.922us 101.089us   9.015ms  22.336s
+      set     71530        39 134.945us   1.324ms   5.763ms  16.027ms  33.347s
+   delete      7916       775  88.930us   1.267ms   5.017ms  13.732ms   3.308s
+    Total    791992                                                    58.991s
 ========= ========= ========= ========= ========= ========= ========= =========
 
 With one shard allocated per worker and a low timeout, the maximum latency is
@@ -224,16 +224,16 @@ Timings for pylibmc.Client
 -------------------------------------------------------------------------------
    Action     Count      Miss    Median       P90       P99       Max     Total
 ========= ========= ========= ========= ========= ========= ========= =========
-      get    712546     72146  83.208us 105.143us 120.878us 520.945us  61.320s
-      set     71530         0  85.115us 107.050us 123.024us 458.002us   6.285s
-   delete      7916       792  82.016us 103.951us 119.925us 298.977us 673.505ms
-    Total    791992                                                    68.279s
+      get    712546     72043  83.923us 107.050us 123.978us 617.027us  61.824s
+      set     71530         0  84.877us 108.004us 124.931us 312.090us   6.283s
+   delete      7916       796  82.970us 105.858us 123.024us 288.963us 680.970ms
+    Total    791992                                                    68.788s
 ========= ========= ========= ========= ========= ========= ========= =========
 
 Memcached performance is low latency and stable even under heavy load. Notice
-that cache gets are half as fast in total as compared with :class:`FanoutCache
-<diskcache.FanoutCache>`. The superior performance of get operations put the
-overall performance of :doc:`DiskCache <index>` within ten percent of
+that cache gets are three times slower in total as compared with
+:class:`FanoutCache <diskcache.FanoutCache>`. The superior performance of get
+operations put the overall performance of :doc:`DiskCache <index>` ahead of
 Memcached.
 
 ========= ========= ========= ========= ========= ========= ========= =========
@@ -241,10 +241,10 @@ Timings for redis.StrictRedis
 -------------------------------------------------------------------------------
    Action     Count      Miss    Median       P90       P99       Max     Total
 ========= ========= ========= ========= ========= ========= ========= =========
-      get    712546     72652 141.144us 174.999us 210.047us 931.978us 103.515s
-      set     71530         0 142.097us 174.999us 211.000us 623.941us  10.457s
-   delete      7916       811 139.952us 172.138us 205.994us 288.963us   1.138s
-    Total    791992                                                   115.110s
+      get    712546     72093 138.044us 169.039us 212.908us 151.121ms 101.197s
+      set     71530         0 138.998us 169.992us 216.007us   1.200ms  10.173s
+   delete      7916       752 136.137us 167.847us 211.954us   1.059ms   1.106s
+    Total    791992                                                   112.476s
 ========= ========= ========= ========= ========= ========= ========= =========
 
 Redis performance is roughly half that of Memcached. Beware the impact of
