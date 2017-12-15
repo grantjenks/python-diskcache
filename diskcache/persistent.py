@@ -562,7 +562,8 @@ class Deque(Sequence):
             self.clear()
             self.extend(temp)
         finally:
-            temp._cache.close()
+            if temp is not None:
+                temp._cache.close()
             del temp
             rmtree(directory)
 

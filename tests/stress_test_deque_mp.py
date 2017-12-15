@@ -80,24 +80,12 @@ def stress_pop(deque):
         pass
 
 
-register(stress_pop)
-register(stress_pop)
-register(stress_pop)
-register(stress_pop)
-
-
 @register
 def stress_popleft(deque):
     try:
         deque.popleft()
     except IndexError:
         pass
-
-
-register(stress_popleft)
-register(stress_popleft)
-register(stress_popleft)
-register(stress_popleft)
 
 
 @register
@@ -114,7 +102,10 @@ def stress_rotate(deque):
 def stress(seed, deque):
     random.seed(seed)
     for count in range(OPERATIONS):
-        function = random.choice(functions)
+        if len(deque) > 100:
+            function = random.choice([stress_pop, stress_popleft])
+        else:
+            function = random.choice(functions)
         function(deque)
 
 
