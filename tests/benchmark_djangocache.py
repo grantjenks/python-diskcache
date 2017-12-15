@@ -1,4 +1,10 @@
-"Benchmark diskcache.DjangoCache"
+"""Benchmark diskcache.DjangoCache
+
+$ export PYTHONPATH=/Users/grantj/repos/python-diskcache
+$ python tests/benchmark_djangocache.py > tests/timings_djangocache.txt
+
+
+"""
 
 from __future__ import print_function
 

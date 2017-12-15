@@ -1,4 +1,10 @@
-"Benchmark diskcache.Core."
+"""Benchmark diskcache.Cache
+
+$ export PYTHONPATH=/Users/grantj/repos/python-diskcache
+$ python tests/benchmark_core.py -p 1 > tests/timings_core_p1.txt
+$ python tests/benchmark_core.py -p 8 > tests/timings_core_p8.txt
+
+"""
 
 from __future__ import print_function
 
