@@ -70,7 +70,6 @@ DEFAULT_SETTINGS = {
     u'sqlite_cache_size': 2 ** 13,   # 8,192 pages
     u'sqlite_journal_mode': u'wal',
     u'sqlite_mmap_size': 2 ** 26,    # 64mb
-    u'sqlite_page_size': 4096,
     u'sqlite_synchronous': 1,        # NORMAL
     u'disk_min_file_size': 2 ** 15,  # 32kb
     u'disk_pickle_protocol': pickle.HIGHEST_PROTOCOL,

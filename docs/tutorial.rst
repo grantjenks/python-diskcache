@@ -547,7 +547,6 @@ pragma documentation`_ for more details.
 * `sqlite_cache_size`, default 8,192 pages.
 * `sqlite_journal_mode`, default "wal".
 * `sqlite_mmap_size`, default 64 megabytes.
-* `sqlite_page_size`, default 4 kilobytes.
 * `sqlite_synchronous`, default 1, "NORMAL".
 
 Each of these settings can passed to :class:`DjangoCache

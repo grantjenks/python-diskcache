@@ -56,8 +56,6 @@ Read the :ref:`Settings tutorial <tutorial-settings>` for details.
    * `sqlite_journal_mode` (str) default "wal" - SQLite journal mode pragma.
    * `sqlite_mmap_size` (int, in bytes) default 64 megabytes - SQLite mmap size
      pragma.
-   * `sqlite_page_size` (int, in bytes) default 4 kilobytes - SQLite page size
-     pragma.
    * `sqlite_synchronous` (int) default 1, "NORMAL" - SQLite synchronous
      pragma.
    * `disk_min_file_size` (int, in bytes) default one kilobyte - values with
