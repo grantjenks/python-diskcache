@@ -19,20 +19,20 @@ import warnings
 import zlib
 
 if sys.hexversion < 0x03000000:
-    import cPickle as pickle
+    import cPickle as pickle  # pylint: disable=import-error
     # ISSUE #25 Fix for http://bugs.python.org/issue10211
-    from cStringIO import StringIO as BytesIO
-    TextType = unicode
+    from cStringIO import StringIO as BytesIO  # pylint: disable=import-error
+    TextType = unicode  # pylint: disable=invalid-name,undefined-variable
     BytesType = str
-    INT_TYPES = int, long
-    range = xrange  # pylint: disable=redefined-builtin,invalid-name
+    INT_TYPES = int, long  # pylint: disable=undefined-variable
+    range = xrange  # pylint: disable=redefined-builtin,invalid-name,undefined-variable
     io_open = io.open  # pylint: disable=invalid-name
 else:
     import pickle
     from io import BytesIO  # pylint: disable=ungrouped-imports
     TextType = str
     BytesType = bytes
-    INT_TYPES = int,
+    INT_TYPES = (int,)
     io_open = open  # pylint: disable=invalid-name
 
 try:
@@ -584,9 +584,9 @@ class Cache(object):
             raise
         else:
             sql('COMMIT')
-            for filename in filenames:
-                if filename is not None:
-                    _disk_remove(filename)
+            for name in filenames:
+                if name is not None:
+                    _disk_remove(name)
 
 
     def set(self, key, value, expire=None, read=False, tag=None):

@@ -303,9 +303,8 @@ class DjangoCache(BaseCache):
         return self._cache.cull()
 
 
-    def clear(self, **kwargs):
+    def clear(self):
         "Remove *all* values from the cache at once."
-        # pylint: disable=unused-argument
         return self._cache.clear()
 
 

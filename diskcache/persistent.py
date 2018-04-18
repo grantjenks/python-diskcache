@@ -14,8 +14,8 @@ from tempfile import mkdtemp
 from .core import BytesType, Cache, ENOVAL, TextType, Timeout
 
 if sys.hexversion < 0x03000000:
-    from itertools import izip as zip  # pylint: disable=redefined-builtin,ungrouped-imports,wrong-import-order
-    range = xrange  # pylint: disable=redefined-builtin,invalid-name
+    from itertools import izip as zip  # pylint: disable=redefined-builtin,no-name-in-module,ungrouped-imports
+    range = xrange  # pylint: disable=redefined-builtin,invalid-name,undefined-variable
 
 
 def _make_compare(seq_op, doc):
