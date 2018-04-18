@@ -239,8 +239,7 @@ class Disk(object):
 
             return size, MODE_BINARY, filename, None
         else:
-            data = pickle.dumps(value, protocol=self.pickle_protocol)
-            result = pickletools.optimize(data)
+            result = pickle.dumps(value, protocol=self.pickle_protocol)
 
             if len(result) < min_file_size:
                 return 0, MODE_PICKLE, None, sqlite3.Binary(result)
