@@ -663,12 +663,14 @@ will define equality.
 threads and processes and as such inherits all SQLite caveats. Most notably
 SQLite is `not recommended`_ for use with Network File System (NFS) mounts. For
 this reason, :doc:`DiskCache <index>` currently `performs poorly`_ on `Python
-Anywhere`_.
+Anywhere`_. Users have also reported issues running inside of `Parallels`_
+shared folders.
 
 .. _`hash protocol`: https://docs.python.org/library/functions.html#hash
 .. _`not recommended`: https://www.sqlite.org/faq.html#q5
 .. _`performs poorly`: https://www.pythonanywhere.com/forums/topic/1847/
 .. _`Python Anywhere`: https://www.pythonanywhere.com/
+.. _`Parallels`: https://www.parallels.com/
 
 Implementation Notes
 --------------------
