@@ -86,6 +86,14 @@ thread that accesses a cache is also responsible for calling :meth:`close
     >>> cache.close()
     >>> with Cache('/tmp/mycachedir') as reference:
     ...     pass
+    
+A closed instance will automatically reopen when needed, so it is safe to close
+as little as possible.
+
+    >>> cache.set(b'key') = b'value'
+    >>> cache.close()
+    >>> cache.get(b'key')
+    'value'
 
 Set an item, get a value, and delete a key using the usual operators:
 
