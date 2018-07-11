@@ -18,6 +18,9 @@ import time
 import warnings
 import zlib
 
+"""import numpy for handling numpy.ndarray values"""
+import numpy as np
+
 if sys.hexversion < 0x03000000:
     import cPickle as pickle  # pylint: disable=import-error
     # ISSUE #25 Fix for http://bugs.python.org/issue10211
@@ -605,6 +608,15 @@ class Cache(object):
         :raises Timeout: if database timeout expires
 
         """
+
+        """
+        handling type numpy.ndarray and set `numpy.ndarray` tag
+        """
+        if issubclass(np.ndarray, type(value)):
+            value = value.dumps()
+            tag = 'numpy.ndarray'
+        
+
         now = time.time()
         db_key, raw = self._disk.put(key)
         expire_time = None if expire is None else now + expire
@@ -778,6 +790,14 @@ class Cache(object):
         :raises Timeout: if database timeout expires
 
         """
+
+        """
+        handling type numpy.ndarray and set `numpy.ndarray` tag
+        """
+        if issubclass(np.ndarray, type(value)):
+            value = value.dumps()
+            tag = 'numpy.ndarray'
+
         now = time.time()
         db_key, raw = self._disk.put(key)
         expire_time = None if expire is None else now + expire
@@ -989,12 +1009,20 @@ class Cache(object):
                     sql(update % update_column.format(now=now), (rowid,))
 
         if expire_time and tag:
+            if db_tag == 'numpy.ndarray':
+                return (np.load(io.BytesIO(value)), db_expire_time, db_tag)
             return (value, db_expire_time, db_tag)
         elif expire_time:
+            if db_tag == 'numpy.ndarray':
+                return (np.load(io.BytesIO(value)), db_expire_time)
             return (value, db_expire_time)
         elif tag:
+            if db_tag == 'numpy.ndarray':
+                return (np.load(io.BytesIO(value)), db_tag)
             return (value, db_tag)
         else:
+            if db_tag == 'numpy.ndarray':
+                return np.load(io.BytesIO(value))
             return value
 
 
@@ -1099,12 +1127,20 @@ class Cache(object):
                 self._disk.remove(filename)
 
         if expire_time and tag:
+            if db_tag == 'numpy.ndarray':
+                return np.load(io.BytesIO(value)), db_expire_time, db_tag
             return value, db_expire_time, db_tag
         elif expire_time:
+            if db_tag == 'numpy.ndarray':
+                return np.load(io.BytesIO(value)), db_expire_time
             return value, db_expire_time
         elif tag:
+            if db_tag == 'numpy.ndarray':
+                return np.load(io.BytesIO(value)), db_tag
             return value, db_tag
         else:
+            if db_tag == 'numpy.ndarray':
+                return np.load(io.BytesIO(value))
             return value
 
 
@@ -1199,6 +1235,14 @@ class Cache(object):
         else:
             min_key = prefix + '-000000000000000'
             max_key = prefix + '-999999999999999'
+
+        """
+        handling type numpy.ndarray and set `numpy.ndarray` tag
+        """
+        if issubclass(np.ndarray, type(value)):
+            value = value.dumps()
+            tag = 'numpy.ndarray'
+
 
         now = time.time()
         raw = True
@@ -1341,12 +1385,20 @@ class Cache(object):
                 self._disk.remove(name)
 
         if expire_time and tag:
+            if db_tag == 'numpy.ndarray':
+                return (key, np.load(io.BytesIO(value))), db_expire, db_tag
             return (key, value), db_expire, db_tag
         elif expire_time:
+            if db_tag == 'numpy.ndarray':
+                return (key, np.load(io.BytesIO(value))), db_expire
             return (key, value), db_expire
         elif tag:
+            if db_tag == 'numpy.ndarray':
+                return (key, np.load(io.BytesIO(value))), db_tag
             return (key, value), db_tag
         else:
+            if db_tag == 'numpy.ndarray':
+                return key, np.load(io.BytesIO(value))
             return key, value
 
 
