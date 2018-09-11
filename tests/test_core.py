@@ -1493,6 +1493,10 @@ def test_lru_incr(cache):
     assert cache[0] == 0
 
 
+@setup_cache
+def test_cache_truthy(cache):
+    assert bool(cache) is True
+
 if __name__ == '__main__':
     import nose
     nose.runmodule()

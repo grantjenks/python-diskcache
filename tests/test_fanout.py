@@ -712,6 +712,11 @@ def test_custom_filename_disk():
     shutil.rmtree('tmp', ignore_errors=True)
 
 
+@setup_cache
+def test_cache_truthy(cache):
+    assert bool(cache) is True
+
+
 if __name__ == '__main__':
     import nose
     nose.runmodule()

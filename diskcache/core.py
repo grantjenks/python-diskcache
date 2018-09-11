@@ -1817,6 +1817,14 @@ class Cache(object):
         return self.reset('count')
 
 
+    def __bool__(self):
+        # Always True, implemented to prevent fallback to __len__
+        return True
+
+
+    __nonzero__ = __bool__  # Python 2
+
+
     def __getstate__(self):
         return (self.directory, self.timeout, type(self.disk))
 
