@@ -487,6 +487,14 @@ class FanoutCache(object):
         return sum(len(shard) for shard in self._shards)
 
 
+    def __bool__(self):
+        # Always True, implemented to prevent fallback to __len__
+        return True
+
+
+    __nonzero__ = __bool__  # Python 2
+
+
     def reset(self, key, value=ENOVAL):
         """Reset `key` and `value` item from Settings table.
 
