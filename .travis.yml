@@ -3,25 +3,21 @@ language: python
 jobs:
   include:
     - stage: core
-      python:
-        - "2.7"
-        - "3.4"
-        - "3.5"
-        - "3.6"
-        - "pypy"
+      python: "2.7"
       install:
         - pip install -r requirements.txt
-      script:
-        - nosetests -v
+    - python: "3.4"
+    - python: "3.5"
+    - python: "3.6"
+    - python: "pypy"
     - stage: beaker
-      python:
-      - "2.7"
-      - "3.4"
-      - "3.5"
-      - "3.6"
-      - "pypy"
+      python: "2.7"
       install:
         - pip install -e .[beaker]
-      script:
-        - nosetests -v
+    - python: "3.4"
+    - python: "3.5"
+    - python: "3.6"
+    - python: "pypy"
 
+script:
+  - nosetests -v
