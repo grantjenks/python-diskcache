@@ -31,7 +31,9 @@ setup(
     tests_require=['tox'],
     cmdclass={'test': Tox},
     license='Apache 2.0',
-    install_requires=[],
+    install_requires=[
+        "django>=1.11,<1.12"
+    ],
     classifiers=(
         'Development Status :: 5 - Production/Stable',
         'Intended Audience :: Developers',
@@ -52,6 +54,6 @@ setup(
     },
     entry_points="""
     [beaker.backends]
-    diskcache = diskcache.beaker:DiskCacheManager
+    diskcache = diskcache.beaker_ext:DiskCacheManager
     """
 )
