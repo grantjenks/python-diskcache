@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 try:
     from beaker.cache import Cache
     runBeakerTest = True
