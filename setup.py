@@ -47,4 +47,11 @@ setup(
         'Programming Language :: Python :: Implementation :: CPython',
         'Programming Language :: Python :: Implementation :: PyPy',
     ),
+    extras_require={
+        'beaker': ['beaker'],
+    },
+    entry_points="""
+    [beaker.backends]
+    diskcache = diskcache.beaker:DiskCacheManager
+    """
 )
