@@ -5,8 +5,15 @@ python:
   - "3.5"
   - "3.6"
   - "pypy"
-install:
-  - pip install -r requirements.txt
-  - pip install -e .[beaker]
+
+jobs:
+  include:
+    - stage: core
+      install:
+        - pip install -r requirements.txt
+    - stage: beaker
+      install:
+        - pip install -e .[beaker]
+
 script:
   - nosetests -v
