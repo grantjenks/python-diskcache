@@ -54,6 +54,6 @@ setup(
     },
     entry_points="""
     [beaker.backends]
-    diskcache = diskcache.beaker_ext:DiskCacheManager
+    ext:diskcache = diskcache.beaker_ext:DiskCacheManager
     """
 )

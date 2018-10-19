@@ -31,7 +31,7 @@ class DiskCacheManager(NamespaceManager):
 
         """
 
-    def __init__(self, namespace, type='cache', **dckwargs):
+    def __init__(self, namespace, diskcache_type=None, **dckwargs):
         """Creates a DiskCache namespace manager
 
         ``type``
@@ -50,7 +50,7 @@ class DiskCacheManager(NamespaceManager):
             'django': DjangoCache,
             'deque': Deque,
             'index': Index
-        }[type](**dckwargs)
+        }[diskcache_type](**dckwargs)
 
     def get_creation_lock(self, key):
         return file_synchronizer(
@@ -74,10 +74,10 @@ class DiskCacheManager(NamespaceManager):
         self.cache.close()
 
     def __getitem__(self, key):
-        self.cache.__getitem__(key)
+        return self.cache.__getitem__(key)
 
     def __setitem__(self, key, value):
-        self.cache.set(key, value)
+        return self.cache.set(key, value)
 
     def set_value(self, key, value, expiretime=None):
         """Sets a value in this :class:`.NamespaceManager`.
@@ -87,7 +87,7 @@ class DiskCacheManager(NamespaceManager):
         at the same time.
 
         """
-        self.cache.set(key, value, expiretime)
+        return self.cache.set(key, value, expiretime)
 
     def __contains__(self, key):
         return self.cache.__contains__(key)

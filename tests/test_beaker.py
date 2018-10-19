@@ -1,14 +1,16 @@
 # -*- coding: utf-8 -*-
 try:
+    from beaker._compat import u_
     from beaker.cache import Cache
+
     runBeakerTest = True
 except ImportError:
     runBeakerTest = False
 
 if runBeakerTest:
-
     def test_has_key():
-        cache = Cache('test', data_dir='./cache', type='ext:diskcache')
+        cache = Cache('test', diskcache_type='disk',
+                      directory='./cache', type='ext:diskcache')
         o = object()
         cache.set_value("test", o)
         assert cache.has_key("test")
@@ -20,18 +22,21 @@ if runBeakerTest:
 
 
     def test_has_key_multicache():
-        cache = Cache('test', data_dir='./cache', type='ext:diskcache')
+        cache = Cache('test', diskcache_type='disk',
+                      directory='./cache', type='ext:diskcache')
         o = object()
         cache.set_value("test", o)
         assert cache.has_key("test")
         assert "test" in cache
-        cache = Cache('test', data_dir='./cache', type='ext:diskcache')
+        cache = Cache('test', diskcache_type='disk',
+                      directory='./cache', type='ext:diskcache')
         assert cache.has_key("test")
         cache.remove_value('test')
 
 
     def test_clear():
-        cache = Cache('test', data_dir='./cache', type='ext:diskcache')
+        cache = Cache('test', diskcache_type='disk',
+                      directory='./cache', type='ext:diskcache')
         o = object()
         cache.set_value("test", o)
         assert cache.has_key("test")
@@ -40,7 +45,8 @@ if runBeakerTest:
 
 
     def test_unicode_keys():
-        cache = Cache('test', data_dir='./cache', type='ext:diskcache')
+        cache = Cache('test', diskcache_type='disk',
+                      directory='./cache', type='ext:diskcache')
         o = object()
         cache.set_value(u_('hiŏ'), o)
         assert u_('hiŏ') in cache
