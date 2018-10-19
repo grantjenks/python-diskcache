@@ -1,5 +1,6 @@
 from beaker.container import NamespaceManager
 from beaker.synchronization import file_synchronizer
+from diskcache import Cache, Deque, DjangoCache, FanoutCache, Index
 
 
 class DiskCacheManager(NamespaceManager):
@@ -30,10 +31,26 @@ class DiskCacheManager(NamespaceManager):
 
         """
 
-    @classmethod
-    def _init_dependencies(cls):
-        """Initialize module-level dependent libraries required
-        by this :class:`.NamespaceManager`."""
+    def __init__(self, namespace, type='cache', **dckwargs):
+        """Creates a DiskCache namespace manager
+
+        ``type``
+            Type of DiskCache to implement. Currently only suppors
+            diskcache.Core and diskcache.FanoutCache.
+        ``dckwargs``
+            Arguments to pass to the diskcache handlers.
+        """
+        NamespaceManager.__init__(self, namespace)
+
+        self._is_new = False
+        self.loaded = False
+        self.cache = {
+            'disk': Cache,
+            'fanout': FanoutCache,
+            'django': DjangoCache,
+            'deque': Deque,
+            'index': Index
+        }[type](**dckwargs)
 
     def get_creation_lock(self, key):
         return file_synchronizer(
@@ -53,60 +70,14 @@ class DiskCacheManager(NamespaceManager):
         :meth:`.NamespaceManager.remove` method.
 
         """
-        raise NotImplementedError()
-
-    def acquire_read_lock(self):
-        """Establish a read lock.
-
-        This operation is called before a key is read.    By
-        default the function does nothing.
-
-        """
-
-    def release_read_lock(self):
-        """Release a read lock.
-
-        This operation is called after a key is read.    By
-        default the function does nothing.
-
-        """
-
-    def acquire_write_lock(self, wait=True, replace=False):
-        """Establish a write lock.
-
-        This operation is called before a key is written.
-        A return value of ``True`` indicates the lock has
-        been acquired.
-
-        By default the function returns ``True`` unconditionally.
-
-        'replace' is a hint indicating the full contents
-        of the namespace may be safely discarded. Some backends
-        may implement this (i.e. file backend won't unpickle the
-        current contents).
-
-        """
-        return True
-
-    def release_write_lock(self):
-        """Release a write lock.
-
-        This operation is called after a new value is written.
-        By default this function does nothing.
-
-        """
-
-    def has_key(self, key):
-        """Return ``True`` if the given key is present in this
-        :class:`.Namespace`.
-        """
-        return self.__contains__(key)
+        self.cache.clear()
+        self.cache.close()
 
     def __getitem__(self, key):
-        raise NotImplementedError()
+        self.cache.__getitem__(key)
 
     def __setitem__(self, key, value):
-        raise NotImplementedError()
+        self.cache.set(key, value)
 
     def set_value(self, key, value, expiretime=None):
         """Sets a value in this :class:`.NamespaceManager`.
@@ -116,13 +87,13 @@ class DiskCacheManager(NamespaceManager):
         at the same time.
 
         """
-        self[key] = value
+        self.cache.set(key, value, expiretime)
 
     def __contains__(self, key):
-        raise NotImplementedError()
+        return self.cache.__contains__(key)
 
     def __delitem__(self, key):
-        raise NotImplementedError()
+        return self.cache.__delitem__(key)
 
     def keys(self):
         """Return the list of all keys.
@@ -131,13 +102,4 @@ class DiskCacheManager(NamespaceManager):
         :class:`.NamespaceManager` implementations.
 
         """
-        raise NotImplementedError()
-
-    def remove(self):
-        """Remove the entire contents of this
-        :class:`.NamespaceManager`.
-
-        e.g. for a file-based namespace, this would remove
-        all the files.
-        """
-        self.do_remove()
+        return self.cache.keys()
