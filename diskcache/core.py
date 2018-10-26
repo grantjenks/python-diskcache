@@ -537,7 +537,7 @@ class Cache(object):
 
 
     @property
-    def _sql(self):
+    def _con(self):
         con = getattr(self._local, 'con', None)
 
         if con is None:
@@ -561,7 +561,12 @@ class Cache(object):
                     if key.startswith('sqlite_'):
                         self.reset(key, value, update=False)
 
-        return con.execute
+        return con
+
+
+    @property
+    def _sql(self):
+        return self._con.execute
 
 
     @cl.contextmanager
