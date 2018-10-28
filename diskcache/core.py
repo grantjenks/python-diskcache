@@ -1873,7 +1873,7 @@ class Cache(object):
 
             if key.startswith('sqlite_'):
 
-                # 2016-02-17 GrantJ - PRAGMA and autocommit_level=None
+                # 2016-02-17 GrantJ - PRAGMA and isolation_level=None
                 # don't always play nicely together. Retry setting the
                 # PRAGMA. I think some PRAGMA statements expect to
                 # immediately take an EXCLUSIVE lock on the database. I
