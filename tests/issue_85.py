@@ -5,47 +5,56 @@ $ python tests/issue_85.py
 
 """
 
-print('REMOVING CACHE DIRECTORY')
-import shutil
-shutil.rmtree('.cache', ignore_errors=True)
-
-print('INITIALIZING DJANGO')
-import os
-os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'tests.settings')
-
+import collections
 import django
-django.setup()
-
-print('RUNNING MULTI-THREADING INIT TEST')
-from django.core.cache import cache
-def run():
-    cache.get('key')
-
+import os
+import random
+import shutil
+import sqlite3
 import threading
-threads = [threading.Thread(target=run) for _ in range(50)]
-_ = [thread.start() for thread in threads]
-_ = [thread.join() for thread in threads]
+import time
 
-print('SQLITE COMPILE OPTIONS')
-c = cache._cache._shards[0]
-options = c._sql('pragma compile_options').fetchall()
-print('\n'.join(val for val, in options))
 
-print('CREATING DATA TABLE')
-c._con.execute('create table data (x)')
-nums = [(num,) for num in range(1000)]
-c._con.executemany('insert into data values (?)', nums)
-c._timeout = 60
+def remove_cache_dir():
+    print('REMOVING CACHE DIRECTORY')
+    shutil.rmtree('.cache', ignore_errors=True)
+
+
+def init_django():
+    global shard
+    print('INITIALIZING DJANGO')
+    os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'tests.settings')
+    django.setup()
+    from django.core.cache import cache
+    shard = cache._cache._shards[0]
+
+
+def multi_threading_init_test():
+    print('RUNNING MULTI-THREADING INIT TEST')
+    from django.core.cache import cache
+
+    def run():
+        cache.get('key')
+
+    threads = [threading.Thread(target=run) for _ in range(50)]
+    _ = [thread.start() for thread in threads]
+    _ = [thread.join() for thread in threads]
+
+
+def show_sqlite_compile_options():
+    print('SQLITE COMPILE OPTIONS')
+    options = shard._sql('pragma compile_options').fetchall()
+    print('\n'.join(val for val, in options))
+
+
+def create_data_table():
+    print('CREATING DATA TABLE')
+    shard._con.execute('create table data (x)')
+    nums = [(num,) for num in range(1000)]
+    shard._con.executemany('insert into data values (?)', nums)
+
 
 commands = {
-    'read/write': [
-        'SELECT MAX(x) FROM data',
-        'UPDATE data SET x = x + 1',
-    ],
-    'write/read': [
-        'UPDATE data SET x = x + 1',
-        'SELECT MAX(x) FROM data',
-    ],
     'begin/read/write': [
         'BEGIN',
         'SELECT MAX(x) FROM data',
@@ -84,22 +93,49 @@ commands = {
     ],
 }
 
-import collections
-errors = collections.deque()
 
-import sqlite3
+values = collections.deque()
 
-def run():
+
+def run(statements):
+    ident = threading.get_ident()
     try:
-        for statement in statements:
-            c._sql(statement)
-    except sqlite3.OperationalError:
-        errors.append(True)
+        for index, statement in enumerate(statements):
+            if index == (len(statements) - 1):
+                values.append(('COMMIT', ident))
+            time.sleep(random.random() / 10.0)
+            shard._sql(statement)
+            if index == 0:
+                values.append(('BEGIN', ident))
+    except sqlite3.OperationalError as exc:
+        values.append(('ERROR', ident))
 
-for key, statements in commands.items():
-    print(f'RUNNING {key}')
-    errors.clear()
-    threads = [threading.Thread(target=run) for _ in range(100)]
-    _ = [thread.start() for thread in threads]
-    _ = [thread.join() for thread in threads]
-    print('Error count:', len(errors))
+
+def test_transaction_errors():
+    for key, statements in commands.items():
+        print(f'RUNNING {key}')
+        values.clear()
+        threads = []
+        for _ in range(100):
+            thread = threading.Thread(target=run, args=(statements,))
+            threads.append(thread)
+        _ = [thread.start() for thread in threads]
+        _ = [thread.join() for thread in threads]
+        errors = [pair for pair in values if pair[0] == 'ERROR']
+        begins = [pair for pair in values if pair[0] == 'BEGIN']
+        commits = [pair for pair in values if pair[0] == 'COMMIT']
+        print('Error count:', len(errors))
+        print('Begin count:', len(begins))
+        print('Commit count:', len(commits))
+        begin_idents = [ident for _, ident in begins]
+        commit_idents = [ident for _, ident in commits]
+        print('Serialized:', begin_idents == commit_idents)
+
+
+if __name__ == '__main__':
+    remove_cache_dir()
+    init_django()
+    multi_threading_init_test()
+    show_sqlite_compile_options()
+    create_data_table()
+    test_transaction_errors()
