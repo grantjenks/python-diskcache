@@ -178,25 +178,6 @@ def test_init_makedirs():
 
 
 @setup_cache
-def test_pragma(cache):
-    local = mock.Mock()
-    con = mock.Mock()
-    execute = mock.Mock()
-    cursor = mock.Mock()
-    fetchall = mock.Mock()
-
-    local.con = con
-    con.execute = execute
-    execute.return_value = cursor
-    cursor.fetchall = fetchall
-    fetchall.side_effect = [sqlite3.OperationalError, None]
-
-    size = 2 ** 28
-
-    with mock.patch.object(cache, '_local', local):
-        assert cache.reset('sqlite_mmap_size', size) == size
-
-@setup_cache
 @nt.raises(sqlite3.OperationalError)
 def test_pragma_error(cache):
     local = mock.Mock()

@@ -388,7 +388,7 @@ class Cache(object):
                         ' and could not be created' % self._directory
                     )
 
-        sql = self._sql
+        sql = self._sql_retry
 
         # Setup Settings table.
 
@@ -567,6 +567,34 @@ class Cache(object):
     @property
     def _sql(self):
         return self._con.execute
+
+
+    @property
+    def _sql_retry(self):
+        con = self._con
+
+        # 2018-11-01 GrantJ - Some SQLite builds/versions handle
+        # the SQLITE_BUSY return value and connection parameter
+        # "timeout" differently. For a more reliable duration,
+        # manually retry the statement for 60 seconds. Only used
+        # by statements which modify the database and do not use
+        # a transaction (like those in ``__init__`` or ``reset``).
+        # See Issue #85 for and tests/issue_85.py for more details.
+
+        def _execute_with_retry(statement, *args, **kwargs):
+            start = time.time()
+            while True:
+                try:
+                    return con.execute(statement, *args, **kwargs)
+                except sqlite3.OperationalError as exc:
+                    if exc.args[0] != 'database is locked':
+                        raise
+                    diff = time.time() - start
+                    if diff > 60:
+                        raise
+                    time.sleep(0.001)
+
+        return _execute_with_retry
 
 
     @cl.contextmanager
@@ -1858,51 +1886,36 @@ class Cache(object):
         :raises Timeout: if database timeout expires
 
         """
+        sql = self._sql_retry
+
         if value is ENOVAL:
             select = 'SELECT value FROM Settings WHERE key = ?'
-            (value,), = self._sql(select, (key,)).fetchall()
+            (value,), = sql(select, (key,)).fetchall()
             setattr(self, key, value)
             return value
-        else:
-            if update:
-                with self._transact() as (sql, _):
-                    statement = 'UPDATE Settings SET value = ? WHERE key = ?'
-                    sql(statement, (value, key))
-            else:
-                sql = self._sql
 
-            if key.startswith('sqlite_'):
+        if update:
+            statement = 'UPDATE Settings SET value = ? WHERE key = ?'
+            sql(statement, (value, key))
 
-                # 2016-02-17 GrantJ - PRAGMA and isolation_level=None
-                # don't always play nicely together. Retry setting the
-                # PRAGMA. I think some PRAGMA statements expect to
-                # immediately take an EXCLUSIVE lock on the database. I
-                # can't find any documentation for this but without the
-                # retry, stress will intermittently fail with multiple
-                # processes.
+        if key.startswith('sqlite_'):
 
-                pause = 0.001
-                count = 60000  # 60 / 0.001
-                error = sqlite3.OperationalError
-                pragma = key[7:]
+            # 2016-02-17 GrantJ - PRAGMA and isolation_level=None
+            # don't always play nicely together. Retry setting the
+            # PRAGMA. I think some PRAGMA statements expect to
+            # immediately take an EXCLUSIVE lock on the database. I
+            # can't find any documentation for this but without the
+            # retry, stress will intermittently fail with multiple
+            # processes.
 
-                for _ in range(count):
-                    try:
-                        args = pragma, value
-                        sql('PRAGMA %s = %s' % args).fetchall()
-                    except sqlite3.OperationalError as exc:
-                        error = exc
-                        time.sleep(pause)
-                    else:
-                        break
-                else:
-                    raise error
+            # 2018-11-01 GrantJ - Retry logic moved to
+            # ``_execute_with_retry`` in ``self._sql_retry``.
 
-                del error
+            pragma = key[7:]
+            sql('PRAGMA %s = %s' % (pragma, value)).fetchall()
+        elif key.startswith('disk_'):
+            attr = key[5:]
+            setattr(self._disk, attr, value)
 
-            elif key.startswith('disk_'):
-                attr = key[5:]
-                setattr(self._disk, attr, value)
-
-            setattr(self, key, value)
-            return value
+        setattr(self, key, value)
+        return value
