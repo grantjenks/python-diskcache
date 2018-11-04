@@ -975,12 +975,9 @@ class Cache(object):
 
             try:
                 value = self._disk.fetch(mode, filename, db_value, read)
-            except IOError as error:
-                if error.errno == errno.ENOENT:
-                    # Key was deleted before we could retrieve result.
-                    return default
-                else:
-                    raise
+            except IOError:
+                # Key was deleted before we could retrieve result.
+                return default
 
         else:  # Slow path, transaction required.
             cache_hit = (

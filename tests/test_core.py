@@ -280,17 +280,6 @@ def test_get_keyerror4(cache):
         cache[0]
 
 
-@nt.raises(IOError)
-@setup_cache
-def test_get_keyerror5(cache):
-    func = mock.Mock(side_effect=IOError(errno.EACCES, ''))
-
-    cache[0] = b'abcd' * 2 ** 20
-
-    with mock.patch('diskcache.core.open', func):
-        cache[0]
-
-
 @setup_cache
 def test_read(cache):
     cache.set(0, b'abcd' * 2 ** 20)
