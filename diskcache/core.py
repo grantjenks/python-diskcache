@@ -409,10 +409,8 @@ class Cache(object):
         # Chance to set pragmas before any tables are created.
 
         for key, value in sorted(sets.items()):
-            if not key.startswith('sqlite_'):
-                continue
-
-            self.reset(key, value, update=False)
+            if key.startswith('sqlite_'):
+                self.reset(key, value, update=False)
 
         sql('CREATE TABLE IF NOT EXISTS Settings ('
             ' key TEXT NOT NULL UNIQUE,'
