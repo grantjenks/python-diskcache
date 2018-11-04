@@ -587,7 +587,7 @@ class Cache(object):
                 try:
                     return con.execute(statement, *args, **kwargs)
                 except sqlite3.OperationalError as exc:
-                    if exc.args[0] != 'database is locked':
+                    if str(exc) != 'database is locked':
                         raise
                     diff = time.time() - start
                     if diff > 60:
