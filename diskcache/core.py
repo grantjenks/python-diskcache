@@ -536,6 +536,16 @@ class Cache(object):
 
     @property
     def _con(self):
+        # Check process ID to support process forking. If the process
+        # ID changes, close the connection and update the process ID.
+
+        local_pid = getattr(self._local, 'pid', None)
+        pid = os.getpid()
+
+        if local_pid != pid:
+            self.close()
+            self._local.pid = pid
+
         con = getattr(self._local, 'con', None)
 
         if con is None:

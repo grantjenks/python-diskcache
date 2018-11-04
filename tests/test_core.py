@@ -186,6 +186,7 @@ def test_pragma_error(cache):
     cursor = mock.Mock()
     fetchall = mock.Mock()
 
+    local.pid = os.getpid()
     local.con = con
     con.execute = execute
     execute.return_value = cursor
@@ -324,6 +325,7 @@ def test_set_timeout(cache):
     con = mock.Mock()
     execute = mock.Mock()
 
+    local.pid = os.getpid()
     local.con = con
     con.execute = execute
     execute.side_effect = sqlite3.OperationalError
@@ -942,6 +944,7 @@ def test_add_timeout(cache):
     con = mock.Mock()
     execute = mock.Mock()
 
+    local.pid = os.getpid()
     local.con = con
     con.execute = execute
     execute.side_effect = sqlite3.OperationalError
