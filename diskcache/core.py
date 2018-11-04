@@ -545,9 +545,10 @@ class Cache(object):
                 isolation_level=None,
             )
 
-            # Some SQLite pragmas work on a per-connection basis so query the
-            # Settings table and reset the pragmas. The Settings table may not
-            # exist so catch and ignore the OperationalError that may occur.
+            # Some SQLite pragmas work on a per-connection basis so
+            # query the Settings table and reset the pragmas. The
+            # Settings table may not exist so catch and ignore the
+            # OperationalError that may occur.
 
             try:
                 select = 'SELECT key, value FROM Settings'
