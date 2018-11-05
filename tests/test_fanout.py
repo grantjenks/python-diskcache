@@ -2,6 +2,7 @@
 
 from __future__ import print_function
 
+import collections as co
 import errno
 import functools as ft
 import hashlib
@@ -32,13 +33,17 @@ warnings.simplefilter('ignore', category=dc.EmptyDirWarning)
 if sys.hexversion < 0x03000000:
     range = xrange
 
-def setup_cache(func):
+def setup_cache(func=None, **options):
+    if func is None:
+        return lambda func: setup_cache(func, **options)
+
     @ft.wraps(func)
     def wrapper():
         shutil.rmtree('tmp', ignore_errors=True)
-        with dc.FanoutCache('tmp') as cache:
+        with dc.FanoutCache('tmp', **options) as cache:
             func(cache)
         shutil.rmtree('tmp', ignore_errors=True)
+
     return wrapper
 
 
@@ -161,6 +166,36 @@ def test_add_timeout_retry(cache):
 
     with mock.patch.object(cache, '_shards', shards):
         assert cache.add(0, 0, retry=True)
+
+
+def stress_add(cache, limit, results):
+    total = 0
+    for num in range(limit):
+        if cache.add(num, num, retry=True):
+            total += 1
+            # Stop one thread from running ahead of others.
+            time.sleep(0.001)
+    results.append(total)
+
+
+@setup_cache(shards=1)
+def test_add_concurrent(cache):
+    results = co.deque()
+    limit = 1000
+
+    threads = [
+        threading.Thread(target=stress_add, args=(cache, limit, results))
+        for _ in range(16)
+    ]
+
+    for thread in threads:
+        thread.start()
+
+    for thread in threads:
+        thread.join()
+
+    assert sum(results) == limit
+    cache.check()
 
 
 @setup_cache

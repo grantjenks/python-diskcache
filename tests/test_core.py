@@ -907,36 +907,6 @@ def test_add_large_value(cache):
     cache.check()
 
 
-def stress_add(cache, limit, results):
-    total = 0
-    for num in range(limit):
-        if cache.add(num, num):
-            total += 1
-            # Stop one thread from running ahead of others.
-            time.sleep(0.001)
-    results.append(total)
-
-
-@setup_cache
-def test_add_concurrent(cache):
-    results = co.deque()
-    limit = 1000
-
-    threads = [
-        threading.Thread(target=stress_add, args=(cache, limit, results))
-        for _ in range(16)
-    ]
-
-    for thread in threads:
-        thread.start()
-
-    for thread in threads:
-        thread.join()
-
-    assert sum(results) == limit
-    cache.check()
-
-
 @setup_cache
 @nt.raises(dc.Timeout)
 def test_add_timeout(cache):
