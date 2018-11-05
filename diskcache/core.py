@@ -1905,6 +1905,7 @@ class Cache(object):
             sql(statement, (value, key))
 
         if key.startswith('sqlite_'):
+            pragma = key[7:]
 
             # 2016-02-17 GrantJ - PRAGMA and isolation_level=None
             # don't always play nicely together. Retry setting the
@@ -1917,8 +1918,14 @@ class Cache(object):
             # 2018-11-01 GrantJ - Retry logic moved to
             # ``_execute_with_retry`` in ``self._sql_retry``.
 
-            pragma = key[7:]
-            sql('PRAGMA %s = %s' % (pragma, value)).fetchall()
+            # 2018-11-05 GrantJ - Avoid setting pragma values that
+            # are already set. Pragma settings like auto_vacuum and
+            # journal_mode can take a long time or may not work after
+            # tables have been created.
+
+            (old_value,), = sql('PRAGMA %s' % (pragma)).fetchall()
+            if old_value != value:
+                sql('PRAGMA %s = %s' % (pragma, value)).fetchall()
         elif key.startswith('disk_'):
             attr = key[5:]
             setattr(self._disk, attr, value)
