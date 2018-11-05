@@ -3,7 +3,7 @@
 from __future__ import print_function
 
 import collections as co
-from diskcache import Cache, UnknownFileWarning, EmptyDirWarning
+from diskcache import Cache, UnknownFileWarning, EmptyDirWarning, Timeout
 import multiprocessing as mp
 import os
 import random
@@ -124,19 +124,24 @@ def all_ops():
 
 
 def worker(queue, eviction_policy, processes, threads):
-    timings = {'get': [], 'set': [], 'delete': []}
+    timings = co.defaultdict(list)
     cache = Cache('tmp', eviction_policy=eviction_policy)
 
     for index, (action, key, value) in enumerate(iter(queue.get, None)):
         start = time.time()
 
-        if action == 'set':
-            cache.set(key, value, expire=EXPIRE)
-        elif action == 'get':
-            result = cache.get(key)
+        try:
+            if action == 'set':
+                cache.set(key, value, expire=EXPIRE)
+            elif action == 'get':
+                result = cache.get(key)
+            else:
+                assert action == 'delete'
+                cache.delete(key)
+        except Timeout:
+            miss = True
         else:
-            assert action == 'delete'
-            cache.delete(key)
+            miss = False
 
         stop = time.time()
 
@@ -144,7 +149,10 @@ def worker(queue, eviction_policy, processes, threads):
             assert result == value
 
         if index > WARMUP:
-            timings[action].append(stop - start)
+            delta = stop - start
+            timings[action].append(delta)
+            if miss:
+                timings[action + '-miss'].append(delta)
 
     queue.put(timings)
 
@@ -179,7 +187,7 @@ def dispatch(num, eviction_policy, processes, threads):
 
     stop = time.time()
 
-    timings = {'get': [], 'set': [], 'delete': [], 'self': (stop - start)}
+    timings = co.defaultdict(list)
 
     for thread_queue in thread_queues:
         data = thread_queue.get()
@@ -243,7 +251,7 @@ def stress_test(create=True, delete=True,
         warnings.simplefilter('ignore', category=EmptyDirWarning)
         cache.check()
 
-    timings = {'get': [], 'set': [], 'delete': [], 'self': 0.0}
+    timings = co.defaultdict(list)
 
     for num in range(processes):
         with open('output-%s.pkl' % num, 'rb') as reader:
