@@ -242,27 +242,24 @@ def stress_incr(cache, limit):
         time.sleep(0.001)
 
 
-def test_incr_concurrent():
+@setup_cache(shards=1, timeout=0.001)
+def test_incr_concurrent(cache):
     count = 16
-    limit = 500
+    limit = 50
 
-    with dc.FanoutCache('tmp', timeout=0.001) as cache:
-        threads = [
-            threading.Thread(target=stress_incr, args=(cache, limit))
-            for _ in range(count)
-        ]
+    threads = [
+        threading.Thread(target=stress_incr, args=(cache, limit))
+        for _ in range(count)
+    ]
 
-        for thread in threads:
-            thread.start()
+    for thread in threads:
+        thread.start()
 
-        for thread in threads:
-            thread.join()
+    for thread in threads:
+        thread.join()
 
-    with dc.FanoutCache('tmp') as cache:
-        assert cache.get(b'key') == count * limit
-        cache.check()
-
-    shutil.rmtree('tmp', ignore_errors=True)
+    assert cache.get(b'key') == count * limit
+    cache.check()
 
 
 @setup_cache
