@@ -811,63 +811,6 @@ def test_tag(cache):
 
 
 @setup_cache
-def test_multiple_threads(cache):
-    values = list(range(100))
-
-    cache[0] = 0
-    cache[1] = 1
-    cache[2] = 2
-
-    cache = dc.Cache('tmp')
-
-    def worker():
-        sets = list(values)
-        random.shuffle(sets)
-
-        with dc.Cache('tmp') as thread_cache:
-            for value in sets:
-                thread_cache[value] = value
-
-    threads = [threading.Thread(target=worker) for _ in range(10)]
-
-    for thread in threads:
-        thread.start()
-
-    for thread in threads:
-        thread.join()
-
-    for value in values:
-        assert cache[value] == value
-
-    assert len(cache.check()) == 0
-
-
-@setup_cache
-def test_thread_safe(cache):
-    values = list(range(100))
-
-    def worker():
-        with cache:
-            sets = list(values)
-            random.shuffle(sets)
-            for value in sets:
-                cache[value] = value
-
-    threads = [threading.Thread(target=worker) for _ in range(10)]
-
-    for thread in threads:
-        thread.start()
-
-    for thread in threads:
-        thread.join()
-
-    for value in values:
-        assert cache[value] == value
-
-    assert len(cache.check()) == 0
-
-
-@setup_cache
 def test_with(cache):
     with dc.Cache('tmp') as tmp:
         tmp[u'a'] = 0
