@@ -374,7 +374,7 @@ class Cache(object):
             raise ValueError('disk must subclass diskcache.Disk')
 
         self._directory = directory
-        self._timeout = 60    # Use 1 minute timeout for initialization.
+        self._timeout = 0  # Manually handle retries during initialization.
         self._local = threading.local()
 
         if not op.isdir(directory):
@@ -580,7 +580,7 @@ class Cache(object):
 
     @property
     def _sql_retry(self):
-        con = self._con
+        sql = self._sql
 
         # 2018-11-01 GrantJ - Some SQLite builds/versions handle
         # the SQLITE_BUSY return value and connection parameter
@@ -594,7 +594,7 @@ class Cache(object):
             start = time.time()
             while True:
                 try:
-                    return con.execute(statement, *args, **kwargs)
+                    return sql(statement, *args, **kwargs)
                 except sqlite3.OperationalError as exc:
                     if str(exc) != 'database is locked':
                         raise
@@ -1892,17 +1892,18 @@ class Cache(object):
         :raises Timeout: if database timeout expires
 
         """
-        sql = self._sql_retry
+        sql = self._sql
+        sql_retry = self._sql_retry
 
         if value is ENOVAL:
             select = 'SELECT value FROM Settings WHERE key = ?'
-            (value,), = sql(select, (key,)).fetchall()
+            (value,), = sql_retry(select, (key,)).fetchall()
             setattr(self, key, value)
             return value
 
         if update:
             statement = 'UPDATE Settings SET value = ? WHERE key = ?'
-            sql(statement, (value, key))
+            sql_retry(statement, (value, key))
 
         if key.startswith('sqlite_'):
             pragma = key[7:]
@@ -1915,17 +1916,25 @@ class Cache(object):
             # retry, stress will intermittently fail with multiple
             # processes.
 
-            # 2018-11-01 GrantJ - Retry logic moved to
-            # ``_execute_with_retry`` in ``self._sql_retry``.
-
             # 2018-11-05 GrantJ - Avoid setting pragma values that
             # are already set. Pragma settings like auto_vacuum and
             # journal_mode can take a long time or may not work after
             # tables have been created.
 
-            (old_value,), = sql('PRAGMA %s' % (pragma)).fetchall()
-            if old_value != value:
-                sql('PRAGMA %s = %s' % (pragma, value)).fetchall()
+            start = time.time()
+            while True:
+                try:
+                    (old_value,), = sql('PRAGMA %s' % (pragma)).fetchall()
+                    if old_value != value:
+                        sql('PRAGMA %s = %s' % (pragma, value)).fetchall()
+                    break
+                except sqlite3.OperationalError as exc:
+                    if str(exc) != 'database is locked':
+                        raise
+                    diff = time.time() - start
+                    if diff > 60:
+                        raise
+                    time.sleep(0.001)
         elif key.startswith('disk_'):
             attr = key[5:]
             setattr(self._disk, attr, value)
