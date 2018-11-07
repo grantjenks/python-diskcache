@@ -64,7 +64,7 @@ Cache
 -----
 
 The core of :doc:`DiskCache <index>` is :class:`diskcache.Cache` which
-represents a disk and file backed cache. As a Cache it supports a familiar
+represents a disk and file backed cache. As a Cache, it supports a familiar
 Python Mapping interface with additional cache and performance parameters.
 
     >>> from diskcache import Cache
@@ -77,23 +77,24 @@ Cache objects may also reference the same directory from separate threads or
 processes. In this way, they are also process-safe and support cross-process
 communication.
 
-When created, Cache objects open and maintain a file handle. As such, they do
-not survive process forking but they may be serialized using Pickle. Each
-thread that accesses a cache is also responsible for calling :meth:`close
-<diskcache.Cache.close>` on the cache. You can use a Cache reference in a
-`with` statement to safeguard calling :meth:`close <diskcache.Cache.close>`.
+Cache objects open and maintain one or more file handles. But unlike files, all
+Cache operations are atomic and Cache objects support process-forking and may
+be serialized using Pickle. Each thread that accesses a cache should also call
+:meth:`close <diskcache.Cache.close>` on the cache. Cache objects can be used
+in a `with` statement to safeguard calling :meth:`close
+<diskcache.Cache.close>`.
 
     >>> cache.close()
     >>> with Cache('/tmp/mycachedir') as reference:
     ...     pass
     
-A closed instance will automatically re-open when needed, but re-openning a closed
-instance is relatively slow, and as all operations are atomic, so you can safely leave
-it open.
+Closed Cache objects will automatically re-open when accessed. But opening Cache
+objects is relatively slow, and since all operations are atomic, you can safely
+leave Cache objects open.
 
     >>> cache.set(b'key') = b'value'
     >>> cache.close()
-    >>> cache.get(b'key')  # automatically re-open, but slowly.
+    >>> cache.get(b'key')  # Automatically opens, but slower.
     'value'
 
 Set an item, get a value, and delete a key using the usual operators:
