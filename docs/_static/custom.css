@@ -6,3 +6,7 @@ table {
 th.head {
     text-align: center;
 }
+
+div.body {
+    min-width: 240px;
+}
