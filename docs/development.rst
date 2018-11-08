@@ -29,7 +29,7 @@ Requests for Contributions
 
 #. Backend Compatibility
 
-   #. `Flask-Cache <https://pythonhosted.org/Flask-Cache/>`_
+   #. `Flask-Caching <https://flask-caching.readthedocs.io/>`_
    #. `Beaker <http://beaker.readthedocs.org/en/latest/>`_
    #. `dogpile.cache <http://dogpilecache.readthedocs.org/en/latest/>`_
 
