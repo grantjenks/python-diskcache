@@ -58,7 +58,7 @@ Read the :ref:`Settings tutorial <tutorial-settings>` for details.
      pragma.
    * `sqlite_synchronous` (int) default 1, "NORMAL" - SQLite synchronous
      pragma.
-   * `disk_min_file_size` (int, in bytes) default one kilobyte - values with
+   * `disk_min_file_size` (int, in bytes) default 32 kilobytes - values with
      greater size are stored in files.
    * `disk_pickle_protocol` (int) default highest Pickle protocol - the Pickle
      protocol to use for data types that are not natively supported.

@@ -529,7 +529,7 @@ are updated lazily. Prefer idioms like :meth:`len
     >>> cache.size_limit
     4000000000
     >>> cache.disk_min_file_size
-    1024
+    32768
     >>> cache.reset('cull_limit', 0)  # Disable automatic evictions.
     0
     >>> cache.set(b'key', 1.234)
@@ -544,7 +544,7 @@ these may be specified when initializing the :ref:`Cache
 <tutorial-cache>`. Changing these values will update the unprefixed attribute
 on the :class:`Disk <diskcache.Disk>` object.
 
-* `disk_min_file_size`, default one kilobyte. The minimum size to store a value
+* `disk_min_file_size`, default 32 kilobytes. The minimum size to store a value
   in a file.
 * `disk_pickle_protocol`, default highest Pickle protocol. The Pickle protocol
   to use for data types that are not natively supported.
