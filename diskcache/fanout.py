@@ -58,6 +58,9 @@ class FanoutCache(object):
         When `read` is `True`, `value` should be a file-like object opened
         for reading in binary mode.
 
+        If database timeout occurs then fails silently unless `retry` is set to
+        `True` (default `False`).
+
         :param key: key for item
         :param value: value for item
         :param float expire: seconds until the key expires
@@ -83,6 +86,8 @@ class FanoutCache(object):
 
     def __setitem__(self, key, value):
         """Set `key` and `value` item in cache.
+
+        Calls :func:`FanoutCache.set` internally with `retry` set to `True`.
 
         :param key: key for item
         :param value: value for item
@@ -190,6 +195,9 @@ class FanoutCache(object):
             retry=False):
         """Retrieve value from cache. If `key` is missing, return `default`.
 
+        If database timeout occurs then returns `default` unless `retry` is set
+        to `True` (default `False`).
+
         :param key: key for item
         :param default: return value if key is missing (default None)
         :param bool read: if True, return file handle to value
@@ -219,6 +227,8 @@ class FanoutCache(object):
 
     def __getitem__(self, key):
         """Return corresponding value for `key` from cache.
+
+        Calls :func:`FanoutCache.get` internally with `retry` set to `True`.
 
         :param key: key for item
         :return: value for item
@@ -295,6 +305,9 @@ class FanoutCache(object):
 
         Missing keys are ignored.
 
+        If database timeout occurs then fails silently unless `retry` is set to
+        `True` (default `False`).
+
         :param key: key for item
         :param bool retry: retry if database timeout expires (default False)
         :return: True if item was deleted
@@ -317,6 +330,8 @@ class FanoutCache(object):
 
     def __delitem__(self, key):
         """Delete corresponding item for `key` from cache.
+
+        Calls :func:`FanoutCache.delete` internally with `retry` set to `True`.
 
         :param key: key for item
         :raises KeyError: if key is not found
