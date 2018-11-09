@@ -52,6 +52,7 @@ Does your company or website use `DiskCache`_? Send us a `message
 Features
 --------
 
+- TODO: update with Comparison below
 - Pure-Python
 - Fully Documented
 - Benchmark comparisons (alternatives, Django cache backends)
@@ -84,10 +85,9 @@ Installing DiskCache is simple with
 You can access documentation in the interpreter with Python's built-in help
 function::
 
-  >>> from diskcache import Cache, FanoutCache, DjangoCache
-  >>> help(Cache)
+  >>> from diskcache import FanoutCache
   >>> help(FanoutCache)
-  >>> help(DjangoCache)
+  >>> cache = FanoutCache('path/to/cache/directory')
 
 User Guide
 ----------
@@ -110,6 +110,91 @@ introduction, benchmarks, development, and API.
 .. _`Case Study: Web Crawler`: http://www.grantjenks.com/docs/diskcache/case-study-web-crawler.html
 .. _`DiskCache API Reference`: http://www.grantjenks.com/docs/diskcache/api.html
 .. _`DiskCache Development`: http://www.grantjenks.com/docs/diskcache/development.html
+
+Comparison
+----------
+
+Features
+
+* Atomic? Yes/No
+* Persistent? Yes/No
+* Thread-safe? Yes/No
+* Process-safe? Yes/No
+* Backend? Memory/Filesystem/SQLite/Redis/SQLAlchemy/etc.
+* Serialization? Pickle/JSON/etc.
+* Data Types? Mapping (Ordered, Sorted)/Deque/etc.
+* Eviction Policies? LRU/LFU/MRU/LRS/Random/Dummy/Infinite
+* Vacuum? Automatic/Manual
+* Can be pickled? (Important for multiprocessing module)
+* Supports process forking? (Important for multiprocessing)
+* Metadata?
+
+* Tests? Yes/No
+* Coverage? Yes/No
+* Stress? Yes/No
+* CI Tests? None/Travis/AppVeyor/etc.
+* Python? 2/3/PyPy/Jython
+* Platforms? *nix/Windows
+* License? Apache2/GPL/etc.
+* Docs? None/Readme/Extensive
+* Benchmarks? Yes/No
+* Timings for get/set/delete
+* Sources? GitHub/SourceForge
+* Structure? Document/Relational/Key-Value
+* Pure-Python? Yes/No
+* Server? Yes/No
+* Goal? Database/ORM/KV Store/etc.
+* Web Framework Support? Django, Flask, Pyramid, Plone
+
+Simple Key-Value Stores
+
+* dbm -- https://docs.python.org/library/dbm.html
+* shelve -- https://docs.python.org/library/shelve.html
+* sqlitedict -- https://github.com/RaRe-Technologies/sqlitedict
+* pickleDB -- https://pythonhosted.org/pickleDB/
+
+Caching Libraries
+
+* klepto -- https://pypi.org/project/klepto/
+* joblib.Memory -- https://joblib.readthedocs.io/en/latest/memory.html
+
+In-Memory Data Structures
+
+* pandas -- https://pandas.pydata.org/
+* Sorted Containers -- http://www.grantjenks.com/docs/sortedcontainers/
+* ldtable -- https://github.com/Jwink3101/ldtable
+
+Pure-Python Databases
+
+* ZODB -- http://www.zodb.org/
+* CodernityDB -- http://labs.codernity.com/codernitydb/
+* TinyDB -- https://tinydb.readthedocs.io/
+
+Object Relational Mappings (ORM)
+
+* Django ORM -- https://docs.djangoproject.com/en/dev/topics/db/
+* SQLAlchemy -- https://www.sqlalchemy.org/
+* Peewee -- http://docs.peewee-orm.com/
+* dataset -- https://dataset.readthedocs.io/
+* SQLObject -- http://sqlobject.org/
+* Pony ORM -- https://ponyorm.com/
+
+SQL Databases
+
+* SQLite -- https://docs.python.org/library/sqlite3.html
+* MySQL -- https://dev.mysql.com/downloads/connector/python/
+* PostgreSQL -- http://initd.org/psycopg/
+* Oracle -- https://pypi.org/project/cx_Oracle/
+* Microsoft SQL Server -- https://pypi.org/project/pyodbc/
+
+Other Databases
+
+* Memcached -- https://pypi.org/project/python-memcached/
+* MongoDB -- https://api.mongodb.com/python/current/
+* Redis -- https://redis.io/clients#python
+* LMDB -- https://lmdb.readthedocs.io/
+* BerkeleyDB -- https://pypi.org/project/bsddb3/
+* LevelDB -- https://plyvel.readthedocs.io/
 
 Reference
 ---------
