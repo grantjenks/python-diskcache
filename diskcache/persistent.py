@@ -5,17 +5,31 @@
 import operator as op
 import sys
 
-from collections import MutableMapping, OrderedDict, Sequence
-from collections import KeysView, ValuesView, ItemsView
+from collections import OrderedDict
 from itertools import islice
 from shutil import rmtree
 from tempfile import mkdtemp
 
 from .core import BytesType, Cache, ENOVAL, TextType, Timeout
 
+############################################################################
+# BEGIN Python 2/3 Shims
+############################################################################
+
+try:
+    from collections.abc import MutableMapping, Sequence
+    from collections.abc import KeysView, ValuesView, ItemsView
+except ImportError:
+    from collections import MutableMapping, Sequence
+    from collections import KeysView, ValuesView, ItemsView
+
 if sys.hexversion < 0x03000000:
     from itertools import izip as zip  # pylint: disable=redefined-builtin,no-name-in-module,ungrouped-imports
     range = xrange  # pylint: disable=redefined-builtin,invalid-name,undefined-variable
+
+############################################################################
+# END Python 2/3 Shims
+############################################################################
 
 
 def _make_compare(seq_op, doc):
