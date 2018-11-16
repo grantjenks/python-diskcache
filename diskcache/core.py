@@ -1924,8 +1924,12 @@ class Cache(object):
             start = time.time()
             while True:
                 try:
-                    (old_value,), = sql('PRAGMA %s' % (pragma)).fetchall()
-                    if old_value != value:
+                    try:
+                        (old_value,), = sql('PRAGMA %s' % (pragma)).fetchall()
+                        update = old_value != value
+                    except ValueError:
+                        update = True
+                    if update:
                         sql('PRAGMA %s = %s' % (pragma, value)).fetchall()
                     break
                 except sqlite3.OperationalError as exc:
