@@ -6,17 +6,19 @@ environment:
     - PYTHON: "C:\\Python34"
     - PYTHON: "C:\\Python35"
     - PYTHON: "C:\\Python36"
+    - PYTHON: "C:\\Python37"
     - PYTHON: "C:\\Python27-x64"
     - PYTHON: "C:\\Python34-x64"
     - PYTHON: "C:\\Python35-x64"
     - PYTHON: "C:\\Python36-x64"
+    - PYTHON: "C:\\Python37-x64"
 
 install:
 
-  - "%PYTHON%\\python.exe -m pip install nose mock django==1.11.12"
+  - "%PYTHON%\\python.exe -m pip install tox"
 
 build: off
 
 test_script:
 
-  - "%PYTHON%\\python.exe -m nose -v"
+  - "%PYTHON%\\python.exe -m tox -e py"

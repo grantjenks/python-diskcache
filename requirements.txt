@@ -1,3 +1,14 @@
+coverage
+django<2
+doc8
+gj
 mock
 nose
-django<2
+pylint
+pytest
+pytest-cov
+pytest-django
+sphinx
+tox
+twine
+wheel
