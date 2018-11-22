@@ -29,8 +29,8 @@ except Exception:  # pylint: disable=broad-except
 
 
 __title__ = 'diskcache'
-__version__ = '3.1.0'
-__build__ = 0x030100
+__version__ = '3.1.1'
+__build__ = 0x030101
 __author__ = 'Grant Jenks'
 __license__ = 'Apache 2.0'
 __copyright__ = 'Copyright 2016-2018 Grant Jenks'
