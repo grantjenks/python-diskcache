@@ -1,9 +1,8 @@
-import io
-from setuptools import setup, find_packages
+from setuptools import setup
 from setuptools.command.test import test as TestCommand
-import sys
 
 import diskcache
+
 
 class Tox(TestCommand):
     def finalize_options(self):
@@ -13,24 +12,24 @@ class Tox(TestCommand):
     def run_tests(self):
         import tox
         errno = tox.cmdline(self.test_args)
-        sys.exit(errno)
+        exit(errno)
 
-with io.open('README.rst', encoding='UTF-8') as reader:
+
+with open('README.rst') as reader:
     readme = reader.read()
 
 setup(
-    name='diskcache',
+    name=diskcache.__title__,
     version=diskcache.__version__,
-    description='Disk and file backed cache.',
+    description='Disk Cache -- Disk and file backed persistent cache.',
     long_description=readme,
     author='Grant Jenks',
     author_email='contact@grantjenks.com',
     url='http://www.grantjenks.com/docs/diskcache/',
-    packages=find_packages(exclude=('tests', 'docs')),
-    package_data={'': ['LICENSE', 'README.rst']},
+    license='Apache 2.0',
+    packages=['diskcache'],
     tests_require=['tox'],
     cmdclass={'test': Tox},
-    license='Apache 2.0',
     install_requires=[],
     classifiers=(
         'Development Status :: 5 - Production/Stable',
