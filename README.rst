@@ -11,7 +11,7 @@ to leverage empty disk space for caching?
 
 Django is Python's most popular web framework and ships with several caching
 backends. Unfortunately the file-based cache in Django is essentially
-broken. The culling method is random and large caches repeatedly scan a cache
+`broken`_. The culling method is random and large caches repeatedly scan a cache
 directory which slows linearly with growth. Can you really allow it to take
 sixty milliseconds to store a key in a cache with a thousand items?
 
@@ -142,3 +142,4 @@ See the License for the specific language governing permissions and
 limitations under the License.
 
 .. _`DiskCache`: http://www.grantjenks.com/docs/diskcache/
+.. _`broken`: https://code.djangoproject.com/ticket/11260
