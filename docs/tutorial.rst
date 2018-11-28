@@ -92,7 +92,7 @@ Closed Cache objects will automatically re-open when accessed. But opening
 Cache objects is relatively slow, and since all operations are atomic, you can
 safely leave Cache objects open.
 
-    >>> cache.set(b'key') = b'value'
+    >>> cache.set(b'key', b'value')
     >>> cache.close()
     >>> cache.get(b'key')  # Automatically opens, but slower.
     'value'
