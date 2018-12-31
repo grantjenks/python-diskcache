@@ -3,6 +3,11 @@ table {
     width: 100%;
 }
 
+#comparison table {
+    display: block;
+    overflow: scroll;
+}
+
 th.head {
     text-align: center;
 }

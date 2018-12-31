@@ -85,15 +85,17 @@ Installing DiskCache is simple with
 You can access documentation in the interpreter with Python's built-in help
 function::
 
-  >>> from diskcache import FanoutCache
+  >>> from diskcache import Cache, FanoutCache, DjangoCache
   >>> help(FanoutCache)
   >>> cache = FanoutCache('path/to/cache/directory')
+  >>> help(cache)
+  >>> help(DjangoCache)
 
 User Guide
 ----------
 
 For those wanting more details, this part of the documentation describes
-introduction, benchmarks, development, and API.
+tutorial, benchmarks, API, and development.
 
 * `DiskCache Tutorial`_
 * `DiskCache Cache Benchmarks`_
@@ -127,14 +129,14 @@ Features
 * Vacuum? Automatic/Manual
 * Can be pickled? (Important for multiprocessing module)
 * Supports process forking? (Important for multiprocessing)
-* Metadata?
+* Supports metadata?
 
 * Tests? Yes/No
 * Coverage? Yes/No
 * Stress? Yes/No
 * CI Tests? None/Travis/AppVeyor/etc.
 * Python? 2/3/PyPy/Jython
-* Platforms? *nix/Windows
+* Platforms? \*nix/Windows
 * License? Apache2/GPL/etc.
 * Docs? None/Readme/Extensive
 * Benchmarks? Yes/No
@@ -147,11 +149,74 @@ Features
 * Web Framework Support? Django, Flask, Pyramid, Plone
 
 Simple Key-Value Stores
+.......................
 
 * dbm -- https://docs.python.org/library/dbm.html
 * shelve -- https://docs.python.org/library/shelve.html
 * sqlitedict -- https://github.com/RaRe-Technologies/sqlitedict
 * pickleDB -- https://pythonhosted.org/pickleDB/
+
+================ ================ ======= ======= ============ ============
+Feature          diskcache        dbm     shelve  sqlitedict   pickleDB
+================ ================ ======= ======= ============ ============
+Atomic?          Always           Maybe   Maybe   Maybe        No
+Persistent?      Yes              Yes     Yes     Yes          Yes
+Thread-safe?     Yes              No      No      Yes          No
+Process-safe?    Yes              No      No      Maybe        No
+Backend?         SQLite           DBM     DBM     SQLite       File
+Serialization?   Customizable     None    Pickle  Customizable JSON
+Data Types?      Mapping/Deque    Mapping Mapping Mapping      Mapping
+Eviction?        None/LRS/LRU/LFU None    None    None         None
+Vacuum?          Automatic        Maybe   Maybe   Manual       Automatic
+Multiprocessing? Yes              No      No      No           No
+Forkable?        Yes              No      No      No           No
+Metadata?        Yes              No      No      No           No
+================ ================ ======= ======= ============ ============
+
+================ ================ ======= ======= ============ ============
+Project          diskcache        dbm     shelve  sqlitedict   pickleDB
+================ ================ ======= ======= ============ ============
+Tests?           Yes              Yes     Yes     Yes          Yes
+Coverage?        Yes              Yes     Yes     Yes          No
+Stress?          Yes              No      No      No           No
+CI Tests?        Travis/AppVeyor  Yes     Yes     Travis       No
+Python?          2/3/PyPy         All     All     2/3          2/3
+License?         Apache2          Python  Python  Apache2      3-Clause BSD
+Docs?            Extensive        Summary Summary Readme       Summary
+Benchmarks?      Yes              No      No      No           No
+Sources?         GitHub           GitHub  GitHub  GitHub       GitHub
+Pure-Python?     Yes              Yes     Yes     Yes          Yes
+Server?          No               No      No      No           No
+Framework?       None/Django      None    None    None         None
+================ ================ ======= ======= ============ ============
+
+* Timings for get/set/delete
+
+```python
+import dbm
+import diskcache
+import pickledb
+import shelve
+import sqlitedict
+
+print('diskcache')
+dc = diskcache.FanoutCache('/tmp/diskcache')
+%timeit dc['key'] = 'value'
+
+print('dbm')
+%timeit d = dbm.open('/tmp/dbm', 'c'); d['key'] = 'value'; d.close()
+
+print('shelve')
+%timeit s = shelve.open('/tmp/shelve'); s['key'] = 'value'; s.close()
+
+print('sqlitedict')
+sd = sqlitedict.SqliteDict('/tmp/sqlitedict', autocommit=True)
+%timeit sd['key'] = 'value'
+
+print('pickledb')
+p = pickledb.load('/tmp/pickledb', True)
+%timeit p['key'] = 'value'
+```
 
 Caching Libraries
 
@@ -160,6 +225,7 @@ Caching Libraries
 
 In-Memory Data Structures
 
+* dict -- https://docs.python.org/3/library/stdtypes.html#typesmapping
 * pandas -- https://pandas.pydata.org/
 * Sorted Containers -- http://www.grantjenks.com/docs/sortedcontainers/
 * ldtable -- https://github.com/Jwink3101/ldtable
