@@ -390,7 +390,8 @@ DjangoCache
             'BACKEND': 'diskcache.DjangoCache',
             'LOCATION': '/path/to/cache/directory',
             'SHARDS': 4,
-            'DATABASE_TIMEOUT': 1.0,
+            'DATABASE_TIMEOUT': 1.0,  # Timeout for each DjangoCache database transaction
+            'TIMEOUT': 300,  # Default timeout for each key
             'OPTIONS': {
                 'size_limit': 2 ** 32  # 4 gigabytes
             },
