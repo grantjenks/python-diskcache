@@ -389,19 +389,23 @@ DjangoCache
         'default': {
             'BACKEND': 'diskcache.DjangoCache',
             'LOCATION': '/path/to/cache/directory',
-            'SHARDS': 4,
-            'DATABASE_TIMEOUT': 1.0,  # Timeout for each DjangoCache database transaction
-            'TIMEOUT': 300,  # Default timeout for each key
+            'TIMEOUT': 300,
+            # ^-- Django setting for default timeout of each key.
+            'SHARDS': 8,
+            'DATABASE_TIMEOUT': 0.010,  # 10 milliseconds
+            # ^-- Timeout for each DjangoCache database transaction.
             'OPTIONS': {
-                'size_limit': 2 ** 32  # 4 gigabytes
+                'size_limit': 2 ** 30   # 1 gigabyte
             },
         },
     }
 
 As with :class:`FanoutCache <diskcache.FanoutCache>` above, these settings
-create a Django-compatible cache with four shards and a one second timeout. You
-can pass further settings via the ``OPTIONS`` mapping as shown in the Django
-documentation. :class:`DjangoCache <diskcache.DjangoCache>` will never raise a
+create a Django-compatible cache with eight shards and a 10ms timeout. You can
+pass further settings via the ``OPTIONS`` mapping as shown in the Django
+documentation. Only the ``BACKEND`` and ``LOCATION`` keys are necessary in the
+above example. The other keys simply display their default
+value. :class:`DjangoCache <diskcache.DjangoCache>` will never raise a
 :exc:`Timeout <diskcache.Timeout>` exception. But unlike :class:`FanoutCache
 <diskcache.FanoutCache>`, the keyword parameter `retry` defaults to ``True``
 for :class:`DjangoCache <diskcache.DjangoCache>` methods.
