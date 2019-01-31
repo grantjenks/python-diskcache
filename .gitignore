@@ -1,8 +1,19 @@
 # Python byte-code
+__pycache__/
 *.py[co]
 
 # virutalenv directories
 /env*/
+/venv*/
+/.venv*/
+
+# Vim IDE
+*~
+*.swp
+*.swo
+
+ # IntelliJ IDEA
+.idea/
 
 # coverage files
 .coverage
@@ -12,5 +23,8 @@
 /build/
 /dist/
 /diskcache.egg-info/
+/eggs/
+/.eggs/
+/tmp/
 
 .DS_Store
