@@ -865,7 +865,7 @@ class Cache(object):
 
         :param key: key for item
         :param int delta: amount to increment (default 1)
-        :param int default: value if key is missing (default None)
+        :param int default: value if key is missing (default 0)
         :return: new value for item
         :raises KeyError: if key is not found and default is None
         :raises Timeout: if database timeout expires
