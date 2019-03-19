@@ -9,9 +9,9 @@ import hashlib
 import io
 import json
 import mock
-import nose.tools as nt
 import os
 import os.path as op
+import pytest
 import random
 import shutil
 import sqlite3
@@ -31,23 +31,19 @@ except:
 import diskcache
 import diskcache as dc
 
-warnings.simplefilter('error')
-warnings.simplefilter('ignore', category=dc.EmptyDirWarning)
+pytestmark = pytest.mark.filterwarnings('ignore', category=dc.EmptyDirWarning)
 
 if sys.hexversion < 0x03000000:
     range = xrange
 
-def setup_cache(func):
-    @ft.wraps(func)
-    def wrapper():
-        shutil.rmtree('tmp', ignore_errors=True)
-        with dc.Cache('tmp') as cache:
-            func(cache)
-        shutil.rmtree('tmp', ignore_errors=True)
-    return wrapper
+@pytest.fixture
+def cache():
+    shutil.rmtree('tmp', ignore_errors=True)
+    with dc.Cache('tmp') as cache:
+        yield cache
+    shutil.rmtree('tmp', ignore_errors=True)
 
 
-@setup_cache
 def test_init(cache):
     for key, value in dc.DEFAULT_SETTINGS.items():
         assert getattr(cache, key) == value
@@ -93,10 +89,10 @@ def test_disk_reset():
     shutil.rmtree('tmp', ignore_errors=True)
 
 
-@nt.raises(ValueError)
 def test_disk_valueerror():
-    with dc.Cache('tmp', disk=dc.Disk('tmp')) as cache:
-        pass
+    with pytest.raises(ValueError):
+        with dc.Cache('tmp', disk=dc.Disk('tmp')) as cache:
+            pass
 
 
 class JSONDisk(diskcache.Disk):
@@ -164,21 +160,19 @@ def test_custom_filename_disk():
     shutil.rmtree('tmp', ignore_errors=True)
 
 
-@nt.raises(EnvironmentError)
 def test_init_makedirs():
     shutil.rmtree('tmp', ignore_errors=True)
     makedirs = mock.Mock(side_effect=OSError(errno.EACCES))
 
-    try:
-        with mock.patch('os.makedirs', makedirs):
-            cache = dc.Cache('tmp')
-    except EnvironmentError:
-        shutil.rmtree('tmp')
-        raise
+    with pytest.raises(EnvironmentError):
+        try:
+            with mock.patch('os.makedirs', makedirs):
+                cache = dc.Cache('tmp')
+        except EnvironmentError:
+            shutil.rmtree('tmp')
+            raise
 
 
-@setup_cache
-@nt.raises(sqlite3.OperationalError)
 def test_pragma_error(cache):
     local = mock.Mock()
     con = mock.Mock()
@@ -197,10 +191,10 @@ def test_pragma_error(cache):
 
     with mock.patch('time.sleep', lambda num: 0):
         with mock.patch.object(cache, '_local', local):
-            cache.reset('sqlite_mmap_size', size)
+            with pytest.raises(sqlite3.OperationalError):
+                cache.reset('sqlite_mmap_size', size)
 
 
-@setup_cache
 def test_close_error(cache):
     class LocalTest(object):
         def __init__(self):
@@ -216,7 +210,6 @@ def test_close_error(cache):
         cache.close()
 
 
-@setup_cache
 def test_getsetdel(cache):
     values = [
         (None, False),
@@ -263,14 +256,11 @@ def test_getsetdel(cache):
     cache.check()
 
 
-@nt.raises(KeyError)
-@setup_cache
 def test_get_keyerror1(cache):
-    cache[0]
+    with pytest.raises(KeyError):
+        cache[0]
 
 
-@nt.raises(IOError, KeyError)
-@setup_cache
 def test_get_keyerror4(cache):
     func = mock.Mock(side_effect=IOError(errno.ENOENT, ''))
 
@@ -278,24 +268,22 @@ def test_get_keyerror4(cache):
     cache[0] = b'abcd' * 2 ** 20
 
     with mock.patch('diskcache.core.open', func):
-        cache[0]
+        with pytest.raises((IOError, KeyError, OSError)):
+            cache[0]
 
 
-@setup_cache
 def test_read(cache):
     cache.set(0, b'abcd' * 2 ** 20)
     with cache.read(0) as reader:
         assert reader is not None
 
 
-@nt.raises(KeyError)
-@setup_cache
 def test_read_keyerror(cache):
-    with cache.read(0) as reader:
-        pass
+    with pytest.raises(KeyError):
+        with cache.read(0) as reader:
+            pass
 
 
-@setup_cache
 def test_set_twice(cache):
     large_value = b'abcd' * 2 ** 20
 
@@ -318,8 +306,6 @@ def test_set_twice(cache):
     cache.check()
 
 
-@setup_cache
-@nt.raises(dc.Timeout)
 def test_set_timeout(cache):
     local = mock.Mock()
     con = mock.Mock()
@@ -330,20 +316,19 @@ def test_set_timeout(cache):
     con.execute = execute
     execute.side_effect = sqlite3.OperationalError
 
-    try:
-        with mock.patch.object(cache, '_local', local):
-            cache.set('a', 'b' * 2 ** 20)
-    finally:
-        cache.check()
+    with pytest.raises(dc.Timeout):
+        try:
+            with mock.patch.object(cache, '_local', local):
+                cache.set('a', 'b' * 2 ** 20)
+        finally:
+            cache.check()
 
 
-@setup_cache
 def test_raw(cache):
     assert cache.set(0, io.BytesIO(b'abcd'), read=True)
     assert cache[0] == b'abcd'
 
 
-@setup_cache
 def test_get(cache):
     assert cache.get(0) is None
     assert cache.get(1, 'dne') == 'dne'
@@ -356,14 +341,12 @@ def test_get(cache):
     assert cache.get(0, tag=True) == (0, u'number')
     assert cache.get(0, expire_time=True, tag=True) == (0, None, u'number')
 
-@setup_cache
 def test_get_expired_fast_path(cache):
     assert cache.set(0, 0, expire=0.001)
     time.sleep(0.01)
     assert cache.get(0) is None
 
 
-@setup_cache
 def test_get_ioerror_fast_path(cache):
     assert cache.set(0, 0)
 
@@ -382,7 +365,6 @@ def test_get_ioerror_fast_path(cache):
         assert cache.get(0) is None
 
 
-@setup_cache
 def test_get_expired_slow_path(cache):
     cache.stats(enable=True)
     cache.reset('eviction_policy', 'least-recently-used')
@@ -391,8 +373,6 @@ def test_get_expired_slow_path(cache):
     assert cache.get(0) is None
 
 
-@setup_cache
-@nt.raises(IOError)
 def test_get_ioerror_slow_path(cache):
     cache.reset('eviction_policy', 'least-recently-used')
     cache.set(0, 0)
@@ -409,10 +389,10 @@ def test_get_ioerror_slow_path(cache):
     fetch.side_effect = io_error
 
     with mock.patch.object(cache, '_disk', disk):
-        cache.get(0)
+        with pytest.raises(IOError):
+            cache.get(0)
 
 
-@setup_cache
 def test_pop(cache):
     assert cache.incr('alpha') == 1
     assert cache.pop('alpha') == 1
@@ -438,7 +418,6 @@ def test_pop(cache):
     assert cache.pop('epsilon') == '0' * 2 ** 20
 
 
-@setup_cache
 def test_pop_ioerror(cache):
     assert cache.set(0, 0)
 
@@ -457,8 +436,6 @@ def test_pop_ioerror(cache):
         assert cache.pop(0) is None
 
 
-@setup_cache
-@nt.raises(IOError)
 def test_pop_ioerror_eacces(cache):
     assert cache.set(0, 0)
 
@@ -474,10 +451,10 @@ def test_pop_ioerror_eacces(cache):
     fetch.side_effect = io_error
 
     with mock.patch.object(cache, '_disk', disk):
-        cache.pop(0)
+        with pytest.raises(IOError):
+            cache.pop(0)
 
 
-@setup_cache
 def test_delete(cache):
     cache[0] = 0
     assert cache.delete(0)
@@ -486,21 +463,18 @@ def test_delete(cache):
     assert len(cache.check()) == 0
 
 
-@nt.raises(KeyError)
-@setup_cache
 def test_del(cache):
-    del cache[0]
+    with pytest.raises(KeyError):
+        del cache[0]
 
 
-@nt.raises(KeyError)
-@setup_cache
 def test_del_expired(cache):
     cache.set(0, 0, expire=0.001)
     time.sleep(0.01)
-    del cache[0]
+    with pytest.raises(KeyError):
+        del cache[0]
 
 
-@setup_cache
 def test_stats(cache):
     cache[0] = 0
 
@@ -525,7 +499,6 @@ def test_stats(cache):
     assert len(cache.check()) == 0
 
 
-@setup_cache
 def test_path(cache):
     cache[0] = u'abc'
     large_value = b'abc' * 2 ** 20
@@ -545,7 +518,6 @@ def test_path(cache):
     assert len(cache.check()) == 0
 
 
-@setup_cache
 def test_expire_rows(cache):
     cache.reset('cull_limit', 0)
 
@@ -566,7 +538,6 @@ def test_expire_rows(cache):
     assert len(cache.check()) == 0
 
 
-@setup_cache
 def test_least_recently_stored(cache):
     cache.reset('eviction_policy', u'least-recently-stored')
     cache.reset('size_limit', int(10.1e6))
@@ -602,7 +573,6 @@ def test_least_recently_stored(cache):
     assert len(cache.check()) == 0
 
 
-@setup_cache
 def test_least_recently_used(cache):
     cache.reset('eviction_policy', u'least-recently-used')
     cache.reset('size_limit', int(10.1e6))
@@ -633,7 +603,6 @@ def test_least_recently_used(cache):
     assert len(cache.check()) == 0
 
 
-@setup_cache
 def test_least_frequently_used(cache):
     cache.reset('eviction_policy', u'least-frequently-used')
     cache.reset('size_limit', int(10.1e6))
@@ -662,16 +631,14 @@ def test_least_frequently_used(cache):
     assert len(cache.check()) == 0
 
 
-@nt.raises(OSError)
-@setup_cache
 def test_filename_error(cache):
     func = mock.Mock(side_effect=OSError(errno.EACCES))
 
     with mock.patch('os.makedirs', func):
-        cache._disk.filename()
+        with pytest.raises(OSError):
+            cache._disk.filename()
 
 
-@setup_cache
 def test_remove_error(cache):
     func = mock.Mock(side_effect=OSError(errno.EACCES))
 
@@ -687,7 +654,6 @@ def test_remove_error(cache):
             raise Exception('test_remove_error failed')
 
 
-@setup_cache
 def test_check(cache):
     blob = b'a' * 2 ** 20
     keys = (0, 1, 1234, 56.78, u'hello', b'world', None)
@@ -717,7 +683,6 @@ def test_check(cache):
     assert len(cache.check()) == 0 # Should display no warnings.
 
 
-@setup_cache
 def test_integrity_check(cache):
     for value in range(1000):
         cache[value] = value
@@ -738,7 +703,6 @@ def test_integrity_check(cache):
     assert len(cache.check()) == 0
 
 
-@setup_cache
 def test_expire(cache):
     cache.reset('cull_limit', 0)  # Disable expiring keys on `set`.
     now = time.time()
@@ -765,7 +729,6 @@ def test_tag_index():
     shutil.rmtree('tmp', ignore_errors=True)
 
 
-@setup_cache
 def test_evict(cache):
     colors = ('red', 'blue', 'yellow')
 
@@ -778,7 +741,6 @@ def test_evict(cache):
     assert len(cache.check()) == 0
 
 
-@setup_cache
 def test_clear(cache):
     for value in range(100):
         cache[value] = value
@@ -788,16 +750,14 @@ def test_clear(cache):
     assert len(cache.check()) == 0
 
 
-@setup_cache
-@nt.raises(dc.Timeout)
 def test_clear_timeout(cache):
     transact = mock.Mock()
     transact.side_effect = dc.Timeout
     with mock.patch.object(cache, '_transact', transact):
-        cache.clear()
+        with pytest.raises(dc.Timeout):
+            cache.clear()
 
 
-@setup_cache
 def test_tag(cache):
     assert cache.set(0, None, tag=u'zero')
     assert cache.set(1, None, tag=1234)
@@ -810,7 +770,6 @@ def test_tag(cache):
     assert cache.get(3, tag=True) == (None, b'three')
 
 
-@setup_cache
 def test_with(cache):
     with dc.Cache('tmp') as tmp:
         tmp[u'a'] = 0
@@ -820,14 +779,12 @@ def test_with(cache):
     assert cache[u'b'] == 1
 
 
-@setup_cache
 def test_contains(cache):
     assert 0 not in cache
     cache[0] = 0
     assert 0 in cache
 
 
-@setup_cache
 def test_add(cache):
     assert cache.add(1, 1)
     assert cache.get(1) == 1
@@ -840,7 +797,6 @@ def test_add(cache):
     cache.check()
 
 
-@setup_cache
 def test_add_large_value(cache):
     value = b'abcd' * 2 ** 20
     assert cache.add(b'test-key', value)
@@ -850,8 +806,6 @@ def test_add_large_value(cache):
     cache.check()
 
 
-@setup_cache
-@nt.raises(dc.Timeout)
 def test_add_timeout(cache):
     local = mock.Mock()
     con = mock.Mock()
@@ -862,14 +816,14 @@ def test_add_timeout(cache):
     con.execute = execute
     execute.side_effect = sqlite3.OperationalError
 
-    try:
-        with mock.patch.object(cache, '_local', local):
-            cache.add(0, 0)
-    finally:
-        cache.check()
+    with pytest.raises(dc.Timeout):
+        try:
+            with mock.patch.object(cache, '_local', local):
+                cache.add(0, 0)
+        finally:
+            cache.check()
 
 
-@setup_cache
 def test_incr(cache):
     assert cache.incr('key', default=5) == 6
     assert cache.incr('key', 2) == 8
@@ -881,22 +835,19 @@ def test_incr(cache):
     assert cache.incr('key') == 1
 
 
-@setup_cache
-@nt.raises(KeyError)
 def test_incr_insert_keyerror(cache):
-    cache.incr('key', default=None)
+    with pytest.raises(KeyError):
+        cache.incr('key', default=None)
 
 
-@setup_cache
-@nt.raises(KeyError)
 def test_incr_update_keyerror(cache):
     assert cache.set('key', 100, expire=0.100)
     assert cache.get('key') == 100
     time.sleep(0.120)
-    cache.incr('key', default=None)
+    with pytest.raises(KeyError):
+        cache.incr('key', default=None)
 
 
-@setup_cache
 def test_decr(cache):
     assert cache.decr('key', default=5) == 4
     assert cache.decr('key', 2) == 2
@@ -908,8 +859,6 @@ def test_decr(cache):
     assert cache.decr('key') == -1
 
 
-@setup_cache
-@nt.raises(StopIteration)
 def test_iter(cache):
     sequence = list('abcdef') + [('g',)]
 
@@ -922,10 +871,10 @@ def test_iter(cache):
 
     cache['h'] = 7
 
-    next(iterator)
+    with pytest.raises(StopIteration):
+        next(iterator)
 
 
-@setup_cache
 def test_iter_expire(cache):
     cache.reset('cull_limit', 0)
     for num in range(100):
@@ -934,13 +883,11 @@ def test_iter_expire(cache):
     assert list(cache) == list(range(100))
 
 
-@setup_cache
-@nt.raises(StopIteration)
 def test_iter_error(cache):
-    next(iter(cache))
+    with pytest.raises(StopIteration):
+        next(iter(cache))
 
 
-@setup_cache
 def test_reversed(cache):
     sequence = 'abcdef'
 
@@ -960,13 +907,11 @@ def test_reversed(cache):
         assert False, 'StopIteration expected'
 
 
-@setup_cache
-@nt.raises(StopIteration)
 def test_reversed_error(cache):
-    next(reversed(cache))
+    with pytest.raises(StopIteration):
+        next(reversed(cache))
 
 
-@setup_cache
 def test_push_pull(cache):
     for value in range(10):
         cache.push(value)
@@ -978,7 +923,6 @@ def test_push_pull(cache):
     assert len(cache) == 0
 
 
-@setup_cache
 def test_push_pull_prefix(cache):
     for value in range(10):
         cache.push(value, prefix='key')
@@ -992,7 +936,6 @@ def test_push_pull_prefix(cache):
     assert len(cache.check()) == 0
 
 
-@setup_cache
 def test_push_pull_extras(cache):
     cache.push('test')
     assert cache.pull() == (500000000000000, 'test')
@@ -1025,7 +968,6 @@ def test_push_pull_extras(cache):
     assert len(cache.check()) == 0
 
 
-@setup_cache
 def test_push_pull_expire(cache):
     cache.push(0, expire=0.1)
     cache.push(0, expire=0.1)
@@ -1037,7 +979,6 @@ def test_push_pull_expire(cache):
     assert len(cache.check()) == 0
 
 
-@setup_cache
 def test_push_pull_large_value(cache):
     value = b'test' * (2 ** 20)
     cache.push(value)
@@ -1046,7 +987,6 @@ def test_push_pull_large_value(cache):
     assert len(cache.check()) == 0
 
 
-@setup_cache
 def test_pull_ioerror(cache):
     assert cache.push(0) == 500000000000000
 
@@ -1065,8 +1005,6 @@ def test_pull_ioerror(cache):
         assert cache.pull() == (None, None)
 
 
-@setup_cache
-@nt.raises(IOError)
 def test_pull_ioerror_eacces(cache):
     assert cache.push(0) == 500000000000000
 
@@ -1082,15 +1020,14 @@ def test_pull_ioerror_eacces(cache):
     fetch.side_effect = io_error
 
     with mock.patch.object(cache, '_disk', disk):
-        cache.pull()
+        with pytest.raises(IOError):
+            cache.pull()
 
 
-@setup_cache
 def test_iterkeys(cache):
     assert list(cache.iterkeys()) == []
 
 
-@setup_cache
 def test_pickle(cache):
     for num, val in enumerate('abcde'):
         cache[val] = num
@@ -1102,7 +1039,6 @@ def test_pickle(cache):
         assert other[key] == cache[key]
 
 
-@setup_cache
 def test_pragmas(cache):
     results = []
 
@@ -1139,7 +1075,6 @@ def test_pragmas(cache):
     assert all(results)
 
 
-@setup_cache
 def test_size_limit_with_files(cache):
     cache.reset('cull_limit', 0)
     size_limit = 30 * cache.disk_min_file_size
@@ -1154,7 +1089,6 @@ def test_size_limit_with_files(cache):
     assert cache.volume() <= size_limit
 
 
-@setup_cache
 def test_size_limit_with_database(cache):
     cache.reset('cull_limit', 0)
     size_limit = 2 * cache.disk_min_file_size
@@ -1170,7 +1104,6 @@ def test_size_limit_with_database(cache):
     assert cache.volume() <= size_limit
 
 
-@setup_cache
 def test_cull_eviction_policy_none(cache):
     cache.reset('eviction_policy', 'none')
     size_limit = 2 * cache.disk_min_file_size
@@ -1186,7 +1119,6 @@ def test_cull_eviction_policy_none(cache):
     assert cache.volume() > size_limit
 
 
-@setup_cache
 def test_cull_size_limit_0(cache):
     cache.reset('cull_limit', 0)
     size_limit = 2 * cache.disk_min_file_size
@@ -1202,8 +1134,6 @@ def test_cull_size_limit_0(cache):
     assert cache.volume() <= size_limit
 
 
-@setup_cache
-@nt.raises(dc.Timeout)
 def test_cull_timeout(cache):
     transact = mock.Mock()
     transact.side_effect = [dc.Timeout]
@@ -1211,10 +1141,10 @@ def test_cull_timeout(cache):
     with mock.patch.object(cache, 'expire', lambda now: 0):
         with mock.patch.object(cache, 'volume', lambda: int(1e12)):
             with mock.patch.object(cache, '_transact', transact):
-                cache.cull()
+                with pytest.raises(dc.Timeout):
+                    cache.cull()
 
 
-@setup_cache
 def test_key_roundtrip(cache):
     key_part_0 = u"part0"
     key_part_1 = u"part1"
@@ -1334,7 +1264,6 @@ def test_rsync():
     shutil.rmtree('tmp', ignore_errors=True)
 
 
-@setup_cache
 def test_custom_eviction_policy(cache):
     dc.EVICTION_POLICY['lru-gt-1s'] = {
         'init': (
@@ -1371,7 +1300,6 @@ def test_custom_eviction_policy(cache):
     assert cache.volume() < size_limit
 
 
-@setup_cache
 def test_lru_incr(cache):
     cache.reset('eviction_policy', 'least-recently-used')
     cache.incr(0)
