@@ -1,5 +1,5 @@
 coverage
-django<2
+django==1.11.*
 doc8
 gj
 mock
