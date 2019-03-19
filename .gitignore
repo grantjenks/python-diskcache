@@ -4,13 +4,16 @@
 # virutalenv directories
 /env*/
 
-# coverage files
+# test files/directories
 .coverage
-
-# setup sdist, test and upload directories
+.pytest_cache/
 /.tox/
+
+# setup and upload directories
 /build/
 /dist/
 /diskcache.egg-info/
+/docs/_build/
 
+# macOS metadata
 .DS_Store
