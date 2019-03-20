@@ -1,9 +1,11 @@
 coverage
 django==1.11.*
+django_redis
 doc8
 gj
 mock
 nose
+pylibmc
 pylint
 pytest
 pytest-cov
