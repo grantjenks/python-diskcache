@@ -93,16 +93,17 @@ Cache objects is relatively slow, and since all operations are atomic, you can
 safely leave Cache objects open.
 
     >>> cache.set(b'key', b'value')
+    True
     >>> cache.close()
     >>> cache.get(b'key')  # Automatically opens, but slower.
-    'value'
+    b'value'
 
 Set an item, get a value, and delete a key using the usual operators:
 
     >>> cache = Cache('/tmp/mycachedir')
     >>> cache[b'key'] = b'value'
     >>> cache[b'key']
-    'value'
+    b'value'
     >>> b'key' in cache
     True
     >>> del cache[b'key']
@@ -111,7 +112,7 @@ There's also a :meth:`set <diskcache.Cache.set>` method with additional keyword
 parameters: `expire`, `read`, and `tag`.
 
     >>> from io import BytesIO
-    >>> cache.set(b'key', BytesIO('value'), expire=5, read=True, tag=u'data')
+    >>> cache.set(b'key', BytesIO(b'value'), expire=5, read=True, tag='data')
     True
 
 In the example above: the key expires in 5 seconds, the value is read as a
@@ -119,11 +120,14 @@ file-like object, and tag metadata is stored with the key. Another method,
 :meth:`get <diskcache.Cache.get>` supports querying extra information with
 `default`, `read`, `expire_time`, and `tag` keyword parameters.
 
-    >>> cache.get(b'key', default=b'', read=True, expire_time=True, tag=True)
-    (<_io.BufferedReader
-      name=u'/tmp/mycachedir/1d/6e/128a921c3b8a9027c1f69989f3ac.val'>,
-     1457066214.784396,
-     u'data')
+    >>> result = cache.get(b'key', default=b'', read=True, expire_time=True, tag=True)
+    >>> reader, timestamp, tag = result
+    >>> type(reader)
+    <class '_io.BufferedReader'>
+    >>> type(timestamp)
+    <class 'float'>
+    >>> tag
+    'data'
 
 The return value is a tuple containing the value, expire time (seconds from
 epoch), and tag. Because we passed ``read=True`` the value is returned as a
@@ -154,14 +158,14 @@ Increment and decrement methods also support a keyword parameter, `default`,
 which will be used for missing keys. When ``None``, incrementing or
 decrementing a missing key will raise a :exc:`KeyError`.
 
-    >>> cache.incr(u'alice')
+    >>> cache.incr('alice')
     1
-    >>> cache.decr(u'bob', default=-9)
+    >>> cache.decr('bob', default=-9)
     -10
-    >>> cache.incr(u'carol', default=None)
+    >>> cache.incr('carol', default=None)
     Traceback (most recent call last):
         ...
-    KeyError: u'carol'
+    KeyError: 'carol'
 
 Increment and decrement operations are atomic and assume the value may be
 stored in a SQLite column. Most builds that target machines with 64-bit pointer
@@ -171,13 +175,14 @@ Like :meth:`delete <diskcache.Cache.delete>` and :meth:`get
 <diskcache.Cache.get>`, the method :meth:`pop <diskcache.Cache.pop>` can be
 used to delete an item in the cache and return its value.
 
-    >>> cache.pop(u'alice')
+    >>> cache.pop('alice')
     1
-    >>> cache.pop(u'dave', default=u'does not exist')
-    u'does not exist'
-    >>> cache.set(u'dave', 0, expire=None, tag=u'admin')
-    >>> cache.pop(u'dave', expire_time=True, tag=True)
-    (0, None, u'admin')
+    >>> cache.pop('dave', default='does not exist')
+    'does not exist'
+    >>> cache.set('dave', 0, expire=None, tag='admin')
+    True
+    >>> cache.pop('dave', expire_time=True, tag=True)
+    (0, None, 'admin')
 
 The :meth:`pop <diskcache.Cache.pop>` operation is atomic and using :meth:`incr
 <diskcache.Cache.incr>` together is an accurate method for counting and dumping
@@ -186,9 +191,12 @@ the `read` argument is not supported.
 
 Another four methods remove items from the cache.
 
+    >>> cache.clear()
+    3
     >>> cache.reset('cull_limit', 0)       # Disable automatic evictions.
+    0
     >>> for num in range(10):
-    ...     cache.set(num, num, expire=0)  # Expire immediately.
+    ...     _ = cache.set(num, num, expire=0)  # Expire immediately.
     >>> len(cache)
     10
     >>> list(cache)
@@ -206,8 +214,9 @@ items you must explicitly call :meth:`expire <diskcache.Cache.expire>` which
 works regardless of the :ref:`cull_limit <tutorial-settings>`.
 
     >>> for num in range(100):
-    ...     cache.set(num, num, tag=u'odd' if num % 2 else u'even')
-    >>> cache.evict(u'even')
+    ...     _ = cache.set(num, num, tag='odd' if num % 2 else 'even')
+    >>> cache.evict('even')
+    50
 
 .. _tutorial-tag-index:
 
@@ -218,8 +227,9 @@ can be created. To do so, initialize the cache with ``tag_index=True``.
 
     >>> cache = Cache('/tmp/mycachedir', tag_index=True)
     >>> for num in range(100):
-    ...     cache.set(num, num, tag=(num % 2))
+    ...     _ = cache.set(num, num, tag=(num % 2))
     >>> cache.evict(0)
+    50
 
 Likewise, the tag index may be created or dropped using methods::
 
@@ -239,16 +249,19 @@ removing expired items from the cache and then uses the eviction policy to
 remove items until the cache volume is less than the size limit.
 
     >>> cache.clear()
+    50
     >>> cache.reset('size_limit', int(1e6))
+    1000000
     >>> cache.reset('cull_limit', 0)
+    0
     >>> for count in range(1000):
-    >>>     cache[count] = b'A' * 1000
-    >>> cache.volume()
-    1437696
-    >>> cache.cull()
-    320
-    >>> cache.volume()
-    999424
+    ...     cache[count] = b'A' * 1000
+    >>> cache.volume() > int(1e6)
+    True
+    >>> cache.cull() > 0
+    True
+    >>> cache.volume() < int(1e6)
+    True
 
 Some users may defer all culling to a cron-like process by setting the
 :ref:`cull_limit <tutorial-settings>` to zero and calling :meth:`cull
@@ -259,7 +272,8 @@ Some users may defer all culling to a cron-like process by setting the
 
 :meth:`Clear <diskcache.Cache.clear>` simply removes all items from the cache.
 
-    >>> cache.clear()
+    >>> cache.clear() > 0
+    True
 
 Each of these methods is designed to work concurrent to others. None of them
 block readers or writers in other threads or processes.
@@ -268,8 +282,8 @@ Lastly, three methods support metadata about the cache. The first is
 :meth:`volume <diskcache.Cache.volume>` which returns the estimated total size
 in bytes of the cache directory on disk.
 
-    >>> cache.volume()
-    9216
+    >>> cache.volume() < int(1e5)
+    True
 
 .. _tutorial-statistics:
 
@@ -279,11 +293,12 @@ and misses. Cache statistics must first be enabled.
     >>> cache.stats(enable=True)
     (0, 0)
     >>> for num in range(100):
-    ...     cache.set(num, num)
+    ...     _ = cache.set(num, num)
     >>> for num in range(150):
-    ...     cache.get(num)
-    >>> cache.stats(enable=False, reset=True)
-    (100, 50)  # 100 hits, 50 misses
+    ...     _ = cache.get(num)
+    >>> hits, misses = cache.stats(enable=False, reset=True)
+    >>> (hits, misses)
+    (100, 50)
 
 Cache statistics are useful when evaluating different :ref:`eviction policies
 <tutorial-eviction-policies>`. By default, statistics are disabled as they
@@ -293,8 +308,9 @@ are not counted in cache statistics.
 The third is :meth:`check <diskcache.Cache.check>` which verifies cache
 consistency. It can also fix inconsistencies and reclaim unused space.
 
-    >>> cache.check(fix=True)
-    []
+    >>> warning, = cache.check(fix=True)
+    >>> type(warning.message)
+    <class 'diskcache.core.EmptyDirWarning'>
 
 The return value is a list of warnings.
 
@@ -457,8 +473,8 @@ access and editing at both front and back sides. :class:`Deque
     >>> deque.appendleft('foo')
     >>> len(deque)
     4
-    >>> deque.directory
-    '/tmp/...'
+    >>> type(deque.directory)
+    <class 'str'>
     >>> other = Deque(directory=deque.directory)
     >>> len(other)
     4
@@ -535,6 +551,8 @@ are updated lazily. Prefer idioms like :meth:`len
 <diskcache.FanoutCache.reset>` directly.
 
     >>> cache = Cache('/tmp/mycachedir', size_limit=int(4e9))
+    >>> cache.clear()
+    100
     >>> cache.size_limit
     4000000000
     >>> cache.disk_min_file_size
@@ -544,7 +562,7 @@ are updated lazily. Prefer idioms like :meth:`len
     >>> cache.set(b'key', 1.234)
     True
     >>> cache.count           # Stale attribute.
-    0
+    100
     >>> cache.reset('count')  # Prefer: len(cache)
     1
 
@@ -602,12 +620,12 @@ policy. The policy can be set during initialization using a keyword argument.
 
     >>> cache = Cache('/tmp/mydir')
     >>> cache.eviction_policy
-    u'least-recently-stored'
-    >>> cache = Cache('/tmp/mydir', eviction_policy=u'least-frequently-used')
+    'least-recently-stored'
+    >>> cache = Cache('/tmp/mydir', eviction_policy='least-frequently-used')
     >>> cache.eviction_policy
-    u'least-frequently-used'
-    >>> cache.reset('eviction_policy', u'least-recently-used')
-    u'least-recently-used'
+    'least-frequently-used'
+    >>> cache.reset('eviction_policy', 'least-recently-used')
+    'least-recently-used'
 
 Though the eviction policy is changed, the previously created indexes will not
 be dropped. Prefer to always specify the eviction policy as a keyword argument
@@ -658,7 +676,7 @@ example below uses compressed JSON.
                 data = json.loads(zlib.decompress(data).decode('utf-8'))
             return data
 
-    with Cache('/tmp/dir', disk=JSONDisk, disk_compress_level=6) as cache:
+    with Cache('/tmp/mydir', disk=JSONDisk, disk_compress_level=6) as cache:
         pass
 
 Four data types can be stored natively in the cache metadata database:

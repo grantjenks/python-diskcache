@@ -1,5 +1,6 @@
 import doctest
 import shutil
+import sys
 
 import diskcache.core
 import diskcache.djangocache
@@ -42,4 +43,13 @@ def test_memo():
 def test_persistent():
     rmdir('/tmp/diskcache')
     failures, _ = doctest.testmod(diskcache.persistent)
+    assert failures == 0
+
+
+def test_tutorial():
+    if sys.hexversion < 0x03000000:
+        return
+    rmdir('/tmp/mycachedir')
+    rmdir('/tmp/mydir')
+    failures, _ = doctest.testfile('../docs/tutorial.rst')
     assert failures == 0
