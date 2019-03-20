@@ -40,7 +40,6 @@ try:
 except NameError:
     class WindowsError(Exception):
         "Windows error place-holder on platforms without support."
-        pass
 
 class Constant(tuple):
     "Pretty display of immutable constant."
@@ -343,17 +342,14 @@ class Disk(object):
 
 class Timeout(Exception):
     "Database timeout expired."
-    pass
 
 
 class UnknownFileWarning(UserWarning):
     "Warning used by Cache.check for unknown files."
-    pass
 
 
 class EmptyDirWarning(UserWarning):
     "Warning used by Cache.check for empty directories."
-    pass
 
 
 class Cache(object):
