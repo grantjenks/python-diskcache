@@ -62,7 +62,7 @@ Features
 - Thread-safe and process-safe
 - Supports multiple eviction policies (LRU and LFU included)
 - Keys support "tag" metadata and eviction
-- Developed on Python 2.7
+- Developed on Python 3.7
 - Tested on CPython 2.7, 3.4, 3.5, 3.6, 3.7 and PyPy
 - Tested on Linux, Mac OS X, and Windows
 - Tested using Travis CI and AppVeyor CI
@@ -111,8 +111,8 @@ introduction, benchmarks, development, and API.
 .. _`DiskCache API Reference`: http://www.grantjenks.com/docs/diskcache/api.html
 .. _`DiskCache Development`: http://www.grantjenks.com/docs/diskcache/development.html
 
-Reference and Indices
----------------------
+Reference
+---------
 
 * `DiskCache Documentation`_
 * `DiskCache at PyPI`_
@@ -124,21 +124,20 @@ Reference and Indices
 .. _`DiskCache at GitHub`: https://github.com/grantjenks/python-diskcache/
 .. _`DiskCache Issue Tracker`: https://github.com/grantjenks/python-diskcache/issues/
 
-DiskCache License
------------------
+License
+-------
 
-Copyright 2016-2018 Grant Jenks
+Copyright 2016-2019 Grant Jenks
 
-Licensed under the Apache License, Version 2.0 (the "License");
-you may not use this file except in compliance with the License.
-You may obtain a copy of the License at
+Licensed under the Apache License, Version 2.0 (the "License"); you may not use
+this file except in compliance with the License.  You may obtain a copy of the
+License at
 
     http://www.apache.org/licenses/LICENSE-2.0
 
-Unless required by applicable law or agreed to in writing, software
-distributed under the License is distributed on an "AS IS" BASIS,
-WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-See the License for the specific language governing permissions and
-limitations under the License.
+Unless required by applicable law or agreed to in writing, software distributed
+under the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR
+CONDITIONS OF ANY KIND, either express or implied.  See the License for the
+specific language governing permissions and limitations under the License.
 
 .. _`DiskCache`: http://www.grantjenks.com/docs/diskcache/
