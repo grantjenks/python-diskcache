@@ -8,6 +8,7 @@ pylint
 pytest
 pytest-cov
 pytest-django
+pytest-env
 sphinx
 tox
 twine
