@@ -8,9 +8,9 @@ import functools as ft
 import hashlib
 import io
 import mock
-import nose.tools as nt
 import os
 import os.path as op
+import pytest
 import random
 import shutil
 import sqlite3
@@ -33,21 +33,15 @@ warnings.simplefilter('ignore', category=dc.EmptyDirWarning)
 if sys.hexversion < 0x03000000:
     range = xrange
 
-def setup_cache(func=None, **options):
-    if func is None:
-        return lambda func: setup_cache(func, **options)
 
-    @ft.wraps(func)
-    def wrapper():
-        shutil.rmtree('tmp', ignore_errors=True)
-        with dc.FanoutCache('tmp', **options) as cache:
-            func(cache)
-        shutil.rmtree('tmp', ignore_errors=True)
-
-    return wrapper
+@pytest.fixture
+def cache():
+    shutil.rmtree('tmp', ignore_errors=True)
+    with dc.FanoutCache('tmp') as cache:
+        yield cache
+    shutil.rmtree('tmp', ignore_errors=True)
 
 
-@setup_cache
 def test_init(cache):
     assert cache.directory == 'tmp'
 
@@ -65,7 +59,6 @@ def test_init(cache):
     cache.check()
 
 
-@setup_cache
 def test_set_get_delete(cache):
     for value in range(100):
         cache.set(value, value)
@@ -104,7 +97,6 @@ def test_set_get_delete(cache):
     cache.check()
 
 
-@setup_cache
 def test_set_timeout(cache):
     shards = mock.Mock()
     shard = mock.Mock()
@@ -118,7 +110,6 @@ def test_set_timeout(cache):
         assert not cache.set(0, 0)
 
 
-@setup_cache
 def test_set_timeout_retry(cache):
     shards = mock.Mock()
     shard = mock.Mock()
@@ -133,14 +124,12 @@ def test_set_timeout_retry(cache):
         cache[1] = 1
 
 
-@setup_cache
 def test_add(cache):
     assert cache.add(0, 0)
     assert not cache.add(0, 1)
     assert cache.get(0) == 0
 
 
-@setup_cache
 def test_add_timeout(cache):
     shards = mock.Mock()
     shard = mock.Mock()
@@ -154,7 +143,6 @@ def test_add_timeout(cache):
         assert not cache.add(0, 0)
 
 
-@setup_cache
 def test_add_timeout_retry(cache):
     shards = mock.Mock()
     shard = mock.Mock()
@@ -178,32 +166,32 @@ def stress_add(cache, limit, results):
     results.append(total)
 
 
-@setup_cache(shards=1)
-def test_add_concurrent(cache):
-    results = co.deque()
-    limit = 1000
+def test_add_concurrent():
+    shutil.rmtree('tmp', ignore_errors=True)
+    with dc.FanoutCache('tmp', shards=1) as cache:
+        results = co.deque()
+        limit = 1000
 
-    threads = [
-        threading.Thread(target=stress_add, args=(cache, limit, results))
-        for _ in range(16)
-    ]
+        threads = [
+            threading.Thread(target=stress_add, args=(cache, limit, results))
+            for _ in range(16)
+        ]
 
-    for thread in threads:
-        thread.start()
+        for thread in threads:
+            thread.start()
 
-    for thread in threads:
-        thread.join()
+        for thread in threads:
+            thread.join()
 
-    assert sum(results) == limit
-    cache.check()
+        assert sum(results) == limit
+        cache.check()
+    shutil.rmtree('tmp', ignore_errors=True)
 
 
-@setup_cache
 def test_incr(cache):
     cache.incr('key', delta=3) == 3
 
 
-@setup_cache
 def test_incr_timeout(cache):
     shards = mock.Mock()
     shard = mock.Mock()
@@ -217,7 +205,6 @@ def test_incr_timeout(cache):
         assert cache.incr('key', 1) is None
 
 
-@setup_cache
 def test_incr_timeout_retry(cache):
     shards = mock.Mock()
     shard = mock.Mock()
@@ -231,7 +218,6 @@ def test_incr_timeout_retry(cache):
         assert cache.incr('key', retry=True) == 1
 
 
-@setup_cache
 def test_decr(cache):
     cache.decr('key', delta=2) == -2
 
@@ -242,27 +228,28 @@ def stress_incr(cache, limit):
         time.sleep(0.001)
 
 
-@setup_cache(shards=1, timeout=0.001)
-def test_incr_concurrent(cache):
-    count = 16
-    limit = 50
+def test_incr_concurrent():
+    shutil.rmtree('tmp', ignore_errors=True)
+    with dc.FanoutCache('tmp', shards=1, timeout=0.001) as cache:
+        count = 16
+        limit = 50
 
-    threads = [
-        threading.Thread(target=stress_incr, args=(cache, limit))
-        for _ in range(count)
-    ]
+        threads = [
+            threading.Thread(target=stress_incr, args=(cache, limit))
+            for _ in range(count)
+        ]
 
-    for thread in threads:
-        thread.start()
+        for thread in threads:
+            thread.start()
 
-    for thread in threads:
-        thread.join()
+        for thread in threads:
+            thread.join()
 
-    assert cache.get(b'key') == count * limit
-    cache.check()
+        assert cache.get(b'key') == count * limit
+        cache.check()
+    shutil.rmtree('tmp', ignore_errors=True)
 
 
-@setup_cache
 def test_get_timeout(cache):
     cache.set(0, 0)
 
@@ -278,7 +265,6 @@ def test_get_timeout(cache):
         assert cache.get(0) is None
 
 
-@setup_cache
 def test_get_timeout_retry(cache):
     shards = mock.Mock()
     shard = mock.Mock()
@@ -292,7 +278,6 @@ def test_get_timeout_retry(cache):
         assert cache.get(0, retry=True) == 0
 
 
-@setup_cache
 def test_pop(cache):
     for num in range(100):
         cache[num] = num
@@ -301,7 +286,6 @@ def test_pop(cache):
         assert cache.pop(num) == num
 
 
-@setup_cache
 def test_pop_timeout(cache):
     shards = mock.Mock()
     shard = mock.Mock()
@@ -315,7 +299,6 @@ def test_pop_timeout(cache):
         assert cache.pop(0) is None
 
 
-@setup_cache
 def test_pop_timeout_retry(cache):
     shards = mock.Mock()
     shard = mock.Mock()
@@ -329,7 +312,6 @@ def test_pop_timeout_retry(cache):
         assert cache.pop(0, retry=True) == 0
 
 
-@setup_cache
 def test_delete_timeout(cache):
     shards = mock.Mock()
     shard = mock.Mock()
@@ -343,7 +325,6 @@ def test_delete_timeout(cache):
         assert not cache.delete(0)
 
 
-@setup_cache
 def test_delete_timeout_retry(cache):
     shards = mock.Mock()
     shard = mock.Mock()
@@ -357,20 +338,17 @@ def test_delete_timeout_retry(cache):
         assert cache.delete(0, retry=True)
 
 
-@setup_cache
 def test_delitem(cache):
     cache[0] = 0
     assert cache[0] == 0
     del cache[0]
 
 
-@setup_cache
-@nt.raises(KeyError)
 def test_delitem_keyerror(cache):
-    del cache[0]
+    with pytest.raises(KeyError):
+        del cache[0]
 
 
-@setup_cache
 def test_delitem_timeout(cache):
     shards = mock.Mock()
     shard = mock.Mock()
@@ -384,7 +362,6 @@ def test_delitem_timeout(cache):
         del cache[0]
 
 
-@setup_cache
 def test_tag_index(cache):
     assert cache.tag_index == 0
     cache.create_tag_index()
@@ -393,27 +370,23 @@ def test_tag_index(cache):
     assert cache.tag_index == 0
 
 
-@setup_cache
 def test_read(cache):
     cache.set(0, b'abcd' * 2 ** 20)
     with cache.read(0) as reader:
         assert reader is not None
 
 
-@nt.raises(KeyError)
-@setup_cache
 def test_read_keyerror(cache):
-    with cache.read(0) as reader:
-        pass
+    with pytest.raises(KeyError):
+        with cache.read(0) as reader:
+            pass
 
 
-@nt.raises(KeyError)
-@setup_cache
 def test_getitem_keyerror(cache):
-    cache[0]
+    with pytest.raises(KeyError):
+        cache[0]
 
 
-@setup_cache
 def test_expire(cache):
     cache.reset('cull_limit', 0)
 
@@ -428,7 +401,6 @@ def test_expire(cache):
     assert cache.expire() == 100
 
 
-@setup_cache
 def test_evict(cache):
     colors = ('red', 'blue', 'yellow')
 
@@ -441,7 +413,6 @@ def test_evict(cache):
     assert len(cache.check()) == 0
 
 
-@setup_cache
 def test_size_limit_with_files(cache):
     shards = 8
     cache.reset('cull_limit', 0)
@@ -457,7 +428,6 @@ def test_size_limit_with_files(cache):
     assert (cache.volume() // shards) <= size_limit
 
 
-@setup_cache
 def test_size_limit_with_database(cache):
     shards = 8
     cache.reset('cull_limit', 0)
@@ -474,7 +444,6 @@ def test_size_limit_with_database(cache):
     assert (cache.volume() // shards) <= size_limit
 
 
-@setup_cache
 def test_clear(cache):
     for value in range(100):
         cache[value] = value
@@ -484,7 +453,6 @@ def test_clear(cache):
     assert len(cache.check()) == 0
 
 
-@setup_cache
 def test_remove_timeout(cache):
     shard = mock.Mock()
     clear = mock.Mock()
@@ -496,7 +464,6 @@ def test_remove_timeout(cache):
         assert cache.clear() == 5
 
 
-@setup_cache
 def test_reset_timeout(cache):
     shard = mock.Mock()
     reset = mock.Mock()
@@ -508,7 +475,6 @@ def test_reset_timeout(cache):
         assert cache.reset('blah', 1) == 0
 
 
-@setup_cache
 def test_stats(cache):
     for value in range(100):
         cache[value] = value
@@ -534,20 +500,17 @@ def test_stats(cache):
     assert len(cache.check()) == 0
 
 
-@setup_cache
 def test_volume(cache):
     volume = sum(shard.volume() for shard in cache._shards)
     assert volume == cache.volume()
 
 
-@setup_cache
 def test_iter(cache):
     for num in range(100):
         cache[num] = num
     assert set(cache) == set(range(100))
 
 
-@setup_cache
 def test_iter_expire(cache):
     """Test iteration with expiration.
 
@@ -563,7 +526,6 @@ def test_iter_expire(cache):
     assert set(cache) == set()
 
 
-@setup_cache
 def test_reversed(cache):
     for num in range(100):
         cache[num] = num
@@ -571,7 +533,6 @@ def test_reversed(cache):
     assert list(cache) == list(reversed(reverse))
 
 
-@setup_cache
 def test_pickle(cache):
     for num, val in enumerate('abcde'):
         cache[val] = num
@@ -583,7 +544,6 @@ def test_pickle(cache):
         assert other[key] == cache[key]
 
 
-@setup_cache
 def test_memoize(cache):
     count = 1000
 
