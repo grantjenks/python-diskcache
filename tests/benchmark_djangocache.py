@@ -32,7 +32,7 @@ WARMUP = int(1e3)
 
 
 def setup():
-    os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'tests.settings')
+    os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'tests.settings_benchmark')
     import django
     django.setup()
 
