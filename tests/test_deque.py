@@ -2,8 +2,8 @@
 
 import functools as ft
 import mock
-import nose.tools as nt
 import pickle
+import pytest
 import shutil
 
 import diskcache as dc
@@ -17,17 +17,14 @@ def rmdir(directory):
         pass
 
 
-def setup_deque(func):
-    @ft.wraps(func)
-    def wrapper():
-        deque = dc.Deque()
-        try:
-            func(deque)
-        except Exception:
-            rmdir(deque.directory)
-            raise
-
-    return wrapper
+@pytest.fixture
+def deque():
+    deque = dc.Deque()
+    try:
+        yield deque
+    except Exception:
+        rmdir(deque.directory)
+        raise
 
 
 def test_init():
@@ -55,7 +52,6 @@ def test_init():
     rmdir(directory)
 
 
-@setup_deque
 def test_getsetdel(deque):
     sequence = list('abcde')
     assert len(deque) == 0
@@ -83,14 +79,12 @@ def test_getsetdel(deque):
     assert len(deque) == 0
 
 
-@setup_deque
 def test_reversed(deque):
     sequence = list('abcde')
     deque += sequence
     assert list(reversed(deque)) == list(reversed(sequence))
 
 
-@setup_deque
 def test_state(deque):
     sequence = list('abcde')
     deque.extend(sequence)
@@ -100,7 +94,6 @@ def test_state(deque):
     assert values == sequence
 
 
-@setup_deque
 def test_compare(deque):
     assert not (deque == {})
     assert not (deque == [0])
@@ -110,30 +103,26 @@ def test_compare(deque):
     assert deque <= [1]
 
 
-@nt.raises(IndexError)
-@setup_deque
 def test_indexerror_negative(deque):
-    deque[-1]
+    with pytest.raises(IndexError):
+        deque[-1]
 
 
-@nt.raises(IndexError)
-@setup_deque
 def test_indexerror(deque):
-    deque[0]
+    with pytest.raises(IndexError):
+        deque[0]
 
 
-@nt.raises(IndexError)
-@setup_deque
 def test_indexerror_islice(deque):
     islice = mock.Mock(side_effect=StopIteration)
 
     deque.append(0)
 
     with mock.patch('diskcache.persistent.islice', islice):
-        deque[0]
+        with pytest.raises(IndexError):
+            deque[0]
 
 
-@setup_deque
 def test_get_timeout(deque):
     cache = mock.MagicMock()
     cache.__len__.return_value = 1
@@ -146,7 +135,6 @@ def test_get_timeout(deque):
         deque[0]
 
 
-@setup_deque
 def test_set_timeout(deque):
     cache = mock.MagicMock()
     cache.__len__.return_value = 1
@@ -159,7 +147,6 @@ def test_set_timeout(deque):
         deque[0] = 0
 
 
-@setup_deque
 def test_del_timeout(deque):
     cache = mock.MagicMock()
     cache.__len__.return_value = 1
@@ -178,7 +165,6 @@ def test_repr():
     assert repr(deque) == 'Deque(directory=%r)' % directory
 
 
-@setup_deque
 def test_iter_timeout(deque):
     cache = mock.MagicMock()
     cache.iterkeys.side_effect = [iter([0, 1])]
@@ -188,7 +174,6 @@ def test_iter_timeout(deque):
         assert list(deque) == [0]
 
 
-@setup_deque
 def test_reversed_timeout(deque):
     cache = mock.MagicMock()
     cache.iterkeys.side_effect = [iter([0, 1])]
@@ -198,7 +183,6 @@ def test_reversed_timeout(deque):
         assert list(reversed(deque)) == [0]
 
 
-@setup_deque
 def test_append_timeout(deque):
     cache = mock.MagicMock()
     cache.push.side_effect = [dc.Timeout, None]
@@ -207,7 +191,6 @@ def test_append_timeout(deque):
         deque.append(0)
 
 
-@setup_deque
 def test_appendleft_timeout(deque):
     cache = mock.MagicMock()
     cache.push.side_effect = [dc.Timeout, None]
@@ -216,7 +199,6 @@ def test_appendleft_timeout(deque):
         deque.appendleft(0)
 
 
-@setup_deque
 def test_count(deque):
     deque += 'abbcccddddeeeee'
 
@@ -224,21 +206,18 @@ def test_count(deque):
         assert deque.count(value) == index
 
 
-@setup_deque
 def test_extend(deque):
     sequence = list('abcde')
     deque.extend(sequence)
     assert deque == sequence
 
 
-@setup_deque
 def test_extendleft(deque):
     sequence = list('abcde')
     deque.extendleft(sequence)
     assert deque == list(reversed(sequence))
 
 
-@setup_deque
 def test_pop(deque):
     sequence = list('abcde')
     deque.extend(sequence)
@@ -247,13 +226,11 @@ def test_pop(deque):
         assert deque.pop() == sequence.pop()
 
 
-@nt.raises(IndexError)
-@setup_deque
 def test_pop_indexerror(deque):
-    deque.pop()
+    with pytest.raises(IndexError):
+        deque.pop()
 
 
-@setup_deque
 def test_pop_timeout(deque):
     cache = mock.MagicMock()
     cache.pull.side_effect = [dc.Timeout, (None, 0)]
@@ -262,7 +239,6 @@ def test_pop_timeout(deque):
         assert deque.pop() == 0
 
 
-@setup_deque
 def test_popleft(deque):
     sequence = list('abcde')
     deque.extend(sequence)
@@ -273,13 +249,11 @@ def test_popleft(deque):
         del sequence[0]
 
 
-@nt.raises(IndexError)
-@setup_deque
 def test_popleft_indexerror(deque):
-    deque.popleft()
+    with pytest.raises(IndexError):
+        deque.popleft()
 
 
-@setup_deque
 def test_popleft_timeout(deque):
     cache = mock.MagicMock()
     cache.pull.side_effect = [dc.Timeout, (None, 0)]
@@ -288,7 +262,6 @@ def test_popleft_timeout(deque):
         assert deque.popleft() == 0
 
 
-@setup_deque
 def test_remove(deque):
     deque.extend('abaca')
     deque.remove('a')
@@ -299,7 +272,6 @@ def test_remove(deque):
     assert deque == 'bc'
 
 
-@setup_deque
 def test_remove_timeout(deque):
     cache = mock.MagicMock()
     cache.iterkeys.side_effect = [iter([0, 1, 2, 3, 4])]
@@ -310,26 +282,22 @@ def test_remove_timeout(deque):
         deque.remove(3)
 
 
-@nt.raises(ValueError)
-@setup_deque
 def test_remove_valueerror(deque):
-    deque.remove(0)
+    with pytest.raises(ValueError):
+        deque.remove(0)
 
 
-@setup_deque
 def test_reverse(deque):
     deque += 'abcde'
     deque.reverse()
     assert deque == 'edcba'
 
 
-@nt.raises(TypeError)
-@setup_deque
 def test_rotate_typeerror(deque):
-    deque.rotate(0.5)
+    with pytest.raises(TypeError):
+        deque.rotate(0.5)
 
 
-@setup_deque
 def test_rotate(deque):
     deque.rotate(1)
     deque.rotate(-1)
@@ -338,14 +306,12 @@ def test_rotate(deque):
     assert deque == 'cdeab'
 
 
-@setup_deque
 def test_rotate_negative(deque):
     deque += 'abcde'
     deque.rotate(-2)
     assert deque == 'cdeab'
 
 
-@setup_deque
 def test_rotate_indexerror(deque):
     deque += 'abc'
 
@@ -357,7 +323,6 @@ def test_rotate_indexerror(deque):
         deque.rotate(1)
 
 
-@setup_deque
 def test_rotate_indexerror_negative(deque):
     deque += 'abc'
 
@@ -369,7 +334,6 @@ def test_rotate_indexerror_negative(deque):
         deque.rotate(-1)
 
 
-@setup_deque
 def test_clear_timeout(deque):
     cache = mock.MagicMock()
     cache.clear.side_effect = [dc.Timeout, None]
