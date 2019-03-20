@@ -5,6 +5,7 @@
 /env*/
 
 # test files/directories
+/.cache/
 .coverage
 .pytest_cache/
 /.tox/
