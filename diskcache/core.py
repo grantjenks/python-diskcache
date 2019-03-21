@@ -607,6 +607,8 @@ class Cache(object):
     def transact(self, retry=False):
         """Lock the cache to perform a transaction.
 
+        # TODO
+
         """
         with self._transact(retry=retry):
             yield
@@ -654,11 +656,14 @@ class Cache(object):
                     _disk_remove(name)
 
 
-    def set(self, key, value, expire=None, read=False, tag=None):
+    def set(self, key, value, expire=None, read=False, tag=None, retry=False):
         """Set `key` and `value` item in cache.
 
         When `read` is `True`, `value` should be a file-like object opened
         for reading in binary mode.
+
+        Raises :exc:`Timeout` error when database timeout occurs and `retry` is
+        `False` (default).
 
         :param key: key for item
         :param value: value for item
@@ -666,6 +671,7 @@ class Cache(object):
             (default None, no expiry)
         :param bool read: read value as bytes from file (default False)
         :param str tag: text to associate with key (default None)
+        :param bool retry: retry if database timeout occurs (default False)
         :return: True if item was set
         :raises Timeout: if database timeout occurs
 
@@ -697,7 +703,7 @@ class Cache(object):
         # INSERT OR REPLACE aka UPSERT is not used because the old filename may
         # need cleanup.
 
-        with self._transact(False, filename) as (sql, cleanup):
+        with self._transact(retry, filename) as (sql, cleanup):
             rows = sql(
                 'SELECT rowid, filename FROM Cache'
                 ' WHERE key = ? AND raw = ?',
@@ -716,7 +722,16 @@ class Cache(object):
             return True
 
 
-    __setitem__ = set
+    def __setitem__(self, key, value):
+        """Set corresponding `value` for `key` in cache.
+
+        :param key: key for item
+        :param value: value for item
+        :return: corresponding value
+        :raises KeyError: if key is not found
+
+        """
+        self.set(key, value, retry=True)
 
 
     def _row_update(self, rowid, now, columns):
@@ -822,7 +837,7 @@ class Cache(object):
                 cleanup(filename)
 
 
-    def add(self, key, value, expire=None, read=False, tag=None):
+    def add(self, key, value, expire=None, read=False, tag=None, retry=False):
         """Add `key` and `value` item to cache.
 
         Similar to `set`, but only add to cache if key not present.
@@ -833,12 +848,16 @@ class Cache(object):
         When `read` is `True`, `value` should be a file-like object opened
         for reading in binary mode.
 
+        Raises :exc:`Timeout` error when database timeout occurs and `retry` is
+        `False` (default).
+
         :param key: key for item
         :param value: value for item
         :param float expire: seconds until the key expires
             (default None, no expiry)
         :param bool read: read value as bytes from file (default False)
         :param str tag: text to associate with key (default None)
+        :param bool retry: retry if database timeout occurs (default False)
         :return: True if item was added
         :raises Timeout: if database timeout occurs
 
@@ -849,7 +868,7 @@ class Cache(object):
         size, mode, filename, db_value = self._disk.store(value, read, key=key)
         columns = (expire_time, tag, size, mode, filename, db_value)
 
-        with self._transact(False, filename) as (sql, cleanup):
+        with self._transact(retry, filename) as (sql, cleanup):
             rows = sql(
                 'SELECT rowid, filename, expire_time FROM Cache'
                 ' WHERE key = ? AND raw = ?',
@@ -873,7 +892,7 @@ class Cache(object):
             return True
 
 
-    def incr(self, key, delta=1, default=0):
+    def incr(self, key, delta=1, default=0, retry=False):
         """Increment value by delta for item with key.
 
         If key is missing and default is None then raise KeyError. Else if key
@@ -886,9 +905,13 @@ class Cache(object):
         machines with 64-bit pointer widths will support 64-bit signed
         integers.
 
+        Raises :exc:`Timeout` error when database timeout occurs and `retry` is
+        `False` (default).
+
         :param key: key for item
         :param int delta: amount to increment (default 1)
         :param int default: value if key is missing (default 0)
+        :param bool retry: retry if database timeout occurs (default False)
         :return: new value for item
         :raises KeyError: if key is not found and default is None
         :raises Timeout: if database timeout occurs
@@ -901,7 +924,7 @@ class Cache(object):
             ' WHERE key = ? AND raw = ?'
         )
 
-        with self._transact() as (sql, cleanup):
+        with self._transact(retry) as (sql, cleanup):
             rows = sql(select, (db_key, raw)).fetchall()
 
             if not rows:
@@ -941,7 +964,7 @@ class Cache(object):
             return value
 
 
-    def decr(self, key, delta=1, default=0):
+    def decr(self, key, delta=1, default=0, retry=False):
         """Decrement value by delta for item with key.
 
         If key is missing and default is None then raise KeyError. Else if key
@@ -957,19 +980,27 @@ class Cache(object):
         machines with 64-bit pointer widths will support 64-bit signed
         integers.
 
+        Raises :exc:`Timeout` error when database timeout occurs and `retry` is
+        `False` (default).
+
         :param key: key for item
         :param int delta: amount to decrement (default 1)
         :param int default: value if key is missing (default 0)
+        :param bool retry: retry if database timeout occurs (default False)
         :return: new value for item
         :raises KeyError: if key is not found and default is None
         :raises Timeout: if database timeout occurs
 
         """
-        return self.incr(key, -delta, default)
+        return self.incr(key, -delta, default, retry)
 
 
-    def get(self, key, default=None, read=False, expire_time=False, tag=False):
+    def get(self, key, default=None, read=False, expire_time=False, tag=False,
+            retry=False):
         """Retrieve value from cache. If `key` is missing, return `default`.
+
+        Raises :exc:`Timeout` error when database timeout occurs and `retry` is
+        `False` (default).
 
         :param key: key for item
         :param default: value to return if key is missing (default None)
@@ -978,6 +1009,7 @@ class Cache(object):
         :param bool expire_time: if True, return expire_time in tuple
             (default False)
         :param bool tag: if True, return tag in tuple (default False)
+        :param bool retry: retry if database timeout occurs (default False)
         :return: value for item or default if key not found
         :raises Timeout: if database timeout occurs
 
@@ -1019,7 +1051,7 @@ class Cache(object):
                 'UPDATE Settings SET value = value + 1 WHERE key = "misses"'
             )
 
-            with self._transact() as (sql, _):
+            with self._transact(retry) as (sql, _):
                 rows = sql(select, (db_key, raw, time.time())).fetchall()
 
                 if not rows:
@@ -1066,25 +1098,28 @@ class Cache(object):
         :param key: key matching item
         :return: corresponding value
         :raises KeyError: if key is not found
-        :raises Timeout: if database timeout occurs
 
         """
-        value = self.get(key, default=ENOVAL)
+        value = self.get(key, default=ENOVAL, retry=True)
         if value is ENOVAL:
             raise KeyError(key)
         return value
 
 
-    def read(self, key):
+    def read(self, key, retry=False):
         """Return file handle value corresponding to `key` from cache.
 
+        Raises :exc:`Timeout` error when database timeout occurs and `retry` is
+        `False` (default).
+
         :param key: key matching item
+        :param bool retry: retry if database timeout occurs (default False)
         :return: file open for reading in binary mode
         :raises KeyError: if key is not found
         :raises Timeout: if database timeout occurs
 
         """
-        handle = self.get(key, default=ENOVAL, read=True)
+        handle = self.get(key, default=ENOVAL, read=True, retry=retry)
         if handle is ENOVAL:
             raise KeyError(key)
         return handle
@@ -1110,18 +1145,22 @@ class Cache(object):
         return bool(rows)
 
 
-    def pop(self, key, default=None, expire_time=False, tag=False):
+    def pop(self, key, default=None, expire_time=False, tag=False, retry=False):
         """Remove corresponding item for `key` from cache and return value.
 
         If `key` is missing, return `default`.
 
         Operation is atomic. Concurrent operations will be serialized.
 
+        Raises :exc:`Timeout` error when database timeout occurs and `retry` is
+        `False` (default).
+
         :param key: key for item
         :param default: value to return if key is missing (default None)
         :param bool expire_time: if True, return expire_time in tuple
             (default False)
         :param bool tag: if True, return tag in tuple (default False)
+        :param bool retry: retry if database timeout occurs (default False)
         :return: value for item or default if key not found
         :raises Timeout: if database timeout occurs
 
@@ -1138,7 +1177,7 @@ class Cache(object):
         elif expire_time or tag:
             default = default, None
 
-        with self._transact() as (sql, _):
+        with self._transact(retry) as (sql, _):
             rows = sql(select, (db_key, raw, time.time())).fetchall()
 
             if not rows:
@@ -1170,17 +1209,21 @@ class Cache(object):
             return value
 
 
-    def __delitem__(self, key):
+    def __delitem__(self, key, retry=True):
         """Delete corresponding item for `key` from cache.
 
+        Raises :exc:`Timeout` error when database timeout occurs and `retry` is
+        `False` (default `True`).
+
         :param key: key matching item
+        :param bool retry: retry if database timeout occurs (default True)
         :raises KeyError: if key is not found
         :raises Timeout: if database timeout occurs
 
         """
         db_key, raw = self._disk.put(key)
 
-        with self._transact() as (sql, cleanup):
+        with self._transact(retry) as (sql, cleanup):
             rows = sql(
                 'SELECT rowid, filename FROM Cache'
                 ' WHERE key = ? AND raw = ?'
@@ -1198,24 +1241,28 @@ class Cache(object):
             return True
 
 
-    def delete(self, key):
+    def delete(self, key, retry=False):
         """Delete corresponding item for `key` from cache.
 
         Missing keys are ignored.
 
+        Raises :exc:`Timeout` error when database timeout occurs and `retry` is
+        `False` (default).
+
         :param key: key matching item
+        :param bool retry: retry if database timeout occurs (default False)
         :return: True if item was deleted
         :raises Timeout: if database timeout occurs
 
         """
         try:
-            return self.__delitem__(key)
+            return self.__delitem__(key, retry=retry)
         except KeyError:
             return False
 
 
     def push(self, value, prefix=None, side='back', expire=None, read=False,
-             tag=None):
+             tag=None, retry=False):
         """Push `value` onto `side` of queue identified by `prefix` in cache.
 
         When prefix is None, integer keys are used. Otherwise, string keys are
@@ -1228,6 +1275,9 @@ class Cache(object):
 
         When `read` is `True`, `value` should be a file-like object opened
         for reading in binary mode.
+
+        Raises :exc:`Timeout` error when database timeout occurs and `retry` is
+        `False` (default).
 
         See also `Cache.pull`.
 
@@ -1251,6 +1301,7 @@ class Cache(object):
             (default None, no expiry)
         :param bool read: read value as bytes from file (default False)
         :param str tag: text to associate with key (default None)
+        :param bool retry: retry if database timeout occurs (default False)
         :return: key for item in cache
         :raises Timeout: if database timeout occurs
 
@@ -1274,7 +1325,7 @@ class Cache(object):
             ' ORDER BY key %s LIMIT 1'
         ) % order[side]
 
-        with self._transact(False, filename) as (sql, cleanup):
+        with self._transact(retry, filename) as (sql, cleanup):
             rows = sql(select, (min_key, max_key, raw)).fetchall()
 
             if rows:
@@ -1305,7 +1356,7 @@ class Cache(object):
 
 
     def pull(self, prefix=None, default=(None, None), side='front',
-             expire_time=False, tag=False):
+             expire_time=False, tag=False, retry=False):
         """Pull key and value item pair from `side` of queue in cache.
 
         When prefix is None, integer keys are used. Otherwise, string keys are
@@ -1318,6 +1369,9 @@ class Cache(object):
         or 'back'.
 
         Operation is atomic. Concurrent operations will be serialized.
+
+        Raises :exc:`Timeout` error when database timeout occurs and `retry` is
+        `False` (default).
 
         See also `Cache.push` and `Cache.get`.
 
@@ -1351,6 +1405,7 @@ class Cache(object):
         :param bool expire_time: if True, return expire_time in tuple
             (default False)
         :param bool tag: if True, return tag in tuple (default False)
+        :param bool retry: retry if database timeout occurs (default False)
         :return: key and value item pair or default if queue is empty
         :raises Timeout: if database timeout occurs
 
@@ -1375,7 +1430,7 @@ class Cache(object):
             default = default, None
 
         while True:
-            with self._transact() as (sql, cleanup):
+            with self._transact(retry) as (sql, cleanup):
                 rows = sql(select, (min_key, max_key)).fetchall()
 
                 if not rows:
@@ -1412,7 +1467,7 @@ class Cache(object):
             return key, value
 
 
-    def check(self, fix=False):
+    def check(self, fix=False, retry=False):
         """Check database and file system consistency.
 
         Intended for use in testing and post-mortem error analysis.
@@ -1423,7 +1478,11 @@ class Cache(object):
         held for a long time. For example, local benchmarking shows that a
         cache with 1,000 file references takes ~60ms to check.
 
+        Raises :exc:`Timeout` error when database timeout occurs and `retry` is
+        `False` (default).
+
         :param bool fix: correct inconsistencies
+        :param bool retry: retry if database timeout occurs (default False)
         :return: list of warnings
         :raises Timeout: if database timeout occurs
 
@@ -1443,7 +1502,7 @@ class Cache(object):
             if fix:
                 sql('VACUUM')
 
-            with self._transact() as (sql, _):
+            with self._transact(retry) as (sql, _):
 
                 # Check Cache.filename against file system.
 
@@ -1562,7 +1621,7 @@ class Cache(object):
         self.reset('tag_index', 0)
 
 
-    def evict(self, tag):
+    def evict(self, tag, retry=False):
         """Remove items with matching `tag` from cache.
 
         Removing items is an iterative process. In each iteration, a subset of
@@ -1572,7 +1631,11 @@ class Cache(object):
         `args` attribute will be the number of items removed before the
         exception occurred.
 
+        Raises :exc:`Timeout` error when database timeout occurs and `retry` is
+        `False` (default).
+
         :param str tag: tag identifying items
+        :param bool retry: retry if database timeout occurs (default False)
         :return: count of rows removed
         :raises Timeout: if database timeout occurs
 
@@ -1583,10 +1646,10 @@ class Cache(object):
             ' ORDER BY rowid LIMIT ?'
         )
         args = [tag, 0, 100]
-        return self._select_delete(select, args, arg_index=1)
+        return self._select_delete(select, args, arg_index=1, retry=retry)
 
 
-    def expire(self, now=None):
+    def expire(self, now=None, retry=False):
         """Remove expired items from cache.
 
         Removing items is an iterative process. In each iteration, a subset of
@@ -1596,7 +1659,11 @@ class Cache(object):
         `args` attribute will be the number of items removed before the
         exception occurred.
 
+        Raises :exc:`Timeout` error when database timeout occurs and `retry` is
+        `False` (default).
+
         :param float now: current time (default None, ``time.time()`` used)
+        :param bool retry: retry if database timeout occurs (default False)
         :return: count of items removed
         :raises Timeout: if database timeout occurs
 
@@ -1607,10 +1674,10 @@ class Cache(object):
             ' ORDER BY expire_time LIMIT ?'
         )
         args = [0, now or time.time(), 100]
-        return self._select_delete(select, args, row_index=1)
+        return self._select_delete(select, args, row_index=1, retry=retry)
 
 
-    def cull(self):
+    def cull(self, retry=False):
         """Cull items from cache until volume is less than size limit.
 
         Removing items is an iterative process. In each iteration, a subset of
@@ -1620,6 +1687,10 @@ class Cache(object):
         `args` attribute will be the number of items removed before the
         exception occurred.
 
+        Raises :exc:`Timeout` error when database timeout occurs and `retry` is
+        `False` (default).
+
+        :param bool retry: retry if database timeout occurs (default False)
         :return: count of items removed
         :raises Timeout: if database timeout occurs
 
@@ -1641,7 +1712,7 @@ class Cache(object):
 
         try:
             while self.volume() > self.size_limit:
-                with self._transact() as (sql, cleanup):
+                with self._transact(retry) as (sql, cleanup):
                     rows = sql(select_filename, (10,)).fetchall()
 
                     if not rows:
@@ -1662,7 +1733,7 @@ class Cache(object):
         return count
 
 
-    def clear(self):
+    def clear(self, retry=False):
         """Remove all items from cache.
 
         Removing items is an iterative process. In each iteration, a subset of
@@ -1672,6 +1743,10 @@ class Cache(object):
         `args` attribute will be the number of items removed before the
         exception occurred.
 
+        Raises :exc:`Timeout` error when database timeout occurs and `retry` is
+        `False` (default).
+
+        :param bool retry: retry if database timeout occurs (default False)
         :return: count of rows removed
         :raises Timeout: if database timeout occurs
 
@@ -1682,16 +1757,17 @@ class Cache(object):
             ' ORDER BY rowid LIMIT ?'
         )
         args = [0, 100]
-        return self._select_delete(select, args)
+        return self._select_delete(select, args, retry=retry)
 
 
-    def _select_delete(self, select, args, row_index=0, arg_index=0):
+    def _select_delete(self, select, args, row_index=0, arg_index=0,
+                       retry=False):
         count = 0
         delete = 'DELETE FROM Cache WHERE rowid IN (%s)'
 
         try:
             while True:
-                with self._transact() as (sql, cleanup):
+                with self._transact(retry) as (sql, cleanup):
                     rows = sql(select, args).fetchall()
 
                     if not rows:
