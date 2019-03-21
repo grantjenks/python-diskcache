@@ -861,11 +861,70 @@ class Cache(object):
 
 
     def incr(self, key, delta=1, default=0):
-        with self._transact():
-            value = self.get(key, default=default)
+        """Increment value by delta for item with key.
+
+        If key is missing and default is None then raise KeyError. Else if key
+        is missing and default is not None then use default for value.
+
+        Operation is atomic. All concurrent increment operations will be
+        counted individually.
+
+        Assumes value may be stored in a SQLite column. Most builds that target
+        machines with 64-bit pointer widths will support 64-bit signed
+        integers.
+
+        :param key: key for item
+        :param int delta: amount to increment (default 1)
+        :param int default: value if key is missing (default 0)
+        :return: new value for item
+        :raises KeyError: if key is not found and default is None
+        :raises Timeout: if database timeout expires
+
+        """
+        now = time.time()
+        db_key, raw = self._disk.put(key)
+        select = (
+            'SELECT rowid, expire_time, filename, value FROM Cache'
+            ' WHERE key = ? AND raw = ?'
+        )
+
+        with self._transact() as (sql, cleanup):
+            rows = sql(select, (db_key, raw)).fetchall()
+
+            if not rows:
+                if default is None:
+                    raise KeyError(key)
+
+                value = default + delta
+                columns = (None, None) + self._disk.store(value, False, key=key)
+                self._row_insert(db_key, raw, now, columns)
+                self._cull(now, sql, cleanup)
+                return value
+
+            (rowid, expire_time, filename, value), = rows
+
+            if expire_time is not None and expire_time < now:
+                if default is None:
+                    raise KeyError(key)
+
+                value = default + delta
+                columns = (None, None) + self._disk.store(value, False, key=key)
+                self._row_update(rowid, now, columns)
+                self._cull(now, sql, cleanup)
+                cleanup(filename)
+                return value
+
             value += delta
-            time.sleep(0.001)
-            self.set(key, value)
+
+            columns = 'store_time = ?, value = ?'
+            update_column = EVICTION_POLICY[self.eviction_policy]['get']
+
+            if update_column is not None:
+                columns += ', ' + update_column.format(now=now)
+
+            update = 'UPDATE Cache SET %s WHERE rowid = ?' % columns
+            sql(update, (now, value, rowid))
+
             return value
 
 
