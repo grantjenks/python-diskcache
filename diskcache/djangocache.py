@@ -70,7 +70,7 @@ class DjangoCache(BaseCache):
         :param int version: key version number (default None, cache parameter)
         :param bool read: read value as bytes from file (default False)
         :param str tag: text to associate with key (default None)
-        :param bool retry: retry if database timeout expires (default True)
+        :param bool retry: retry if database timeout occurs (default True)
         :return: True if item was added
 
         """
@@ -93,7 +93,7 @@ class DjangoCache(BaseCache):
         :param float expire_time: if True, return expire_time in tuple
             (default False)
         :param tag: if True, return tag in tuple (default False)
-        :param bool retry: retry if database timeout expires (default False)
+        :param bool retry: retry if database timeout occurs (default False)
         :return: value for item if key is found else default
 
         """
@@ -127,7 +127,7 @@ class DjangoCache(BaseCache):
         :param int version: key version number (default None, cache parameter)
         :param bool read: read value as bytes from file (default False)
         :param str tag: text to associate with key (default None)
-        :param bool retry: retry if database timeout expires (default True)
+        :param bool retry: retry if database timeout occurs (default True)
         :return: True if item was set
 
         """
@@ -151,7 +151,7 @@ class DjangoCache(BaseCache):
         :param float expire_time: if True, return expire_time in tuple
             (default False)
         :param tag: if True, return tag in tuple (default False)
-        :param bool retry: retry if database timeout expires (default True)
+        :param bool retry: retry if database timeout occurs (default True)
         :return: value for item if key is found else default
 
         """
@@ -164,7 +164,7 @@ class DjangoCache(BaseCache):
 
         :param key: key for item
         :param int version: key version number (default None, cache parameter)
-        :param bool retry: retry if database timeout expires (default True)
+        :param bool retry: retry if database timeout occurs (default True)
         :return: True if item was deleted
 
         """
@@ -190,7 +190,7 @@ class DjangoCache(BaseCache):
         :param int delta: amount to increment (default 1)
         :param int version: key version number (default None, cache parameter)
         :param int default: value if key is missing (default None)
-        :param bool retry: retry if database timeout expires (default True)
+        :param bool retry: retry if database timeout occurs (default True)
         :return: new value for item on success else None
         :raises ValueError: if key is not found and default is None
 
@@ -223,7 +223,7 @@ class DjangoCache(BaseCache):
         :param int delta: amount to decrement (default 1)
         :param int version: key version number (default None, cache parameter)
         :param int default: value if key is missing (default None)
-        :param bool retry: retry if database timeout expires (default True)
+        :param bool retry: retry if database timeout occurs (default True)
         :return: new value for item on success else None
         :raises ValueError: if key is not found and default is None
 
@@ -269,7 +269,7 @@ class DjangoCache(BaseCache):
 
         It is better to initialize cache with `tag_index=True` than use this.
 
-        :raises Timeout: if database timeout expires
+        :raises Timeout: if database timeout occurs
 
         """
         self._cache.create_tag_index()
@@ -278,7 +278,7 @@ class DjangoCache(BaseCache):
     def drop_tag_index(self):
         """Drop tag index on cache database.
 
-        :raises Timeout: if database timeout expires
+        :raises Timeout: if database timeout occurs
 
         """
         self._cache.drop_tag_index()

@@ -667,7 +667,7 @@ class Cache(object):
         :param bool read: read value as bytes from file (default False)
         :param str tag: text to associate with key (default None)
         :return: True if item was set
-        :raises Timeout: if database timeout expires
+        :raises Timeout: if database timeout occurs
 
         """
         now = time.time()
@@ -840,7 +840,7 @@ class Cache(object):
         :param bool read: read value as bytes from file (default False)
         :param str tag: text to associate with key (default None)
         :return: True if item was added
-        :raises Timeout: if database timeout expires
+        :raises Timeout: if database timeout occurs
 
         """
         now = time.time()
@@ -891,7 +891,7 @@ class Cache(object):
         :param int default: value if key is missing (default 0)
         :return: new value for item
         :raises KeyError: if key is not found and default is None
-        :raises Timeout: if database timeout expires
+        :raises Timeout: if database timeout occurs
 
         """
         now = time.time()
@@ -962,7 +962,7 @@ class Cache(object):
         :param int default: value if key is missing (default 0)
         :return: new value for item
         :raises KeyError: if key is not found and default is None
-        :raises Timeout: if database timeout expires
+        :raises Timeout: if database timeout occurs
 
         """
         return self.incr(key, -delta, default)
@@ -979,7 +979,7 @@ class Cache(object):
             (default False)
         :param bool tag: if True, return tag in tuple (default False)
         :return: value for item or default if key not found
-        :raises Timeout: if database timeout expires
+        :raises Timeout: if database timeout occurs
 
         """
         db_key, raw = self._disk.put(key)
@@ -1066,7 +1066,7 @@ class Cache(object):
         :param key: key matching item
         :return: corresponding value
         :raises KeyError: if key is not found
-        :raises Timeout: if database timeout expires
+        :raises Timeout: if database timeout occurs
 
         """
         value = self.get(key, default=ENOVAL)
@@ -1081,7 +1081,7 @@ class Cache(object):
         :param key: key matching item
         :return: file open for reading in binary mode
         :raises KeyError: if key is not found
-        :raises Timeout: if database timeout expires
+        :raises Timeout: if database timeout occurs
 
         """
         handle = self.get(key, default=ENOVAL, read=True)
@@ -1123,7 +1123,7 @@ class Cache(object):
             (default False)
         :param bool tag: if True, return tag in tuple (default False)
         :return: value for item or default if key not found
-        :raises Timeout: if database timeout expires
+        :raises Timeout: if database timeout occurs
 
         """
         db_key, raw = self._disk.put(key)
@@ -1175,7 +1175,7 @@ class Cache(object):
 
         :param key: key matching item
         :raises KeyError: if key is not found
-        :raises Timeout: if database timeout expires
+        :raises Timeout: if database timeout occurs
 
         """
         db_key, raw = self._disk.put(key)
@@ -1205,7 +1205,7 @@ class Cache(object):
 
         :param key: key matching item
         :return: True if item was deleted
-        :raises Timeout: if database timeout expires
+        :raises Timeout: if database timeout occurs
 
         """
         try:
@@ -1252,7 +1252,7 @@ class Cache(object):
         :param bool read: read value as bytes from file (default False)
         :param str tag: text to associate with key (default None)
         :return: key for item in cache
-        :raises Timeout: if database timeout expires
+        :raises Timeout: if database timeout occurs
 
         """
         if prefix is None:
@@ -1352,7 +1352,7 @@ class Cache(object):
             (default False)
         :param bool tag: if True, return tag in tuple (default False)
         :return: key and value item pair or default if queue is empty
-        :raises Timeout: if database timeout expires
+        :raises Timeout: if database timeout occurs
 
         """
         if prefix is None:
@@ -1425,7 +1425,7 @@ class Cache(object):
 
         :param bool fix: correct inconsistencies
         :return: list of warnings
-        :raises Timeout: if database timeout expires
+        :raises Timeout: if database timeout occurs
 
         """
         # pylint: disable=access-member-before-definition,W0201
@@ -1543,7 +1543,7 @@ class Cache(object):
 
         It is better to initialize cache with `tag_index=True` than use this.
 
-        :raises Timeout: if database timeout expires
+        :raises Timeout: if database timeout occurs
 
         """
         sql = self._sql
@@ -1554,7 +1554,7 @@ class Cache(object):
     def drop_tag_index(self):
         """Drop tag index on cache database.
 
-        :raises Timeout: if database timeout expires
+        :raises Timeout: if database timeout occurs
 
         """
         sql = self._sql
@@ -1574,7 +1574,7 @@ class Cache(object):
 
         :param str tag: tag identifying items
         :return: count of rows removed
-        :raises Timeout: if database timeout expires
+        :raises Timeout: if database timeout occurs
 
         """
         select = (
@@ -1598,7 +1598,7 @@ class Cache(object):
 
         :param float now: current time (default None, ``time.time()`` used)
         :return: count of items removed
-        :raises Timeout: if database timeout expires
+        :raises Timeout: if database timeout occurs
 
         """
         select = (
@@ -1621,7 +1621,7 @@ class Cache(object):
         exception occurred.
 
         :return: count of items removed
-        :raises Timeout: if database timeout expires
+        :raises Timeout: if database timeout occurs
 
         """
         now = time.time()
@@ -1673,7 +1673,7 @@ class Cache(object):
         exception occurred.
 
         :return: count of rows removed
-        :raises Timeout: if database timeout expires
+        :raises Timeout: if database timeout occurs
 
         """
         select = (
@@ -1912,7 +1912,7 @@ class Cache(object):
         :param value: value for item (optional)
         :param bool update: update database Settings table (default True)
         :return: updated value for item
-        :raises Timeout: if database timeout expires
+        :raises Timeout: if database timeout occurs
 
         """
         sql = self._sql

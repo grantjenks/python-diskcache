@@ -67,7 +67,7 @@ class FanoutCache(object):
             (default None, no expiry)
         :param bool read: read value as raw bytes from file (default False)
         :param str tag: text to associate with key (default None)
-        :param bool retry: retry if database timeout expires (default False)
+        :param bool retry: retry if database timeout occurs (default False)
         :return: True if item was set
 
         """
@@ -113,7 +113,7 @@ class FanoutCache(object):
             (default None, no expiry)
         :param bool read: read value as bytes from file (default False)
         :param str tag: text to associate with key (default None)
-        :param bool retry: retry if database timeout expires (default False)
+        :param bool retry: retry if database timeout occurs (default False)
         :return: True if item was added
 
         """
@@ -146,7 +146,7 @@ class FanoutCache(object):
         :param key: key for item
         :param int delta: amount to increment (default 1)
         :param int default: value if key is missing (default 0)
-        :param bool retry: retry if database timeout expires (default False)
+        :param bool retry: retry if database timeout occurs (default False)
         :return: new value for item on success else None
         :raises KeyError: if key is not found and default is None
 
@@ -183,7 +183,7 @@ class FanoutCache(object):
         :param key: key for item
         :param int delta: amount to decrement (default 1)
         :param int default: value if key is missing (default 0)
-        :param bool retry: retry if database timeout expires (default False)
+        :param bool retry: retry if database timeout occurs (default False)
         :return: new value for item on success else None
         :raises KeyError: if key is not found and default is None
 
@@ -205,7 +205,7 @@ class FanoutCache(object):
         :param float expire_time: if True, return expire_time in tuple
             (default False)
         :param tag: if True, return tag in tuple (default False)
-        :param bool retry: retry if database timeout expires (default False)
+        :param bool retry: retry if database timeout occurs (default False)
         :return: value for item if key is found else default
 
         """
@@ -281,7 +281,7 @@ class FanoutCache(object):
         :param float expire_time: if True, return expire_time in tuple
             (default False)
         :param tag: if True, return tag in tuple (default False)
-        :param bool retry: retry if database timeout expires (default False)
+        :param bool retry: retry if database timeout occurs (default False)
         :return: value for item if key is found else default
 
         """
@@ -309,7 +309,7 @@ class FanoutCache(object):
         `True` (default `False`).
 
         :param key: key for item
-        :param bool retry: retry if database timeout expires (default False)
+        :param bool retry: retry if database timeout occurs (default False)
         :return: True if item was deleted
 
         """
@@ -359,7 +359,7 @@ class FanoutCache(object):
 
         :param bool fix: correct inconsistencies
         :return: list of warnings
-        :raises Timeout: if database timeout expires
+        :raises Timeout: if database timeout occurs
 
         """
         return sum((shard.check(fix=fix) for shard in self._shards), [])
@@ -379,7 +379,7 @@ class FanoutCache(object):
 
         It is better to initialize cache with `tag_index=True` than use this.
 
-        :raises Timeout: if database timeout expires
+        :raises Timeout: if database timeout occurs
 
         """
         for shard in self._shards:
@@ -389,7 +389,7 @@ class FanoutCache(object):
     def drop_tag_index(self):
         """Drop tag index on cache database.
 
-        :raises Timeout: if database timeout expires
+        :raises Timeout: if database timeout occurs
 
         """
         for shard in self._shards:
@@ -518,7 +518,7 @@ class FanoutCache(object):
         :param str key: Settings key for item
         :param value: value for item (optional)
         :return: updated value for item
-        :raises Timeout: if database timeout expires
+        :raises Timeout: if database timeout occurs
 
         """
         for shard in self._shards:
