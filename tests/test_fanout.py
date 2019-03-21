@@ -250,6 +250,52 @@ def test_incr_concurrent():
     shutil.rmtree('tmp', ignore_errors=True)
 
 
+def test_getsetdel(cache):
+    values = [
+        (None, False),
+        ((None,) * 2 ** 10, False),
+        (1234, False),
+        (2 ** 512, False),
+        (56.78, False),
+        (u'hello', False),
+        (u'hello' * 2 ** 10, False),
+        (b'world', False),
+        (b'world' * 2 ** 10, False),
+        (io.BytesIO(b'world' * 2 ** 10), True),
+    ]
+
+    for key, (value, file_like) in enumerate(values):
+        assert cache.set(key, value, read=file_like)
+
+    assert len(cache) == len(values)
+
+    for key, (value, file_like) in enumerate(values):
+        if file_like:
+            assert cache[key] == value.getvalue()
+        else:
+            assert cache[key] == value
+
+    for key, _ in enumerate(values):
+        del cache[key]
+
+    assert len(cache) == 0
+
+    for value, (key, _) in enumerate(values):
+        cache[key] = value
+
+    assert len(cache) == len(values)
+
+    for value, (key, _) in enumerate(values):
+        assert cache[key] == value
+
+    for _, (key, _) in enumerate(values):
+        del cache[key]
+
+    assert len(cache) == 0
+
+    cache.check()
+
+
 def test_get_timeout(cache):
     cache.set(0, 0)
 
