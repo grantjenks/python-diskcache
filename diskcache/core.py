@@ -22,6 +22,7 @@ if sys.hexversion < 0x03000000:
     import cPickle as pickle  # pylint: disable=import-error
     # ISSUE #25 Fix for http://bugs.python.org/issue10211
     from cStringIO import StringIO as BytesIO  # pylint: disable=import-error
+    from thread import get_ident
     TextType = unicode  # pylint: disable=invalid-name,undefined-variable
     BytesType = str
     INT_TYPES = int, long  # pylint: disable=undefined-variable
@@ -30,6 +31,7 @@ if sys.hexversion < 0x03000000:
 else:
     import pickle
     from io import BytesIO  # pylint: disable=ungrouped-imports
+    from threading import get_ident
     TextType = str
     BytesType = bytes
     INT_TYPES = (int,)
@@ -619,7 +621,7 @@ class Cache(object):
         sql = self._sql
         filenames = []
         _disk_remove = self._disk.remove
-        tid = threading.get_ident()
+        tid = get_ident()
         txn_id = self._txn_id
 
         if tid == txn_id:
