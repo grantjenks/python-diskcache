@@ -372,7 +372,7 @@ class Cache(object):
         self._directory = directory
         self._timeout = 0  # Manually handle retries during initialization.
         self._local = threading.local()
-        self._transaction_identifier = None
+        self._txn_id = None
 
         if not op.isdir(directory):
             try:
@@ -604,37 +604,50 @@ class Cache(object):
 
 
     @cl.contextmanager
-    def _transact(self, filename=None):
+    def transact(self, retry=False):
+        """Lock the cache to perform a transaction.
+
+        """
+        with self._transact(retry=retry):
+            yield
+
+
+    @cl.contextmanager
+    def _transact(self, retry=False, filename=None):
         sql = self._sql
         filenames = []
         _disk_remove = self._disk.remove
-        thread_identifier = threading.get_ident()
-        transaction_identifier = self._transaction_identifier
+        tid = threading.get_ident()
+        txn_id = self._txn_id
 
-        if thread_identifier == transaction_identifier:
+        if tid == txn_id:
             begin = False
         else:
-            try:
-                sql('BEGIN IMMEDIATE')
-                begin = True
-                self._transaction_identifier = thread_identifier
-            except sqlite3.OperationalError:
-                if filename is not None:
-                    _disk_remove(filename)
-                raise Timeout
+            while True:
+                try:
+                    sql('BEGIN IMMEDIATE')
+                    begin = True
+                    self._txn_id = tid
+                    break
+                except sqlite3.OperationalError:
+                    if retry:
+                        continue
+                    if filename is not None:
+                        _disk_remove(filename)
+                    raise Timeout
 
         try:
             yield sql, filenames.append
         except BaseException:
             if begin:
-                assert self._transaction_identifier == thread_identifier
-                self._transaction_identifier = None
+                assert self._txn_id == tid
+                self._txn_id = None
                 sql('ROLLBACK')
             raise
         else:
             if begin:
-                assert self._transaction_identifier == thread_identifier
-                self._transaction_identifier = None
+                assert self._txn_id == tid
+                self._txn_id = None
                 sql('COMMIT')
             for name in filenames:
                 if name is not None:
@@ -684,7 +697,7 @@ class Cache(object):
         # INSERT OR REPLACE aka UPSERT is not used because the old filename may
         # need cleanup.
 
-        with self._transact(filename) as (sql, cleanup):
+        with self._transact(False, filename) as (sql, cleanup):
             rows = sql(
                 'SELECT rowid, filename FROM Cache'
                 ' WHERE key = ? AND raw = ?',
@@ -836,7 +849,7 @@ class Cache(object):
         size, mode, filename, db_value = self._disk.store(value, read, key=key)
         columns = (expire_time, tag, size, mode, filename, db_value)
 
-        with self._transact(filename) as (sql, cleanup):
+        with self._transact(False, filename) as (sql, cleanup):
             rows = sql(
                 'SELECT rowid, filename, expire_time FROM Cache'
                 ' WHERE key = ? AND raw = ?',
@@ -1261,7 +1274,7 @@ class Cache(object):
             ' ORDER BY key %s LIMIT 1'
         ) % order[side]
 
-        with self._transact(filename) as (sql, cleanup):
+        with self._transact(False, filename) as (sql, cleanup):
             rows = sql(select, (min_key, max_key, raw)).fetchall()
 
             if rows:
