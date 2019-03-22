@@ -1,5 +1,6 @@
 "Django-compatible disk and file backed cache."
 
+from functools import wraps
 from django.core.cache.backends.base import BaseCache
 
 try:
@@ -9,6 +10,8 @@ except ImportError:
     DEFAULT_TIMEOUT = 300
 
 from .fanout import FanoutCache
+
+MARK = object()
 
 
 class DjangoCache(BaseCache):
@@ -26,7 +29,6 @@ class DjangoCache(BaseCache):
         options = params.get('OPTIONS', {})
         self._directory = directory
         self._cache = FanoutCache(directory, shards, timeout, **options)
-        self.memoize = self._cache.memoize
 
 
     @property
@@ -327,3 +329,84 @@ class DjangoCache(BaseCache):
             # ticket 21147 - avoid time.time() related precision issues
             timeout = -1
         return None if timeout is None else timeout
+
+
+    def memoize(self, name=None, timeout=DEFAULT_TIMEOUT, version=None,
+                typed=False, tag=None):
+        """Memoizing cache decorator.
+
+        Decorator to wrap callable with memoizing function using cache.
+        Repeated calls with the same arguments will lookup result in cache and
+        avoid function evaluation.
+
+        If name is set to None (default), the callable name will be determined
+        automatically.
+
+        If typed is set to True, function arguments of different types will be
+        cached separately. For example, f(3) and f(3.0) will be treated as
+        distinct calls with distinct results.
+
+        The original underlying function is accessible through the __wrapped__
+        attribute. This is useful for introspection, for bypassing the cache,
+        or for rewrapping the function with a different cache.
+
+        Remember to call memoize when decorating a callable. If you forget, then a
+        TypeError will occur.
+
+        :param str name: name given for callable (default None, automatic)
+        :param float timeout: seconds until the item expires
+            (default 300 seconds)
+        :param int version: key version number (default None, cache parameter)
+        :param bool typed: cache different types separately (default False)
+        :param str tag: text to associate with arguments (default None)
+        :return: callable decorator
+
+        """
+        # Caution: Nearly identical code exists in memo.memoize
+        if callable(name):
+            raise TypeError('name cannot be callable')
+
+        def decorator(function):
+            "Decorator created by memoize call for callable."
+            if name is None:
+                try:
+                    reference = function.__qualname__
+                except AttributeError:
+                    reference = function.__name__
+
+                reference = function.__module__ + reference
+            else:
+                reference = name
+
+            reference = (reference,)
+
+            @wraps(function)
+            def wrapper(*args, **kwargs):
+                "Wrapper for callable to cache arguments and return values."
+
+                key = reference + args
+
+                if kwargs:
+                    key += (MARK,)
+                    sorted_items = sorted(kwargs.items())
+
+                    for item in sorted_items:
+                        key += item
+
+                if typed:
+                    key += tuple(type(arg) for arg in args)
+
+                    if kwargs:
+                        key += tuple(type(value) for _, value in sorted_items)
+
+                result = self.get(key, MARK, version, retry=True)
+
+                if result is MARK:
+                    result = function(*args, **kwargs)
+                    self.set(key, result, timeout, version, tag=tag, retry=True)
+
+                return result
+
+            return wrapper
+
+        return decorator

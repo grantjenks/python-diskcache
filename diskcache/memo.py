@@ -56,6 +56,7 @@ def memoize(cache, name=None, typed=False, expire=None, tag=None):
     :return: callable decorator
 
     """
+    # Caution: Nearly identical code exists in DjangoCache.memoize
     if callable(name):
         raise TypeError('name cannot be callable')
 
