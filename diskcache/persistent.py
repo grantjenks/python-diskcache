@@ -6,6 +6,7 @@ import operator as op
 import sys
 
 from collections import OrderedDict
+from contextlib import contextmanager
 from itertools import islice
 from shutil import rmtree
 from tempfile import mkdtemp
@@ -581,6 +582,39 @@ class Deque(Sequence):
 
 
     __hash__ = None
+
+
+    @contextmanager
+    def transact(self):
+        """Context manager to perform a transaction by locking the deque.
+
+        While the deque is locked, no other write operation is permitted.
+        Transactions should therefore be as short as possible. Read and write
+        operations performed in a transaction are atomic. Read operations may
+        occur concurrent to a transaction.
+
+        Transactions may be nested and may not be shared between threads.
+
+        Raises :exc:`Timeout` error when database timeout occurs and `retry` is
+        `False` (default).
+
+        >>> from diskcache import Deque
+        >>> deque = Deque(directory='/tmp/diskcache/deque')
+        >>> deque.clear()
+        >>> deque += range(5)
+        >>> with deque.transact():  # Atomically rotate elements.
+        ...     value = deque.pop()
+        ...     deque.appendleft(value)
+        >>> list(deque)
+        [4, 0, 1, 2, 3]
+
+        :param bool retry: retry if database timeout occurs (default False)
+        :return: context manager for use in `with` statement
+        :raises Timeout: if database timeout occurs
+
+        """
+        with self._cache.transact(retry=True):
+            yield
 
 
 class Index(MutableMapping):
@@ -1279,6 +1313,39 @@ class Index(MutableMapping):
 
         """
         return self._cache.memoize(name, typed)
+
+
+    @contextmanager
+    def transact(self):
+        """Context manager to perform a transaction by locking the index.
+
+        While the index is locked, no other write operation is permitted.
+        Transactions should therefore be as short as possible. Read and write
+        operations performed in a transaction are atomic. Read operations may
+        occur concurrent to a transaction.
+
+        Transactions may be nested and may not be shared between threads.
+
+        Raises :exc:`Timeout` error when database timeout occurs and `retry` is
+        `False` (default).
+
+        >>> from diskcache import Index
+        >>> mapping = Index('/tmp/diskcache/index')
+        >>> with mapping.transact():  # Atomically increment two keys.
+        ...     mapping['total'] = mapping.get('total', 0) + 123.4
+        ...     mapping['count'] = mapping.get('count', 0) + 1
+        >>> with mapping.transact():  # Atomically calculate average.
+        ...     average = mapping['total'] / mapping['count']
+        >>> average
+        123.4
+
+        :param bool retry: retry if database timeout occurs (default False)
+        :return: context manager for use in `with` statement
+        :raises Timeout: if database timeout occurs
+
+        """
+        with self._cache.transact(retry=True):
+            yield
 
 
     def __repr__(self):

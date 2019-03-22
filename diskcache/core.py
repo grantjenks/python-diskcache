@@ -609,9 +609,31 @@ class Cache(object):
 
     @cl.contextmanager
     def transact(self, retry=False):
-        """Lock the cache to perform a transaction.
+        """Context manager to perform a transaction by locking the cache.
 
-        # TODO
+        While the cache is locked, no other write operation is permitted.
+        Transactions should therefore be as short as possible. Read and write
+        operations performed in a transaction are atomic. Read operations may
+        occur concurrent to a transaction.
+
+        Transactions may be nested and may not be shared between threads.
+
+        Raises :exc:`Timeout` error when database timeout occurs and `retry` is
+        `False` (default).
+
+        >>> cache = Cache('/tmp/diskcache')
+        >>> _ = cache.clear()
+        >>> with cache.transact():  # Atomically increment two keys.
+        ...     _ = cache.incr('total', 123.4)
+        ...     _ = cache.incr('count', 1)
+        >>> with cache.transact():  # Atomically calculate average.
+        ...     average = cache['total'] / cache['count']
+        >>> average
+        123.4
+
+        :param bool retry: retry if database timeout occurs (default False)
+        :return: context manager for use in `with` statement
+        :raises Timeout: if database timeout occurs
 
         """
         with self._transact(retry=retry):
@@ -1285,7 +1307,7 @@ class Cache(object):
 
         See also `Cache.pull`.
 
-        >>> cache = Cache('/tmp/test')
+        >>> cache = Cache('/tmp/diskcache')
         >>> _ = cache.clear()
         >>> print(cache.push('first value'))
         500000000000000
@@ -1379,7 +1401,7 @@ class Cache(object):
 
         See also `Cache.push` and `Cache.get`.
 
-        >>> cache = Cache('/tmp/test')
+        >>> cache = Cache('/tmp/diskcache')
         >>> _ = cache.clear()
         >>> cache.pull()
         (None, None)
