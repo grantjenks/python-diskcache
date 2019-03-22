@@ -594,9 +594,6 @@ class Deque(Sequence):
 
         Transactions may be nested and may not be shared between threads.
 
-        Raises :exc:`Timeout` error when database timeout occurs and `retry` is
-        `False` (default).
-
         >>> from diskcache import Deque
         >>> deque = Deque(directory='/tmp/diskcache/deque')
         >>> deque.clear()
@@ -607,7 +604,6 @@ class Deque(Sequence):
         >>> list(deque)
         [4, 0, 1, 2, 3]
 
-        :param bool retry: retry if database timeout occurs (default False)
         :return: context manager for use in `with` statement
         :raises Timeout: if database timeout occurs
 
@@ -1331,9 +1327,6 @@ class Index(MutableMapping):
 
         Transactions may be nested and may not be shared between threads.
 
-        Raises :exc:`Timeout` error when database timeout occurs and `retry` is
-        `False` (default).
-
         >>> from diskcache import Index
         >>> mapping = Index('/tmp/diskcache/index')
         >>> with mapping.transact():  # Atomically increment two keys.
@@ -1344,7 +1337,6 @@ class Index(MutableMapping):
         >>> average
         123.4
 
-        :param bool retry: retry if database timeout occurs (default False)
         :return: context manager for use in `with` statement
         :raises Timeout: if database timeout occurs
 
