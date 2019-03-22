@@ -10,7 +10,7 @@ from itertools import islice
 from shutil import rmtree
 from tempfile import mkdtemp
 
-from .core import BytesType, Cache, ENOVAL, TextType, Timeout
+from .core import BytesType, Cache, ENOVAL, TextType
 
 ############################################################################
 # BEGIN Python 2/3 Shims
@@ -193,7 +193,7 @@ class Deque(Sequence):
             try:
                 key = _key(index)
                 return _cache[key]
-            except (KeyError, Timeout):
+            except KeyError:
                 continue
 
 
@@ -218,14 +218,8 @@ class Deque(Sequence):
         """
         _key = self._key
         _cache = self._cache
-
-        while True:
-            try:
-                key = _key(index)
-                _cache[key] = value
-                return
-            except Timeout:
-                continue
+        key = _key(index)
+        _cache[key] = value
 
 
     def __delitem__(self, index):
@@ -254,7 +248,7 @@ class Deque(Sequence):
                 key = _key(index)
                 del _cache[key]
                 return
-            except (KeyError, Timeout):
+            except KeyError:
                 continue
 
 
@@ -297,7 +291,7 @@ class Deque(Sequence):
         for key in _cache.iterkeys():
             try:
                 yield _cache[key]
-            except (KeyError, Timeout):
+            except KeyError:
                 pass
 
 
@@ -330,7 +324,7 @@ class Deque(Sequence):
         for key in _cache.iterkeys(reverse=True):
             try:
                 yield _cache[key]
-            except (KeyError, Timeout):
+            except KeyError:
                 pass
 
 
@@ -356,14 +350,7 @@ class Deque(Sequence):
         :param value: value to add to back of deque
 
         """
-        _cache_push = self._cache.push
-
-        while True:
-            try:
-                _cache_push(value)
-                return
-            except Timeout:
-                continue
+        self._cache.push(value, retry=True)
 
 
     def appendleft(self, value):
@@ -380,28 +367,14 @@ class Deque(Sequence):
         :param value: value to add to front of deque
 
         """
-        _cache_push = self._cache.push
-
-        while True:
-            try:
-                _cache_push(value, side='front')
-                return
-            except Timeout:
-                continue
+        self._cache.push(value, side='front', retry=True)
 
 
     def clear(self):
         """Remove all elements from deque.
 
         """
-        _cache_clear = self._cache.clear
-
-        while True:
-            try:
-                _cache_clear()
-                return
-            except Timeout:
-                continue
+        self._cache.clear(retry=True)
 
 
     def count(self, value):
@@ -469,18 +442,11 @@ class Deque(Sequence):
         :raises IndexError: if deque is empty
 
         """
-        _cache_pull = self._cache.pull
-
-        while True:
-            try:
-                default = None, ENOVAL
-                _, value = _cache_pull(default=default, side='back')
-            except Timeout:
-                continue
-            else:
-                if value is ENOVAL:
-                    raise IndexError('pop from an empty deque')
-                return value
+        default = None, ENOVAL
+        _, value = self._cache.pull(default=default, side='back', retry=True)
+        if value is ENOVAL:
+            raise IndexError('pop from an empty deque')
+        return value
 
 
     def popleft(self):
@@ -499,18 +465,11 @@ class Deque(Sequence):
         IndexError: pop from an empty deque
 
         """
-        _cache_pull = self._cache.pull
-
-        while True:
-            try:
-                default = None, ENOVAL
-                _, value = _cache_pull(default=default)
-            except Timeout:
-                continue
-            else:
-                if value is ENOVAL:
-                    raise IndexError('pop from an empty deque')
-                return value
+        default = None, ENOVAL
+        _, value = self._cache.pull(default=default, retry=True)
+        if value is ENOVAL:
+            raise IndexError('pop from an empty deque')
+        return value
 
 
     def remove(self, value):
@@ -538,27 +497,16 @@ class Deque(Sequence):
 
         for key in _cache.iterkeys():
             try:
-                while True:
-                    try:
-                        item = _cache[key]
-                    except Timeout:
-                        continue
-                    else:
-                        break
+                item = _cache[key]
             except KeyError:
                 continue
             else:
                 if value == item:
                     try:
-                        while True:
-                            try:
-                                del _cache[key]
-                            except Timeout:
-                                continue
-                            else:
-                                return
+                        del _cache[key]
                     except KeyError:
                         continue
+                    return
 
         raise ValueError('deque.remove(value): value not in deque')
 
@@ -743,13 +691,7 @@ class Index(MutableMapping):
         :raises KeyError: if key is not found
 
         """
-        _cache = self._cache
-
-        while True:
-            try:
-                return _cache[key]
-            except Timeout:
-                continue
+        return self._cache[key]
 
 
     def __setitem__(self, key, value):
@@ -768,15 +710,7 @@ class Index(MutableMapping):
         :param value: value for item
 
         """
-        _cache = self._cache
-
-        while True:
-            try:
-                _cache[key] = value
-            except Timeout:
-                continue
-            else:
-                return
+        self._cache[key] = value
 
 
     def __delitem__(self, key):
@@ -800,15 +734,7 @@ class Index(MutableMapping):
         :raises KeyError: if key is not found
 
         """
-        _cache = self._cache
-
-        while True:
-            try:
-                del _cache[key]
-            except Timeout:
-                continue
-            else:
-                return
+        del self._cache[key]
 
 
     def setdefault(self, key, default=None):
@@ -830,18 +756,11 @@ class Index(MutableMapping):
 
         """
         _cache = self._cache
-
         while True:
             try:
-                return self[key]
+                return _cache[key]
             except KeyError:
-                while True:
-                    try:
-                        _cache.add(key, default)
-                    except Timeout:
-                        continue
-                    else:
-                        break
+                _cache.add(key, default, retry=True)
 
 
     def pop(self, key, default=ENOVAL):
@@ -868,18 +787,11 @@ class Index(MutableMapping):
         :raises KeyError: if key is not found and default is ENOVAL
 
         """
-
         _cache = self._cache
-
-        while True:
-            try:
-                value = _cache.pop(key, default=default)
-            except Timeout:
-                continue
-            else:
-                if value is ENOVAL:
-                    raise KeyError(key)
-                return value
+        value = _cache.pop(key, default=default, retry=True)
+        if value is ENOVAL:
+            raise KeyError(key)
+        return value
 
 
     def popitem(self, last=True):
@@ -921,8 +833,8 @@ class Index(MutableMapping):
                 raise KeyError
 
             try:
-                value = _cache.pop(key)
-            except (KeyError, Timeout):
+                value = _cache.pop(key, retry=True)
+            except KeyError:
                 continue
             else:
                 return key, value
@@ -958,13 +870,7 @@ class Index(MutableMapping):
         :return: key for item in cache
 
         """
-        _cache_push = self._cache.push
-
-        while True:
-            try:
-                return _cache_push(value, prefix, side)
-            except Timeout:
-                continue
+        return self._cache.push(value, prefix, side, retry=True)
 
 
     def pull(self, prefix=None, default=(None, None), side='front'):
@@ -1006,27 +912,14 @@ class Index(MutableMapping):
         :return: key and value item pair or default if queue is empty
 
         """
-        _cache_pull = self._cache.pull
-
-        while True:
-            try:
-                return _cache_pull(prefix, default, side)
-            except Timeout:
-                continue
+        return self._cache.pull(prefix, default, side, retry=True)
 
 
     def clear(self):
         """Remove all items from index.
 
         """
-        _cache_clear = self._cache.clear
-
-        while True:
-            try:
-                _cache_clear()
-                return
-            except Timeout:
-                continue
+        self._cache.clear(retry=True)
 
 
     def __iter__(self):
@@ -1145,11 +1038,8 @@ class Index(MutableMapping):
                     try:
                         yield _cache[key]
                     except KeyError:
-                        break
-                    except Timeout:
-                        continue
-                    else:
-                        break
+                        pass
+                    break
 
 
         def iteritems(self):
@@ -1171,11 +1061,8 @@ class Index(MutableMapping):
                     try:
                         yield key, _cache[key]
                     except KeyError:
-                        break
-                    except Timeout:
-                        continue
-                    else:
-                        break
+                        pass
+                    break
 
 
         def viewkeys(self):

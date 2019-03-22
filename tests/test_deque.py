@@ -123,80 +123,10 @@ def test_indexerror_islice(deque):
             deque[0]
 
 
-def test_get_timeout(deque):
-    cache = mock.MagicMock()
-    cache.__len__.return_value = 1
-    cache.iterkeys.side_effect = [iter([0]), iter([0])]
-    cache.__getitem__.side_effect = [dc.Timeout, 0]
-
-    deque.append(0)
-
-    with mock.patch.object(deque, '_cache', cache):
-        deque[0]
-
-
-def test_set_timeout(deque):
-    cache = mock.MagicMock()
-    cache.__len__.return_value = 1
-    cache.iterkeys.side_effect = [iter([0]), iter([0])]
-    cache.__setitem__.side_effect = [dc.Timeout, None]
-
-    deque.append(0)
-
-    with mock.patch.object(deque, '_cache', cache):
-        deque[0] = 0
-
-
-def test_del_timeout(deque):
-    cache = mock.MagicMock()
-    cache.__len__.return_value = 1
-    cache.iterkeys.side_effect = [iter([0]), iter([0])]
-    cache.__delitem__.side_effect = [dc.Timeout, None]
-
-    deque.append(0)
-
-    with mock.patch.object(deque, '_cache', cache):
-        del deque[0]
-
-
 def test_repr():
     directory = '/tmp/diskcache/deque'
     deque = dc.Deque(directory=directory)
     assert repr(deque) == 'Deque(directory=%r)' % directory
-
-
-def test_iter_timeout(deque):
-    cache = mock.MagicMock()
-    cache.iterkeys.side_effect = [iter([0, 1])]
-    cache.__getitem__.side_effect = [dc.Timeout, 0]
-
-    with mock.patch.object(deque, '_cache', cache):
-        assert list(deque) == [0]
-
-
-def test_reversed_timeout(deque):
-    cache = mock.MagicMock()
-    cache.iterkeys.side_effect = [iter([0, 1])]
-    cache.__getitem__.side_effect = [dc.Timeout, 0]
-
-    with mock.patch.object(deque, '_cache', cache):
-        assert list(reversed(deque)) == [0]
-
-
-def test_append_timeout(deque):
-    cache = mock.MagicMock()
-    cache.push.side_effect = [dc.Timeout, None]
-
-    with mock.patch.object(deque, '_cache', cache):
-        deque.append(0)
-
-
-def test_appendleft_timeout(deque):
-    cache = mock.MagicMock()
-    cache.push.side_effect = [dc.Timeout, None]
-
-    with mock.patch.object(deque, '_cache', cache):
-        deque.appendleft(0)
 
 
 def test_count(deque):
@@ -231,14 +161,6 @@ def test_pop_indexerror(deque):
         deque.pop()
 
 
-def test_pop_timeout(deque):
-    cache = mock.MagicMock()
-    cache.pull.side_effect = [dc.Timeout, (None, 0)]
-
-    with mock.patch.object(deque, '_cache', cache):
-        assert deque.pop() == 0
-
-
 def test_popleft(deque):
     sequence = list('abcde')
     deque.extend(sequence)
@@ -254,14 +176,6 @@ def test_popleft_indexerror(deque):
         deque.popleft()
 
 
-def test_popleft_timeout(deque):
-    cache = mock.MagicMock()
-    cache.pull.side_effect = [dc.Timeout, (None, 0)]
-
-    with mock.patch.object(deque, '_cache', cache):
-        assert deque.popleft() == 0
-
-
 def test_remove(deque):
     deque.extend('abaca')
     deque.remove('a')
@@ -270,16 +184,6 @@ def test_remove(deque):
     assert deque == 'bca'
     deque.remove('a')
     assert deque == 'bc'
-
-
-def test_remove_timeout(deque):
-    cache = mock.MagicMock()
-    cache.iterkeys.side_effect = [iter([0, 1, 2, 3, 4])]
-    cache.__getitem__.side_effect = [0, dc.Timeout, KeyError, 3, 3]
-    cache.__delitem__.side_effect = [KeyError, dc.Timeout, None]
-
-    with mock.patch.object(deque, '_cache', cache):
-        deque.remove(3)
 
 
 def test_remove_valueerror(deque):
@@ -332,11 +236,3 @@ def test_rotate_indexerror_negative(deque):
 
     with mock.patch.object(deque, '_cache', cache):
         deque.rotate(-1)
-
-
-def test_clear_timeout(deque):
-    cache = mock.MagicMock()
-    cache.clear.side_effect = [dc.Timeout, None]
-
-    with mock.patch.object(deque, '_cache', cache):
-        deque.clear()
