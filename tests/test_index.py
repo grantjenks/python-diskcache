@@ -168,17 +168,17 @@ def test_memoize(index):
         else:
             return fibrec(num - 1) + fibrec(num - 2)
 
-    index.stats(enable=True)
+    index._cache.stats(enable=True)
 
     for value in range(count):
         assert fibrec(value) == fibiter(value)
 
-    hits1, misses1 = index.stats()
+    hits1, misses1 = index._cache.stats()
 
     for value in range(count):
         assert fibrec(value) == fibiter(value)
 
-    hits2, misses2 = index.stats()
+    hits2, misses2 = index._cache.stats()
 
     assert hits2 == (hits1 + count)
     assert misses2 == misses1

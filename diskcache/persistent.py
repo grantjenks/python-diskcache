@@ -634,8 +634,6 @@ class Index(MutableMapping):
             directory = mkdtemp(prefix='diskcache-')
         self._cache = Cache(directory, eviction_policy='none')
         self.update(*args, **kwargs)
-        self.memoize = self._cache.memoize
-        self.stats = self._cache.stats
 
 
     @classmethod
@@ -1231,6 +1229,56 @@ class Index(MutableMapping):
 
         """
         return not self == other
+
+
+    def memoize(self, name=None, typed=False):
+        """Memoizing cache decorator.
+
+        Decorator to wrap callable with memoizing function using cache.
+        Repeated calls with the same arguments will lookup result in cache and
+        avoid function evaluation.
+
+        If name is set to None (default), the callable name will be determined
+        automatically.
+
+        If typed is set to True, function arguments of different types will be
+        cached separately. For example, f(3) and f(3.0) will be treated as
+        distinct calls with distinct results.
+
+        The original underlying function is accessible through the __wrapped__
+        attribute. This is useful for introspection, for bypassing the cache,
+        or for rewrapping the function with a different cache.
+
+        >>> from diskcache import Index
+        >>> mapping = Index('/tmp/diskcache/index')
+        >>> @mapping.memoize(typed=True)
+        ... def fibonacci(number):
+        ...     if number == 0:
+        ...         return 0
+        ...     elif number == 1:
+        ...         return 1
+        ...     else:
+        ...         return fibonacci(number - 1) + fibonacci(number - 2)
+        >>> print(sum(fibonacci(number=value) for value in range(100)))
+        573147844013817084100
+
+        Remember to call memoize when decorating a callable. If you forget,
+        then a TypeError will occur. Note the lack of parenthenses after
+        memoize below:
+
+        >>> @mapping.memoize
+        ... def test():
+        ...     pass
+        Traceback (most recent call last):
+            ...
+        TypeError: name cannot be callable
+
+        :param str name: name given for callable (default None, automatic)
+        :param bool typed: cache different types separately (default False)
+        :return: callable decorator
+
+        """
+        return self._cache.memoize(name, typed)
 
 
     def __repr__(self):
