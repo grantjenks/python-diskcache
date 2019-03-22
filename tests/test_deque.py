@@ -113,16 +113,6 @@ def test_indexerror(deque):
         deque[0]
 
 
-def test_indexerror_islice(deque):
-    islice = mock.Mock(side_effect=StopIteration)
-
-    deque.append(0)
-
-    with mock.patch('diskcache.persistent.islice', islice):
-        with pytest.raises(IndexError):
-            deque[0]
-
-
 def test_repr():
     directory = '/tmp/diskcache/deque'
     deque = dc.Deque(directory=directory)
