@@ -1493,6 +1493,113 @@ class Cache(object):
             return key, value
 
 
+    def peek(self, prefix=None, default=(None, None), side='front',
+             expire_time=False, tag=False, retry=False):
+        """Peek at key and value item pair from `side` of queue in cache.
+
+        When prefix is None, integer keys are used. Otherwise, string keys are
+        used in the format "prefix-integer". Integer starts at 500 trillion.
+
+        If queue is empty, return default.
+
+        Defaults to peeking at key and value item pairs from front of queue.
+        Set side to 'back' to pull from back of queue. Side must be one of
+        'front' or 'back'.
+
+        Expired items are deleted from cache. Operation is atomic. Concurrent
+        operations will be serialized.
+
+        Raises :exc:`Timeout` error when database timeout occurs and `retry` is
+        `False` (default).
+
+        See also `Cache.pull` and `Cache.push`.
+
+        >>> cache = Cache('/tmp/diskcache')
+        >>> _ = cache.clear()
+        >>> for letter in 'abc':
+        ...     print(cache.push(letter))
+        500000000000000
+        500000000000001
+        500000000000002
+        >>> key, value = cache.peek()
+        >>> print(key)
+        500000000000000
+        >>> value
+        'a'
+        >>> key, value = cache.peek(side='back')
+        >>> print(key)
+        500000000000002
+        >>> value
+        'c'
+
+        :param str prefix: key prefix (default None, key is integer)
+        :param default: value to return if key is missing
+            (default (None, None))
+        :param str side: either 'front' or 'back' (default 'front')
+        :param bool expire_time: if True, return expire_time in tuple
+            (default False)
+        :param bool tag: if True, return tag in tuple (default False)
+        :param bool retry: retry if database timeout occurs (default False)
+        :return: key and value item pair or default if queue is empty
+        :raises Timeout: if database timeout occurs
+
+        """
+        if prefix is None:
+            min_key = 0
+            max_key = 999999999999999
+        else:
+            min_key = prefix + '-000000000000000'
+            max_key = prefix + '-999999999999999'
+
+        order = {'front': 'ASC', 'back': 'DESC'}
+        select = (
+            'SELECT rowid, key, expire_time, tag, mode, filename, value'
+            ' FROM Cache WHERE ? < key AND key < ? AND raw = 1'
+            ' ORDER BY key %s LIMIT 1'
+        ) % order[side]
+
+        if expire_time and tag:
+            default = default, None, None
+        elif expire_time or tag:
+            default = default, None
+
+        while True:
+            with self._transact(retry) as (sql, cleanup):
+                rows = sql(select, (min_key, max_key)).fetchall()
+
+                if not rows:
+                    return default
+
+                (rowid, key, db_expire, db_tag, mode, name, db_value), = rows
+
+                if db_expire is not None and db_expire < time.time():
+                    sql('DELETE FROM Cache WHERE rowid = ?', (rowid,))
+                    cleanup(name)
+                else:
+                    break
+
+        try:
+            value = self._disk.fetch(mode, name, db_value, False)
+        except IOError as error:
+            if error.errno == errno.ENOENT:
+                # Key was deleted before we could retrieve result.
+                return default
+            else:
+                raise
+        finally:
+            if name is not None:
+                self._disk.remove(name)
+
+        if expire_time and tag:
+            return (key, value), db_expire, db_tag
+        elif expire_time:
+            return (key, value), db_expire
+        elif tag:
+            return (key, value), db_tag
+        else:
+            return key, value
+
+
     memoize = memoize
 
 

@@ -185,15 +185,16 @@ class Deque(Sequence):
 
         Return corresponding item for `index` in deque.
 
+        See also `Deque.peekleft` and `Deque.peek` for indexing deque at index
+        ``0`` or ``-1``.
+
         >>> deque = Deque(directory='/tmp/diskcache/deque')
         >>> deque.clear()
         >>> deque.extend('abcde')
-        >>> deque[0]
-        'a'
-        >>> deque[-1]
-        'e'
-        >>> deque[2]
-        'c'
+        >>> deque[1]
+        'b'
+        >>> deque[-2]
+        'd'
 
         :param int index: index of item
         :return: corresponding item
@@ -415,6 +416,60 @@ class Deque(Sequence):
         """
         for value in iterable:
             self.appendleft(value)
+
+
+    def peek(self):
+        """Peek at value at back of deque.
+
+        Faster than indexing deque at -1.
+
+        If deque is empty then raise IndexError.
+
+        >>> deque = Deque(directory='/tmp/diskcache/deque')
+        >>> deque.clear()
+        >>> deque.peek()
+        Traceback (most recent call last):
+            ...
+        IndexError: peek from an empty deque
+        >>> deque += 'abc'
+        >>> deque.peek()
+        'c'
+
+        :raises IndexError: if deque is empty
+
+        """
+        default = None, ENOVAL
+        _, value = self._cache.peek(default=default, side='back', retry=True)
+        if value is ENOVAL:
+            raise IndexError('peek from an empty deque')
+        return value
+
+
+    def peekleft(self):
+        """Peek at value at back of deque.
+
+        Faster than indexing deque at 0.
+
+        If deque is empty then raise IndexError.
+
+        >>> deque = Deque(directory='/tmp/diskcache/deque')
+        >>> deque.clear()
+        >>> deque.peekleft()
+        Traceback (most recent call last):
+            ...
+        IndexError: peek from an empty deque
+        >>> deque += 'abc'
+        >>> deque.peekleft()
+        'a'
+
+        :raises IndexError: if deque is empty
+
+        """
+        default = None, ENOVAL
+        _, value = self._cache.peek(default=default, side='front', retry=True)
+        if value is ENOVAL:
+            raise IndexError('peek from an empty deque')
+        return value
 
 
     def pop(self):
