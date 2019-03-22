@@ -509,20 +509,25 @@ class Deque(Sequence):
     def reverse(self):
         """Reverse deque in place.
 
-        """
-        # pylint: disable=protected-access
-        directory = mkdtemp()
-        temp = None
+        >>> deque = Deque(directory='/tmp/diskcache/deque')
+        >>> deque.clear()
+        >>> deque += 'abc'
+        >>> deque.reverse()
+        >>> list(deque)
+        ['c', 'b', 'a']
 
-        try:
-            temp = Deque(iterable=reversed(self), directory=directory)
-            self.clear()
-            self.extend(temp)
-        finally:
-            if temp is not None:
-                temp._cache.close()
-            del temp
-            rmtree(directory)
+        """
+        # GrantJ 2019-03-22 Consider using an algorithm that swaps the values
+        # at two keys. Like self._cache.swap(key1, key2, retry=True) The swap
+        # method would exchange the values at two given keys. Then, using a
+        # forward iterator and a reverse iterator, the reversis method could
+        # avoid making copies of the values.
+        temp = Deque(iterable=reversed(self))
+        self.clear()
+        self.extend(temp)
+        directory = temp.directory
+        del temp
+        rmtree(directory)
 
 
     def rotate(self, steps=1):
