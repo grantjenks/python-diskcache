@@ -136,6 +136,12 @@ class Deque(Sequence):
 
 
     @property
+    def cache(self):
+        "Cache used by deque."
+        return self._cache
+
+
+    @property
     def directory(self):
         "Directory path where deque is stored."
         return self._cache.directory
@@ -695,6 +701,12 @@ class Index(MutableMapping):
         self._cache = cache
         self.update(*args, **kwargs)
         return self
+
+
+    @property
+    def cache(self):
+        "Cache used by index."
+        return self._cache
 
 
     @property
