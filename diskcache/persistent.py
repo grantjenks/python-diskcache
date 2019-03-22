@@ -147,30 +147,36 @@ class Deque(Sequence):
         return self._cache.directory
 
 
-    def _key(self, index):
+    def _index(self, index, func):
         len_self = len(self)
 
-        if index < 0:
-            index += len_self
-            if index < 0:
+        if index >= 0:
+            if index >= len_self:
                 raise IndexError('deque index out of range')
-        elif index >= len_self:
-            raise IndexError('deque index out of range')
 
-        diff = len_self - index - 1
-        _cache_iterkeys = self._cache.iterkeys
+            for key in self._cache.iterkeys():
+                if index == 0:
+                    try:
+                        return func(key)
+                    except KeyError:
+                        continue
+                index -= 1
+        else:
+            if index < -len_self:
+                raise IndexError('deque index out of range')
 
-        try:
-            if index <= diff:
-                iter_keys = _cache_iterkeys()
-                key = next(islice(iter_keys, index, index + 1))
-            else:
-                iter_keys = _cache_iterkeys(reverse=True)
-                key = next(islice(iter_keys, diff, diff + 1))
-        except StopIteration:
-            raise IndexError('deque index out of range')
+            index += 1
 
-        return key
+            for key in self._cache.iterkeys(reverse=True):
+                if index == 0:
+                    try:
+                        return func(key)
+                    except KeyError:
+                        continue
+                index += 1
+
+        raise IndexError('deque index out of range')
+
 
 
     def __getitem__(self, index):
@@ -193,15 +199,7 @@ class Deque(Sequence):
         :raises IndexError: if index out of range
 
         """
-        _key = self._key
-        _cache = self._cache
-
-        while True:
-            try:
-                key = _key(index)
-                return _cache[key]
-            except KeyError:
-                continue
+        return self._index(index, self._cache.__getitem__)
 
 
     def __setitem__(self, index, value):
@@ -223,10 +221,8 @@ class Deque(Sequence):
         :raises IndexError: if index out of range
 
         """
-        _key = self._key
-        _cache = self._cache
-        key = _key(index)
-        _cache[key] = value
+        set_value = lambda key: self._cache.__setitem__(key, value)
+        self._index(index, set_value)
 
 
     def __delitem__(self, index):
@@ -247,16 +243,7 @@ class Deque(Sequence):
         :raises IndexError: if index out of range
 
         """
-        _key = self._key
-        _cache = self._cache
-
-        while True:
-            try:
-                key = _key(index)
-                del _cache[key]
-                return
-            except KeyError:
-                continue
+        self._index(index, self._cache.__delitem__)
 
 
     def __repr__(self):
