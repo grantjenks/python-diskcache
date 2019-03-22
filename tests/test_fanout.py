@@ -110,20 +110,6 @@ def test_set_timeout(cache):
         assert not cache.set(0, 0)
 
 
-def test_set_timeout_retry(cache):
-    shards = mock.Mock()
-    shard = mock.Mock()
-    set_func = mock.Mock()
-
-    shards.__getitem__ = mock.Mock(side_effect=lambda key: shard)
-    shard.set = set_func
-    set_func.side_effect = [dc.Timeout, True, dc.Timeout, True]
-
-    with mock.patch.object(cache, '_shards', shards):
-        assert cache.set(0, 0, retry=True)
-        cache[1] = 1
-
-
 def test_add(cache):
     assert cache.add(0, 0)
     assert not cache.add(0, 1)
@@ -141,19 +127,6 @@ def test_add_timeout(cache):
 
     with mock.patch.object(cache, '_shards', shards):
         assert not cache.add(0, 0)
-
-
-def test_add_timeout_retry(cache):
-    shards = mock.Mock()
-    shard = mock.Mock()
-    add_func = mock.Mock()
-
-    shards.__getitem__ = mock.Mock(side_effect=lambda key: shard)
-    shard.add = add_func
-    add_func.side_effect = [dc.Timeout, True]
-
-    with mock.patch.object(cache, '_shards', shards):
-        assert cache.add(0, 0, retry=True)
 
 
 def stress_add(cache, limit, results):
@@ -203,19 +176,6 @@ def test_incr_timeout(cache):
 
     with mock.patch.object(cache, '_shards', shards):
         assert cache.incr('key', 1) is None
-
-
-def test_incr_timeout_retry(cache):
-    shards = mock.Mock()
-    shard = mock.Mock()
-    incr_func = mock.Mock()
-
-    shards.__getitem__ = mock.Mock(side_effect=lambda key: shard)
-    shard.incr = incr_func
-    incr_func.side_effect = [dc.Timeout, 1]
-
-    with mock.patch.object(cache, '_shards', shards):
-        assert cache.incr('key', retry=True) == 1
 
 
 def test_decr(cache):
@@ -311,19 +271,6 @@ def test_get_timeout(cache):
         assert cache.get(0) is None
 
 
-def test_get_timeout_retry(cache):
-    shards = mock.Mock()
-    shard = mock.Mock()
-    get_func = mock.Mock()
-
-    shards.__getitem__ = mock.Mock(side_effect=lambda key: shard)
-    shard.get = get_func
-    get_func.side_effect = [dc.Timeout, 0]
-
-    with mock.patch.object(cache, '_shards', shards):
-        assert cache.get(0, retry=True) == 0
-
-
 def test_pop(cache):
     for num in range(100):
         cache[num] = num
@@ -345,43 +292,17 @@ def test_pop_timeout(cache):
         assert cache.pop(0) is None
 
 
-def test_pop_timeout_retry(cache):
-    shards = mock.Mock()
-    shard = mock.Mock()
-    pop_func = mock.Mock()
-
-    shards.__getitem__ = mock.Mock(side_effect=lambda key: shard)
-    shard.pop = pop_func
-    pop_func.side_effect = [dc.Timeout, 0]
-
-    with mock.patch.object(cache, '_shards', shards):
-        assert cache.pop(0, retry=True) == 0
-
-
 def test_delete_timeout(cache):
     shards = mock.Mock()
     shard = mock.Mock()
     delete_func = mock.Mock()
 
     shards.__getitem__ = mock.Mock(side_effect=lambda key: shard)
-    shard.__delitem__ = delete_func
+    shard.delete = delete_func
     delete_func.side_effect = dc.Timeout
 
     with mock.patch.object(cache, '_shards', shards):
         assert not cache.delete(0)
-
-
-def test_delete_timeout_retry(cache):
-    shards = mock.Mock()
-    shard = mock.Mock()
-    delete_func = mock.Mock()
-
-    shards.__getitem__ = mock.Mock(side_effect=lambda key: shard)
-    shard.__delitem__ = delete_func
-    delete_func.side_effect = [dc.Timeout, True]
-
-    with mock.patch.object(cache, '_shards', shards):
-        assert cache.delete(0, retry=True)
 
 
 def test_delitem(cache):
@@ -392,19 +313,6 @@ def test_delitem(cache):
 
 def test_delitem_keyerror(cache):
     with pytest.raises(KeyError):
-        del cache[0]
-
-
-def test_delitem_timeout(cache):
-    shards = mock.Mock()
-    shard = mock.Mock()
-    delete_func = mock.Mock()
-
-    shards.__getitem__ = mock.Mock(side_effect=lambda key: shard)
-    shard.__delitem__ = delete_func
-    delete_func.side_effect = [dc.Timeout, True]
-
-    with mock.patch.object(cache, '_shards', shards):
         del cache[0]
 
 

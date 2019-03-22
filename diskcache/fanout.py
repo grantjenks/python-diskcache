@@ -1,9 +1,15 @@
 "Fanout cache automatically shards keys and values."
 
 import itertools as it
+import operator
 import os.path as op
 import sqlite3
 import time
+
+try:
+    from functools import reduce
+except ImportError:
+    reduce
 
 from .core import ENOVAL, DEFAULT_SETTINGS, Cache, Disk, Timeout
 from .memo import memoize
@@ -72,16 +78,11 @@ class FanoutCache(object):
 
         """
         index = self._hash(key) % self._count
-        set_func = self._shards[index].set
-
-        while True:
-            try:
-                return set_func(key, value, expire, read, tag)
-            except Timeout:
-                if retry:
-                    continue
-                else:
-                    return False
+        shard = self._shards[index]
+        try:
+            return shard.set(key, value, expire, read, tag, retry)
+        except Timeout:
+            return False
 
 
     def __setitem__(self, key, value):
@@ -93,7 +94,9 @@ class FanoutCache(object):
         :param value: value for item
 
         """
-        self.set(key, value, retry=True)
+        index = self._hash(key) % self._count
+        shard = self._shards[index]
+        shard[key] = value
 
 
     def add(self, key, value, expire=None, read=False, tag=None, retry=False):
@@ -107,6 +110,9 @@ class FanoutCache(object):
         When `read` is `True`, `value` should be a file-like object opened
         for reading in binary mode.
 
+        If database timeout occurs then fails silently unless `retry` is set to
+        `True` (default `False`).
+
         :param key: key for item
         :param value: value for item
         :param float expire: seconds until the key expires
@@ -118,16 +124,11 @@ class FanoutCache(object):
 
         """
         index = self._hash(key) % self._count
-        add_func = self._shards[index].add
-
-        while True:
-            try:
-                return add_func(key, value, expire, read, tag)
-            except Timeout:
-                if retry:
-                    continue
-                else:
-                    return False
+        shard = self._shards[index]
+        try:
+            return shard.add(key, value, expire, read, tag, retry)
+        except Timeout:
+            return False
 
 
     def incr(self, key, delta=1, default=0, retry=False):
@@ -143,6 +144,9 @@ class FanoutCache(object):
         machines with 64-bit pointer widths will support 64-bit signed
         integers.
 
+        If database timeout occurs then fails silently unless `retry` is set to
+        `True` (default `False`).
+
         :param key: key for item
         :param int delta: amount to increment (default 1)
         :param int default: value if key is missing (default 0)
@@ -152,16 +156,11 @@ class FanoutCache(object):
 
         """
         index = self._hash(key) % self._count
-        incr_func = self._shards[index].incr
-
-        while True:
-            try:
-                return incr_func(key, delta, default)
-            except Timeout:
-                if retry:
-                    continue
-                else:
-                    return None
+        shard = self._shards[index]
+        try:
+            return shard.incr(key, delta, default, retry)
+        except Timeout:
+            return None
 
 
     def decr(self, key, delta=1, default=0, retry=False):
@@ -180,6 +179,9 @@ class FanoutCache(object):
         machines with 64-bit pointer widths will support 64-bit signed
         integers.
 
+        If database timeout occurs then fails silently unless `retry` is set to
+        `True` (default `False`).
+
         :param key: key for item
         :param int delta: amount to decrement (default 1)
         :param int default: value if key is missing (default 0)
@@ -188,7 +190,12 @@ class FanoutCache(object):
         :raises KeyError: if key is not found and default is None
 
         """
-        return self.incr(key, -delta, default, retry)
+        index = self._hash(key) % self._count
+        shard = self._shards[index]
+        try:
+            return shard.decr(key, delta, default, retry)
+        except Timeout:
+            return None
 
 
     def get(self, key, default=None, read=False, expire_time=False, tag=False,
@@ -210,19 +217,11 @@ class FanoutCache(object):
 
         """
         index = self._hash(key) % self._count
-        get_func = self._shards[index].get
-
-        while True:
-            try:
-                return get_func(
-                    key, default=default, read=read, expire_time=expire_time,
-                    tag=tag,
-                )
-            except (Timeout, sqlite3.OperationalError):
-                if retry:
-                    continue
-                else:
-                    return default
+        shard = self._shards[index]
+        try:
+            return shard.get(key, default, read, expire_time, tag, retry)
+        except (Timeout, sqlite3.OperationalError):
+            return default
 
 
     def __getitem__(self, key):
@@ -235,12 +234,9 @@ class FanoutCache(object):
         :raises KeyError: if key is not found
 
         """
-        value = self.get(key, default=ENOVAL, retry=True)
-
-        if value is ENOVAL:
-            raise KeyError(key)
-
-        return value
+        index = self._hash(key) % self._count
+        shard = self._shards[index]
+        return shard[key]
 
 
     def read(self, key):
@@ -265,7 +261,8 @@ class FanoutCache(object):
 
         """
         index = self._hash(key) % self._count
-        return key in self._shards[index]
+        shard = self._shards[index]
+        return key in shard
 
 
     def pop(self, key, default=None, expire_time=False, tag=False,
@@ -275,6 +272,9 @@ class FanoutCache(object):
         If `key` is missing, return `default`.
 
         Operation is atomic. Concurrent operations will be serialized.
+
+        If database timeout occurs then fails silently unless `retry` is set to
+        `True` (default `False`).
 
         :param key: key for item
         :param default: return value if key is missing (default None)
@@ -286,18 +286,11 @@ class FanoutCache(object):
 
         """
         index = self._hash(key) % self._count
-        pop_func = self._shards[index].pop
-
-        while True:
-            try:
-                return pop_func(
-                    key, default=default, expire_time=expire_time, tag=tag,
-                )
-            except Timeout:
-                if retry:
-                    continue
-                else:
-                    return default
+        shard = self._shards[index]
+        try:
+            return shard.pop(key, default, expire_time, tag, retry)
+        except Timeout:
+            return default
 
 
     def delete(self, key, retry=False):
@@ -314,18 +307,11 @@ class FanoutCache(object):
 
         """
         index = self._hash(key) % self._count
-        del_func = self._shards[index].__delitem__
-
-        while True:
-            try:
-                return del_func(key)
-            except Timeout:
-                if retry:
-                    continue
-                else:
-                    return False
-            except KeyError:
-                return False
+        shard = self._shards[index]
+        try:
+            return shard.delete(key, retry)
+        except Timeout:
+            return False
 
 
     def __delitem__(self, key):
@@ -337,16 +323,15 @@ class FanoutCache(object):
         :raises KeyError: if key is not found
 
         """
-        deleted = self.delete(key, retry=True)
-
-        if not deleted:
-            raise KeyError(key)
+        index = self._hash(key) % self._count
+        shard = self._shards[index]
+        del shard[key]
 
 
     memoize = memoize
 
 
-    def check(self, fix=False):
+    def check(self, fix=False, retry=False):
         """Check database and file system consistency.
 
         Intended for use in testing and post-mortem error analysis.
@@ -357,21 +342,30 @@ class FanoutCache(object):
         held for a long time. For example, local benchmarking shows that a
         cache with 1,000 file references takes ~60ms to check.
 
+        If database timeout occurs then fails silently unless `retry` is set to
+        `True` (default `False`).
+
         :param bool fix: correct inconsistencies
+        :param bool retry: retry if database timeout occurs (default False)
         :return: list of warnings
         :raises Timeout: if database timeout occurs
 
         """
-        return sum((shard.check(fix=fix) for shard in self._shards), [])
+        warnings = (shard.check(fix, retry) for shard in self._shards)
+        return reduce(operator.iadd, warnings, [])
 
 
-    def expire(self):
+    def expire(self, retry=False):
         """Remove expired items from cache.
 
+        If database timeout occurs then fails silently unless `retry` is set to
+        `True` (default `False`).
+
+        :param bool retry: retry if database timeout occurs (default False)
         :return: count of items removed
 
         """
-        return self._remove('expire', args=(time.time(),))
+        return self._remove('expire', args=(time.time(),), retry=retry)
 
 
     def create_tag_index(self):
@@ -396,41 +390,53 @@ class FanoutCache(object):
             shard.drop_tag_index()
 
 
-    def evict(self, tag):
+    def evict(self, tag, retry=False):
         """Remove items with matching `tag` from cache.
 
+        If database timeout occurs then fails silently unless `retry` is set to
+        `True` (default `False`).
+
         :param str tag: tag identifying items
+        :param bool retry: retry if database timeout occurs (default False)
         :return: count of items removed
 
         """
-        return self._remove('evict', args=(tag,))
+        return self._remove('evict', args=(tag,), retry=retry)
 
 
-    def cull(self):
+    def cull(self, retry=False):
         """Cull items from cache until volume is less than size limit.
 
+        If database timeout occurs then fails silently unless `retry` is set to
+        `True` (default `False`).
+
+        :param bool retry: retry if database timeout occurs (default False)
         :return: count of items removed
 
         """
-        return self._remove('cull')
+        return self._remove('cull', retry=retry)
 
 
-    def clear(self):
+    def clear(self, retry=False):
         """Remove all items from cache.
 
+        If database timeout occurs then fails silently unless `retry` is set to
+        `True` (default `False`).
+
+        :param bool retry: retry if database timeout occurs (default False)
         :return: count of items removed
 
         """
-        return self._remove('clear')
+        return self._remove('clear', retry=retry)
 
 
-    def _remove(self, name, args=()):
+    def _remove(self, name, args=(), retry=False):
         total = 0
         for shard in self._shards:
             method = getattr(shard, name)
             while True:
                 try:
-                    count = method(*args)
+                    count = method(*args, retry=retry)
                     total += count
                 except Timeout as timeout:
                     total += timeout.args[0]
@@ -448,8 +454,9 @@ class FanoutCache(object):
 
         """
         results = [shard.stats(enable, reset) for shard in self._shards]
-        return (sum(result[0] for result in results),
-                sum(result[1] for result in results))
+        total_hits = sum(hits for hits, _ in results)
+        total_misses = sum(misses for _, misses in results)
+        return total_hits, total_misses
 
 
     def volume(self):
