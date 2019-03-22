@@ -634,6 +634,8 @@ class Index(MutableMapping):
             directory = mkdtemp(prefix='diskcache-')
         self._cache = Cache(directory, eviction_policy='none')
         self.update(*args, **kwargs)
+        self.memoize = self._cache.memoize
+        self.stats = self._cache.stats
 
 
     @classmethod

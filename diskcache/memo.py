@@ -4,7 +4,7 @@
 
 from functools import wraps
 
-from .core import ENOVAL
+MARK = object()
 
 def memoize(cache, name=None, typed=False, expire=None, tag=None):
     """Memoizing cache decorator.
@@ -80,7 +80,7 @@ def memoize(cache, name=None, typed=False, expire=None, tag=None):
             key = reference + args
 
             if kwargs:
-                key += (ENOVAL,)
+                key += (MARK,)
                 sorted_items = sorted(kwargs.items())
 
                 for item in sorted_items:
@@ -92,9 +92,9 @@ def memoize(cache, name=None, typed=False, expire=None, tag=None):
                 if kwargs:
                     key += tuple(type(value) for _, value in sorted_items)
 
-            result = cache.get(key, default=ENOVAL, retry=True)
+            result = cache.get(key, default=MARK, retry=True)
 
-            if result is ENOVAL:
+            if result is MARK:
                 result = function(*args, **kwargs)
                 cache.set(key, result, expire=expire, tag=tag, retry=True)
 

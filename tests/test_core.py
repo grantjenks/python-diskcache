@@ -1307,6 +1307,42 @@ def test_lru_incr(cache):
     assert cache[0] == 0
 
 
+def test_memoize(cache):
+    count = 1000
+
+    def fibiter(num):
+        alpha, beta = 0, 1
+
+        for _ in range(num):
+            alpha, beta = beta, alpha + beta
+
+        return alpha
+
+    @cache.memoize()
+    def fibrec(num):
+        if num == 0:
+            return 0
+        elif num == 1:
+            return 1
+        else:
+            return fibrec(num - 1) + fibrec(num - 2)
+
+    cache.stats(enable=True)
+
+    for value in range(count):
+        assert fibrec(value) == fibiter(value)
+
+    hits1, misses1 = cache.stats()
+
+    for value in range(count):
+        assert fibrec(value) == fibiter(value)
+
+    hits2, misses2 = cache.stats()
+
+    assert hits2 == (hits1 + count)
+    assert misses2 == misses1
+
+
 if __name__ == '__main__':
     import nose
     nose.runmodule()

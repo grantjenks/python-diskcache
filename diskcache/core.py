@@ -37,6 +37,8 @@ else:
     INT_TYPES = (int,)
     io_open = open  # pylint: disable=invalid-name
 
+from .memo import memoize
+
 try:
     WindowsError
 except NameError:
@@ -1467,6 +1469,9 @@ class Cache(object):
             return (key, value), db_tag
         else:
             return key, value
+
+
+    memoize = memoize
 
 
     def check(self, fix=False, retry=False):

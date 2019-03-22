@@ -146,3 +146,39 @@ def test_state(index):
     state = pickle.dumps(index)
     values = pickle.loads(state)
     assert values == mapping
+
+
+def test_memoize(index):
+    count = 1000
+
+    def fibiter(num):
+        alpha, beta = 0, 1
+
+        for _ in range(num):
+            alpha, beta = beta, alpha + beta
+
+        return alpha
+
+    @index.memoize()
+    def fibrec(num):
+        if num == 0:
+            return 0
+        elif num == 1:
+            return 1
+        else:
+            return fibrec(num - 1) + fibrec(num - 2)
+
+    index.stats(enable=True)
+
+    for value in range(count):
+        assert fibrec(value) == fibiter(value)
+
+    hits1, misses1 = index.stats()
+
+    for value in range(count):
+        assert fibrec(value) == fibiter(value)
+
+    hits2, misses2 = index.stats()
+
+    assert hits2 == (hits1 + count)
+    assert misses2 == misses1
