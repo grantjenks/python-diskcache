@@ -388,7 +388,7 @@ class Deque(Sequence):
         :param value: value to count in deque
 
         """
-        return sum(1 for item in self if item == value)
+        return sum(1 for item in self if value == item)
 
 
     def extend(self, iterable):
