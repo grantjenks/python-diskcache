@@ -106,7 +106,8 @@ class Deque(Sequence):
         if directory is None:
             directory = mkdtemp()
         self._cache = Cache(directory, eviction_policy='none')
-        self.extend(iterable)
+        with self.transact():
+            self.extend(iterable)
 
 
     @classmethod
