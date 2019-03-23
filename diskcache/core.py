@@ -1602,6 +1602,79 @@ class Cache(object):
             return key, value
 
 
+    def peekitem(self, last=True, expire_time=False, tag=False, retry=False):
+        """Peek at key and value item pair in Cache based on iteration order.
+
+        Expired items are deleted from cache. Operation is atomic. Concurrent
+        operations will be serialized.
+
+        Raises :exc:`Timeout` error when database timeout occurs and `retry` is
+        `False` (default).
+
+        >>> cache = Cache('/tmp/diskcache')
+        >>> _ = cache.clear()
+        >>> for index, letter in enumerate('abc'):
+        ...     cache[letter] = index
+        >>> cache.peekitem()
+        ('c', 2)
+        >>> cache.peekitem(last=False)
+        ('a', 0)
+
+        :param bool last: last item in iteration order (default True)
+        :param bool expire_time: if True, return expire_time in tuple
+            (default False)
+        :param bool tag: if True, return tag in tuple (default False)
+        :param bool retry: retry if database timeout occurs (default False)
+        :return: key and value item pair
+        :raises KeyError: if cache is empty
+        :raises Timeout: if database timeout occurs
+
+        """
+        order = ('ASC', 'DESC')
+        select = (
+            'SELECT rowid, key, raw, expire_time, tag, mode, filename, value'
+            ' FROM Cache ORDER BY rowid %s LIMIT 1'
+        ) % order[last]
+
+        while True:
+            with self._transact(retry) as (sql, cleanup):
+                rows = sql(select).fetchall()
+
+                if not rows:
+                    raise KeyError('dictionary is empty')
+
+                (rowid, key, raw, db_expire, db_tag, mode, name, value), = rows
+
+                if db_expire is not None and db_expire < time.time():
+                    sql('DELETE FROM Cache WHERE rowid = ?', (rowid,))
+                    cleanup(name)
+                else:
+                    break
+
+        py_key = self._disk.get(key, raw)
+
+        try:
+            py_value = self._disk.fetch(mode, name, value, False)
+        except IOError as error:
+            if error.errno == errno.ENOENT:
+                # Key was deleted before we could retrieve result.
+                return default
+            else:
+                raise
+        finally:
+            if name is not None:
+                self._disk.remove(name)
+
+        if expire_time and tag:
+            return (py_key, py_value), db_expire, db_tag
+        elif expire_time:
+            return (py_key, py_value), db_expire
+        elif tag:
+            return (py_key, py_value), db_tag
+        else:
+            return py_key, py_value
+
+
     memoize = memoize
 
 
