@@ -271,6 +271,9 @@ class Deque(Sequence):
 
         Extend back side of deque with items from iterable.
 
+        :param iterable: iterable of items to append to deque
+        :return: deque with added items
+
         """
         self.extend(iterable)
         return self
@@ -387,6 +390,7 @@ class Deque(Sequence):
         4
 
         :param value: value to count in deque
+        :return: count of items equal to value in deque
 
         """
         return sum(1 for item in self if value == item)
@@ -435,6 +439,7 @@ class Deque(Sequence):
         >>> deque.peek()
         'c'
 
+        :return: value at back of deque
         :raises IndexError: if deque is empty
 
         """
@@ -462,6 +467,7 @@ class Deque(Sequence):
         >>> deque.peekleft()
         'a'
 
+        :return: value at front of deque
         :raises IndexError: if deque is empty
 
         """
@@ -489,6 +495,7 @@ class Deque(Sequence):
             ...
         IndexError: pop from an empty deque
 
+        :return: value at back of deque
         :raises IndexError: if deque is empty
 
         """
@@ -513,6 +520,9 @@ class Deque(Sequence):
         Traceback (most recent call last):
             ...
         IndexError: pop from an empty deque
+
+        :return: value at front of deque
+        :raises IndexError: if deque is empty
 
         """
         default = None, ENOVAL
@@ -1303,6 +1313,7 @@ class Index(MutableMapping):
         True
 
         :param other: other mapping in equality comparison
+        :return: True if index equals other
 
         """
         if len(self) != len(other):
@@ -1336,6 +1347,7 @@ class Index(MutableMapping):
         True
 
         :param other: other mapping in inequality comparison
+        :return: True if index does not equal other
 
         """
         return not self == other
