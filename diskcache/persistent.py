@@ -853,6 +853,26 @@ class Index(MutableMapping):
                 _cache.add(key, default, retry=True)
 
 
+    def peekitem(self, last=True):
+        """Peek at key and value item pair in index based on iteration order.
+
+        >>> index = Index('/tmp/diskcache/index')
+        >>> index.clear()
+        >>> for num, letter in enumerate('xyz'):
+        ...     index[letter] = num
+        >>> index.peekitem()
+        ('z', 2)
+        >>> index.peekitem(last=False)
+        ('x', 0)
+
+        :param bool last: last item in iteration order (default True)
+        :return: key and value item pair
+        :raises KeyError: if cache is empty
+
+        """
+        return self._cache.peekitem(last, retry=True)
+
+
     def pop(self, key, default=ENOVAL):
         """Remove corresponding item for `key` from index and return value.
 
