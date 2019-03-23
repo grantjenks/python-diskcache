@@ -1613,8 +1613,8 @@ class Cache(object):
 
         >>> cache = Cache('/tmp/diskcache')
         >>> _ = cache.clear()
-        >>> for index, letter in enumerate('abc'):
-        ...     cache[letter] = index
+        >>> for num, letter in enumerate('abc'):
+        ...     cache[letter] = num
         >>> cache.peekitem()
         ('c', 2)
         >>> cache.peekitem(last=False)
