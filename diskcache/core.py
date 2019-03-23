@@ -1603,7 +1603,7 @@ class Cache(object):
 
 
     def peekitem(self, last=True, expire_time=False, tag=False, retry=False):
-        """Peek at key and value item pair in Cache based on iteration order.
+        """Peek at key and value item pair in cache based on iteration order.
 
         Expired items are deleted from cache. Operation is atomic. Concurrent
         operations will be serialized.
