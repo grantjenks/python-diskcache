@@ -143,7 +143,9 @@ disable=print-statement,
         no-member,
         useless-object-inheritance,
         inconsistent-return-statements,
-        ungrouped-imports
+        ungrouped-imports,
+        not-callable,
+        duplicate-code  # PyCQA/pylint #1055
 
 # Enable the message, report, category or checker with the given id(s). You can
 # either give multiple identifier separated by comma (,) or put this option
@@ -329,7 +331,7 @@ indent-string='    '
 max-line-length=100
 
 # Maximum number of lines in a module.
-max-module-lines=2000
+max-module-lines=2500
 
 # List of optional constructs for which whitespace checking is disabled. `dict-
 # separator` is used to allow tabulation in dicts, etc.: {1  : 1,\n222: 2}.
@@ -555,7 +557,7 @@ max-locals=30
 max-parents=7
 
 # Maximum number of public methods for a class (see R0904).
-max-public-methods=25
+max-public-methods=30
 
 # Maximum number of return / yield for function / method body.
 max-returns=8

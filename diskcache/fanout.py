@@ -9,7 +9,7 @@ import time
 try:
     from functools import reduce
 except ImportError:
-    reduce
+    reduce  # pylint: disable=pointless-statement
 
 from .core import ENOVAL, DEFAULT_SETTINGS, Cache, Disk, Timeout
 from .memo import memoize

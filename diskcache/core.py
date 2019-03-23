@@ -18,11 +18,13 @@ import time
 import warnings
 import zlib
 
+from .memo import memoize
+
 if sys.hexversion < 0x03000000:
     import cPickle as pickle  # pylint: disable=import-error
     # ISSUE #25 Fix for http://bugs.python.org/issue10211
     from cStringIO import StringIO as BytesIO  # pylint: disable=import-error
-    from thread import get_ident
+    from thread import get_ident  # pylint: disable=import-error
     TextType = unicode  # pylint: disable=invalid-name,undefined-variable
     BytesType = str
     INT_TYPES = int, long  # pylint: disable=undefined-variable
@@ -36,8 +38,6 @@ else:
     BytesType = bytes
     INT_TYPES = (int,)
     io_open = open  # pylint: disable=invalid-name
-
-from .memo import memoize
 
 try:
     WindowsError
@@ -1457,32 +1457,35 @@ class Cache(object):
             default = default, None
 
         while True:
-            with self._transact(retry) as (sql, cleanup):
-                rows = sql(select, (min_key, max_key)).fetchall()
+            while True:
+                with self._transact(retry) as (sql, cleanup):
+                    rows = sql(select, (min_key, max_key)).fetchall()
 
-                if not rows:
-                    return default
+                    if not rows:
+                        return default
 
-                (rowid, key, db_expire, db_tag, mode, name, db_value), = rows
+                    (rowid, key, db_expire, db_tag, mode, name,
+                     db_value), = rows
 
-                sql('DELETE FROM Cache WHERE rowid = ?', (rowid,))
+                    sql('DELETE FROM Cache WHERE rowid = ?', (rowid,))
 
-                if db_expire is not None and db_expire < time.time():
-                    cleanup(name)
+                    if db_expire is not None and db_expire < time.time():
+                        cleanup(name)
+                    else:
+                        break
+
+            try:
+                value = self._disk.fetch(mode, name, db_value, False)
+            except IOError as error:
+                if error.errno == errno.ENOENT:
+                    # Key was deleted before we could retrieve result.
+                    continue
                 else:
-                    break
-
-        try:
-            value = self._disk.fetch(mode, name, db_value, False)
-        except IOError as error:
-            if error.errno == errno.ENOENT:
-                # Key was deleted before we could retrieve result.
-                return default
-            else:
-                raise
-        finally:
-            if name is not None:
-                self._disk.remove(name)
+                    raise
+            finally:
+                if name is not None:
+                    self._disk.remove(name)
+            break
 
         if expire_time and tag:
             return (key, value), db_expire, db_tag
@@ -1566,31 +1569,34 @@ class Cache(object):
             default = default, None
 
         while True:
-            with self._transact(retry) as (sql, cleanup):
-                rows = sql(select, (min_key, max_key)).fetchall()
+            while True:
+                with self._transact(retry) as (sql, cleanup):
+                    rows = sql(select, (min_key, max_key)).fetchall()
 
-                if not rows:
-                    return default
+                    if not rows:
+                        return default
 
-                (rowid, key, db_expire, db_tag, mode, name, db_value), = rows
+                    (rowid, key, db_expire, db_tag, mode, name,
+                     db_value), = rows
 
-                if db_expire is not None and db_expire < time.time():
-                    sql('DELETE FROM Cache WHERE rowid = ?', (rowid,))
-                    cleanup(name)
+                    if db_expire is not None and db_expire < time.time():
+                        sql('DELETE FROM Cache WHERE rowid = ?', (rowid,))
+                        cleanup(name)
+                    else:
+                        break
+
+            try:
+                value = self._disk.fetch(mode, name, db_value, False)
+            except IOError as error:
+                if error.errno == errno.ENOENT:
+                    # Key was deleted before we could retrieve result.
+                    continue
                 else:
-                    break
-
-        try:
-            value = self._disk.fetch(mode, name, db_value, False)
-        except IOError as error:
-            if error.errno == errno.ENOENT:
-                # Key was deleted before we could retrieve result.
-                return default
-            else:
-                raise
-        finally:
-            if name is not None:
-                self._disk.remove(name)
+                    raise
+            finally:
+                if name is not None:
+                    self._disk.remove(name)
+            break
 
         if expire_time and tag:
             return (key, value), db_expire, db_tag
@@ -1637,42 +1643,45 @@ class Cache(object):
         ) % order[last]
 
         while True:
-            with self._transact(retry) as (sql, cleanup):
-                rows = sql(select).fetchall()
+            while True:
+                with self._transact(retry) as (sql, cleanup):
+                    rows = sql(select).fetchall()
 
-                if not rows:
-                    raise KeyError('dictionary is empty')
+                    if not rows:
+                        raise KeyError('dictionary is empty')
 
-                (rowid, key, raw, db_expire, db_tag, mode, name, value), = rows
+                    (rowid, db_key, raw, db_expire, db_tag, mode, name,
+                     db_value), = rows
 
-                if db_expire is not None and db_expire < time.time():
-                    sql('DELETE FROM Cache WHERE rowid = ?', (rowid,))
-                    cleanup(name)
+                    if db_expire is not None and db_expire < time.time():
+                        sql('DELETE FROM Cache WHERE rowid = ?', (rowid,))
+                        cleanup(name)
+                    else:
+                        break
+
+            key = self._disk.get(db_key, raw)
+
+            try:
+                value = self._disk.fetch(mode, name, db_value, False)
+            except IOError as error:
+                if error.errno == errno.ENOENT:
+                    # Key was deleted before we could retrieve result.
+                    continue
                 else:
-                    break
-
-        py_key = self._disk.get(key, raw)
-
-        try:
-            py_value = self._disk.fetch(mode, name, value, False)
-        except IOError as error:
-            if error.errno == errno.ENOENT:
-                # Key was deleted before we could retrieve result.
-                return default
-            else:
-                raise
-        finally:
-            if name is not None:
-                self._disk.remove(name)
+                    raise
+            finally:
+                if name is not None:
+                    self._disk.remove(name)
+            break
 
         if expire_time and tag:
-            return (py_key, py_value), db_expire, db_tag
+            return (key, value), db_expire, db_tag
         elif expire_time:
-            return (py_key, py_value), db_expire
+            return (key, value), db_expire
         elif tag:
-            return (py_key, py_value), db_tag
+            return (key, value), db_tag
         else:
-            return py_key, py_value
+            return key, value
 
 
     memoize = memoize

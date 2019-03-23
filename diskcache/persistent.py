@@ -7,7 +7,6 @@ import sys
 
 from collections import OrderedDict
 from contextlib import contextmanager
-from itertools import islice
 from shutil import rmtree
 from tempfile import mkdtemp
 
