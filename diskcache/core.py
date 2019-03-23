@@ -1436,6 +1436,7 @@ class Cache(object):
         :raises Timeout: if database timeout occurs
 
         """
+        # Caution: Nearly identical code exists in Cache.peek
         if prefix is None:
             min_key = 0
             max_key = 999999999999999
@@ -1544,6 +1545,7 @@ class Cache(object):
         :raises Timeout: if database timeout occurs
 
         """
+        # Caution: Nearly identical code exists in Cache.pull
         if prefix is None:
             min_key = 0
             max_key = 999999999999999
