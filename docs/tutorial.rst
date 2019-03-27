@@ -308,13 +308,8 @@ incur an extra overhead on cache lookups. Increment and decrement operations
 are not counted in cache statistics.
 
 The third is :meth:`check <diskcache.Cache.check>` which verifies cache
-consistency. It can also fix inconsistencies and reclaim unused space.
-
-    >>> warning, = cache.check(fix=True)
-    >>> type(warning.message)
-    <class 'diskcache.core.EmptyDirWarning'>
-
-The return value is a list of warnings.
+consistency. It can also fix inconsistencies and reclaim unused space. The
+return value is a list of warnings.
 
 .. _tutorial-fanoutcache:
 
