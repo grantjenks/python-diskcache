@@ -265,8 +265,7 @@ class FanoutCache(object):
         return key in shard
 
 
-    def pop(self, key, default=None, expire_time=False, tag=False,
-            retry=False):
+    def pop(self, key, default=None, expire_time=False, tag=False, retry=False):
         """Remove corresponding item for `key` from cache and return value.
 
         If `key` is missing, return `default`.
