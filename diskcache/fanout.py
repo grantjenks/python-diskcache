@@ -99,6 +99,27 @@ class FanoutCache(object):
         shard[key] = value
 
 
+    def touch(self, key, expire=None, retry=False):
+        """Touch `key` in cache and update `expire` time.
+
+        If database timeout occurs then fails silently unless `retry` is set to
+        `True` (default `False`).
+
+        :param key: key for item
+        :param float expire: seconds until the key expires
+            (default None, no expiry)
+        :param bool retry: retry if database timeout occurs (default False)
+        :return: True if key was touched
+
+        """
+        index = self._hash(key) % self._count
+        shard = self._shards[index]
+        try:
+            return shard.touch(key, expire, retry)
+        except Timeout:
+            return False
+
+
     def add(self, key, value, expire=None, read=False, tag=None, retry=False):
         """Add `key` and `value` item to cache.
 

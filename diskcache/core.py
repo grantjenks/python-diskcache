@@ -863,6 +863,43 @@ class Cache(object):
                 cleanup(filename)
 
 
+    def touch(self, key, expire=None, retry=False):
+        """Touch `key` in cache and update `expire` time.
+
+        Raises :exc:`Timeout` error when database timeout occurs and `retry` is
+        `False` (default).
+
+        :param key: key for item
+        :param float expire: seconds until item expires
+            (default None, no expiry)
+        :param bool retry: retry if database timeout occurs (default False)
+        :return: True if key was touched
+        :raises Timeout: if database timeout occurs
+
+        """
+        now = time.time()
+        db_key, raw = self._disk.put(key)
+        expire_time = None if expire is None else now + expire
+
+        with self._transact(retry) as (sql, cleanup):
+            rows = sql(
+                'SELECT rowid, expire_time FROM Cache'
+                ' WHERE key = ? AND raw = ?',
+                (db_key, raw),
+            ).fetchall()
+
+            if rows:
+                (rowid, old_expire_time), = rows
+
+                if old_expire_time is None or old_expire_time > now:
+                    sql('UPDATE Cache SET expire_time = ? WHERE rowid = ?',
+                        (expire_time, rowid),
+                    )
+                    return True
+
+        return False
+
+
     def add(self, key, value, expire=None, read=False, tag=None, retry=False):
         """Add `key` and `value` item to cache.
 

@@ -785,6 +785,13 @@ def test_contains(cache):
     assert 0 in cache
 
 
+def test_touch(cache):
+    assert cache.set(0, None, expire=60)
+    assert cache.touch(0, expire=None)
+    assert cache.touch(0, expire=0)
+    assert not cache.touch(0)
+
+
 def test_add(cache):
     assert cache.add(1, 1)
     assert cache.get(1) == 1

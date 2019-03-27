@@ -139,6 +139,24 @@ class DjangoCache(BaseCache):
         return self._cache.set(key, value, timeout, read, tag, retry)
 
 
+    def touch(self, key, timeout=DEFAULT_TIMEOUT, version=None, retry=True):
+        """Touch a key in the cache. If timeout is given, that timeout will be
+        used for the key; otherwise the default cache timeout will be used.
+
+        :param key: key for item
+        :param float timeout: seconds until the item expires
+            (default 300 seconds)
+        :param int version: key version number (default None, cache parameter)
+        :param bool retry: retry if database timeout occurs (default True)
+        :return: True if key was touched
+
+        """
+        # pylint: disable=arguments-differ
+        key = self.make_key(key, version=version)
+        timeout = self.get_backend_timeout(timeout=timeout)
+        return self._cache.touch(key, timeout, retry)
+
+
     def pop(self, key, default=None, version=None, expire_time=False,
             tag=False, retry=True):
         """Remove corresponding item for `key` from cache and return value.

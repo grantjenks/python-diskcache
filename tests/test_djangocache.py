@@ -286,6 +286,23 @@ class BaseCacheTests(object):
         # We only want the default expensive calculation run on creation and set
         self.assertEqual(expensive_calculation.num_runs, runs_before_cache_read)
 
+    def test_touch(self):
+        # cache.touch() updates the timeout.
+        cache.set('expire1', 'very quickly', timeout=1)
+        self.assertTrue(cache.touch('expire1', timeout=2))
+        time.sleep(1)
+        self.assertTrue(cache.has_key('expire1'))
+        time.sleep(2)
+        self.assertFalse(cache.has_key('expire1'))
+
+        # cache.touch() works without the timeout argument.
+        cache.set('expire1', 'very quickly', timeout=1)
+        self.assertTrue(cache.touch('expire1'))
+        time.sleep(2)
+        self.assertTrue(cache.has_key('expire1'))
+
+        self.assertFalse(cache.touch('nonexistent'))
+
     def test_expiration(self):
         # Cache values can be set to expire
         cache.set('expire1', 'very quickly', 1)

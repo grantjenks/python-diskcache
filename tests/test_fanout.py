@@ -110,6 +110,13 @@ def test_set_timeout(cache):
         assert not cache.set(0, 0)
 
 
+def test_touch(cache):
+    assert cache.set(0, None, expire=60)
+    assert cache.touch(0, expire=None)
+    assert cache.touch(0, expire=0)
+    assert not cache.touch(0)
+
+
 def test_add(cache):
     assert cache.add(0, 0)
     assert not cache.add(0, 1)
