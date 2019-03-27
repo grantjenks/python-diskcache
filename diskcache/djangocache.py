@@ -32,6 +32,12 @@ class DjangoCache(BaseCache):
 
 
     @property
+    def cache(self):
+        "FanoutCache used by DjangoCache."
+        return self._cache
+
+
+    @property
     def directory(self):
         """Cache directory."""
         return self._directory
