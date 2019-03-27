@@ -24,7 +24,7 @@ if sys.hexversion < 0x03000000:
     import cPickle as pickle  # pylint: disable=import-error
     # ISSUE #25 Fix for http://bugs.python.org/issue10211
     from cStringIO import StringIO as BytesIO  # pylint: disable=import-error
-    from thread import get_ident  # pylint: disable=import-error
+    from thread import get_ident  # pylint: disable=import-error,no-name-in-module
     TextType = unicode  # pylint: disable=invalid-name,undefined-variable
     BytesType = str
     INT_TYPES = int, long  # pylint: disable=undefined-variable
