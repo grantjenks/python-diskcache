@@ -7,6 +7,7 @@ import diskcache.djangocache
 import diskcache.fanout
 import diskcache.memo
 import diskcache.persistent
+import diskcache.recipes
 
 
 def rmdir(directory):
@@ -52,4 +53,12 @@ def test_tutorial():
     rmdir('/tmp/mycachedir')
     rmdir('/tmp/mydir')
     failures, _ = doctest.testfile('../docs/tutorial.rst')
+    assert failures == 0
+
+
+def test_recipes():
+    if sys.hexversion < 0x03000000:
+        return
+    rmdir('/tmp/diskcache')
+    failures, _ = doctest.testmod(diskcache.recipes)
     assert failures == 0

@@ -881,7 +881,7 @@ class Cache(object):
         db_key, raw = self._disk.put(key)
         expire_time = None if expire is None else now + expire
 
-        with self._transact(retry) as (sql, cleanup):
+        with self._transact(retry) as (sql, _):
             rows = sql(
                 'SELECT rowid, expire_time FROM Cache'
                 ' WHERE key = ? AND raw = ?',
