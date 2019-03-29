@@ -3,6 +3,7 @@
 
 """
 
+import functools
 import os
 import threading
 import time
@@ -67,9 +68,7 @@ class Lock(object):
 
     def acquire(self):
         "Acquire lock using spin-lock algorithm."
-        while True:
-            if self._cache.add(self._key, None, retry=True):
-                return
+        while not self._cache.add(self._key, None, retry=True):
             time.sleep(0.001)
 
     def release(self):
@@ -92,9 +91,9 @@ class RLock(object):
     >>> rlock.acquire()
     >>> rlock.acquire()
     >>> rlock.release()
-    >>> rlock.release()
     >>> with rlock:
     ...     pass
+    >>> rlock.release()
     >>> rlock.release()
     Traceback (most recent call last):
       ...
@@ -179,3 +178,99 @@ class BoundedSemaphore(object):
 
     def __exit__(self, *exc_info):
         self.release()
+
+
+def throttle(cache, count, seconds, name=None, time=time.time,
+             sleep=time.sleep):
+    """Decorator to throttle calls to function.
+
+    >>> import diskcache, time
+    >>> cache = diskcache.Cache('/tmp/diskcache/recipes')
+    >>> @throttle(cache, 1, 1)
+    ... def int_time():
+    ...     return int(time.time())
+    >>> times = [int_time() for _ in range(4)]
+    >>> [times[i] - times[i - 1] for i in range(1, 4)]
+    [1, 1, 1]
+
+    """
+    def decorator(func):
+        rate = count / float(seconds)
+
+        if name is None:
+            try:
+                key = func.__qualname__
+            except AttributeError:
+                key = func.__name__
+
+            key = func.__module__ + '.' + key
+        else:
+            key = name
+
+        cache.set(key, (time(), count), retry=True)
+
+        @functools.wraps(func)
+        def wrapper(*args, **kwargs):
+            while True:
+                with cache.transact():
+                    last, tally = cache.get(key, retry=True)
+                    now = time()
+                    tally += (now - last) * rate
+                    delay = 0
+
+                    if tally > count:
+                        cache.set(key, (now, count - 1), retry=True)
+                    elif tally >= 1:
+                        cache.set(key, (now, tally - 1), retry=True)
+                    else:
+                        delay = (1 - tally) / rate
+
+                if delay:
+                    sleep(delay)
+                else:
+                    break
+
+            return func(*args, **kwargs)
+
+        return wrapper
+
+    return decorator
+
+
+def barrier(cache, lock_factory, name=None):
+    """Barrier to calling decorated function.
+
+    >>> import diskcache, time
+    >>> cache = diskcache.Cache('/tmp/diskcache/recipes')
+    >>> @barrier(cache, Lock)
+    ... def work(num):
+    ...     time.sleep(1)
+    ...     return int(time.time())
+    >>> from concurrent.futures import ThreadPoolExecutor
+    >>> with ThreadPoolExecutor() as executor:
+    ...     times = sorted(executor.map(work, range(4)))
+    >>> [times[i] - times[i - 1] for i in range(1, 4)]
+    [1, 1, 1]
+
+    """
+    def decorator(func):
+        if name is None:
+            try:
+                key = func.__qualname__
+            except AttributeError:
+                key = func.__name__
+
+            key = func.__module__ + '.' + key
+        else:
+            key = name
+
+        lock = lock_factory(cache, key)
+
+        @functools.wraps(func)
+        def wrapper(*args, **kwargs):
+            with lock:
+                return func(*args, **kwargs)
+
+        return wrapper
+
+    return decorator
