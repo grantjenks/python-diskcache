@@ -1,5 +1,22 @@
-"""Cache Recipes
+"""Disk Cache Recipes
 
+>>> import diskcache as dc, time
+>>> cache = dc.Cache('/tmp/diskcache/example')
+>>> @dc.memoize(cache)
+... @dc.barrier(cache, dc.Lock)
+... @dc.memoize(cache)
+... def work(num):
+...     time.sleep(1)
+...     return -num
+>>> from concurrent.futures import ThreadPoolExecutor
+>>> with ThreadPoolExecutor() as executor:
+...     start = time.time()
+...     times = list(executor.map(work, range(5)))
+...     end = time.time()
+>>> times
+[0, -1, -2, -3, -4]
+>>> int(end - start)
+5
 
 """
 
