@@ -974,6 +974,11 @@ class DiskCacheTests(BaseCacheTests, TestCase):
         for key in letters:
             self.assertEqual(other.get(key), cache.get(key))
 
+    def test_cache(self):
+        subcache = cache.cache('test')
+        directory = os.path.join(cache.directory, 'cache', 'test')
+        self.assertEqual(subcache.directory, directory)
+
     def test_deque(self):
         deque = cache.deque('test')
         directory = os.path.join(cache.directory, 'deque', 'test')

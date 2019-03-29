@@ -31,15 +31,19 @@ class DjangoCache(BaseCache):
 
 
     @property
-    def cache(self):
-        "FanoutCache used by DjangoCache."
-        return self._cache
-
-
-    @property
     def directory(self):
         """Cache directory."""
         return self._directory
+
+
+    def cache(self, name):
+        """Return Cache with given `name` in subdirectory.
+
+        :param str name: subdirectory name for Cache
+        :return: Cache with given name
+
+        """
+        return self._cache.cache(name)
 
 
     def deque(self, name):

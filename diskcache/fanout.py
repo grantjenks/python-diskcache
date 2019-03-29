@@ -44,6 +44,7 @@ class FanoutCache(object):
             for num in range(shards)
         )
         self._hash = self._shards[0].disk.hash
+        self._caches = {}
         self._deques = {}
         self._indexes = {}
 
@@ -492,6 +493,7 @@ class FanoutCache(object):
         "Close database connection."
         for shard in self._shards:
             shard.close()
+        self._caches.clear()
         self._deques.clear()
         self._indexes.clear()
 
@@ -557,6 +559,37 @@ class FanoutCache(object):
                 else:
                     break
         return result
+
+
+    def cache(self, name):
+        """Return Cache with given `name` in subdirectory.
+
+        >>> fanout_cache = FanoutCache('/tmp/diskcache/fanoutcache')
+        >>> cache = fanout_cache.cache('test')
+        >>> _ = cache.clear()
+        >>> cache.set('abc', 123)
+        True
+        >>> cache.get('abc')
+        123
+        >>> len(cache)
+        1
+        >>> cache.delete('abc')
+        True
+
+        :param str name: subdirectory name for Cache
+        :return: Cache with given name
+
+        """
+        _caches = self._caches
+
+        try:
+            return _caches[name]
+        except KeyError:
+            parts = name.split('/')
+            directory = op.join(self._directory, 'cache', *parts)
+            temp = Cache(directory=directory)
+            _caches[name] = temp
+            return temp
 
 
     def deque(self, name):
