@@ -17,6 +17,14 @@
 [0, -1, -2, -3, -4]
 >>> int(end - start)
 5
+>>> with ThreadPoolExecutor() as executor:
+...     start = time.time()
+...     times = list(executor.map(work, range(5)))
+...     end = time.time()
+>>> times
+[0, -1, -2, -3, -4]
+>>> int(end - start)
+0
 
 """
 
