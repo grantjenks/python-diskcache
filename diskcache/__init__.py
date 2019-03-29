@@ -3,21 +3,30 @@
 from .core import Cache, Disk, UnknownFileWarning, EmptyDirWarning, Timeout
 from .core import DEFAULT_SETTINGS, ENOVAL, EVICTION_POLICY, UNKNOWN
 from .fanout import FanoutCache
+from .memo import memoize
 from .persistent import Deque, Index
+from .recipes import Averager, Lock, RLock, BoundedSemaphore, throttle, barrier
 
 __all__ = [
+    'Averager',
+    'BoundedSemaphore',
     'Cache',
-    'Disk',
-    'UnknownFileWarning',
-    'EmptyDirWarning',
-    'Timeout',
     'DEFAULT_SETTINGS',
+    'Deque',
+    'Disk',
     'ENOVAL',
     'EVICTION_POLICY',
-    'UNKNOWN',
+    'EmptyDirWarning',
     'FanoutCache',
-    'Deque',
     'Index',
+    'Lock',
+    'RLock',
+    'Timeout',
+    'UNKNOWN',
+    'UnknownFileWarning',
+    'barrier',
+    'memoize',
+    'throttle',
 ]
 
 try:
