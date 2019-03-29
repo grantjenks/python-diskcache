@@ -6,6 +6,44 @@ from functools import wraps
 
 MARK = object()
 
+
+def full_name(func):
+    "Return full name of `func` by adding the module and function name."
+    try:
+        name = func.__qualname__
+    except AttributeError:
+        name = func.__name__
+    return func.__module__ + '.' + name
+
+
+def args_to_key(base, args, kwargs, typed):
+    """Create cache key out of function arguments.
+
+    :param tuple base: base of key
+    :param tuple args: function arguments
+    :param dict kwargs: function keyword arguments
+    :param bool typed: include types in cache key
+    :return: cache key tuple
+
+    """
+    key = base + args
+
+    if kwargs:
+        key += (MARK,)
+        sorted_items = sorted(kwargs.items())
+
+        for item in sorted_items:
+            key += item
+
+    if typed:
+        key += tuple(type(arg) for arg in args)
+
+        if kwargs:
+            key += tuple(type(value) for _, value in sorted_items)
+
+    return key
+
+
 def memoize(cache, name=None, typed=False, expire=None, tag=None):
     """Memoizing cache decorator.
 
@@ -60,43 +98,18 @@ def memoize(cache, name=None, typed=False, expire=None, tag=None):
     if callable(name):
         raise TypeError('name cannot be callable')
 
-    def decorator(function):
+    def decorator(func):
         "Decorator created by memoize call for callable."
-        if name is None:
-            try:
-                reference = function.__qualname__
-            except AttributeError:
-                reference = function.__name__
+        base = (full_name(func),) if name is None else (name,)
 
-            reference = function.__module__ + reference
-        else:
-            reference = name
-
-        reference = (reference,)
-
-        @wraps(function)
+        @wraps(func)
         def wrapper(*args, **kwargs):
             "Wrapper for callable to cache arguments and return values."
-
-            key = reference + args
-
-            if kwargs:
-                key += (MARK,)
-                sorted_items = sorted(kwargs.items())
-
-                for item in sorted_items:
-                    key += item
-
-            if typed:
-                key += tuple(type(arg) for arg in args)
-
-                if kwargs:
-                    key += tuple(type(value) for _, value in sorted_items)
-
+            key = args_to_key(base, args, kwargs, typed)
             result = cache.get(key, default=MARK, retry=True)
 
             if result is MARK:
-                result = function(*args, **kwargs)
+                result = func(*args, **kwargs)
                 cache.set(key, result, expire=expire, tag=tag, retry=True)
 
             return result

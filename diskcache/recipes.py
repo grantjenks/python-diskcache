@@ -33,6 +33,8 @@ import os
 import threading
 import time
 
+from .memo import full_name
+
 
 class Averager(object):
     """Recipe for calculating a running average.
@@ -305,16 +307,7 @@ def barrier(cache, lock_factory, name=None, expire=None, tag=None):
 
     """
     def decorator(func):
-        if name is None:
-            try:
-                key = func.__qualname__
-            except AttributeError:
-                key = func.__name__
-
-            key = func.__module__ + '.' + key
-        else:
-            key = name
-
+        key = full_name(func) if name is None else name
         lock = lock_factory(cache, key, expire=expire, tag=tag)
 
         @functools.wraps(func)

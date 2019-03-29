@@ -10,8 +10,7 @@ except ImportError:
     DEFAULT_TIMEOUT = 300
 
 from .fanout import FanoutCache
-
-MARK = object()
+from .memo import MARK, args_to_key, full_name
 
 
 class DjangoCache(BaseCache):
@@ -390,43 +389,18 @@ class DjangoCache(BaseCache):
         if callable(name):
             raise TypeError('name cannot be callable')
 
-        def decorator(function):
+        def decorator(func):
             "Decorator created by memoize call for callable."
-            if name is None:
-                try:
-                    reference = function.__qualname__
-                except AttributeError:
-                    reference = function.__name__
+            base = (full_name(func),) if name is None else (name,)
 
-                reference = function.__module__ + reference
-            else:
-                reference = name
-
-            reference = (reference,)
-
-            @wraps(function)
+            @wraps(func)
             def wrapper(*args, **kwargs):
                 "Wrapper for callable to cache arguments and return values."
-
-                key = reference + args
-
-                if kwargs:
-                    key += (MARK,)
-                    sorted_items = sorted(kwargs.items())
-
-                    for item in sorted_items:
-                        key += item
-
-                if typed:
-                    key += tuple(type(arg) for arg in args)
-
-                    if kwargs:
-                        key += tuple(type(value) for _, value in sorted_items)
-
+                key = args_to_key(base, args, kwargs, typed)
                 result = self.get(key, MARK, version, retry=True)
 
                 if result is MARK:
-                    result = function(*args, **kwargs)
+                    result = func(*args, **kwargs)
                     self.set(key, result, timeout, version, tag=tag, retry=True)
 
                 return result
