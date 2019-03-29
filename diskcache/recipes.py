@@ -52,9 +52,11 @@ class Averager(object):
     0.12
 
     """
-    def __init__(self, cache, key):
+    def __init__(self, cache, key, expire=None, tag=None):
         self._cache = cache
         self._key = key
+        self._expire = expire
+        self._tag = tag
 
     def add(self, value):
         "Add `value` to average."
@@ -62,7 +64,9 @@ class Averager(object):
             total, count = self._cache.get(self._key, default=(0.0, 0))
             total += value
             count += 1
-            self._cache.set(self._key, (total, count))
+            self._cache.set(
+                self._key, (total, count), expire=self._expire, tag=self._tag,
+            )
 
     def get(self):
         "Get current average."
@@ -87,13 +91,20 @@ class Lock(object):
     ...     pass
 
     """
-    def __init__(self, cache, key):
+    def __init__(self, cache, key, expire=None, tag=None):
         self._cache = cache
         self._key = key
+        self._expire = expire
+        self._tag = tag
 
     def acquire(self):
         "Acquire lock using spin-lock algorithm."
-        while not self._cache.add(self._key, None, retry=True):
+        while True:
+            added = self._cache.add(
+                self._key, None, expire=self._expire, tag=self._tag, retry=True,
+            )
+            if added:
+                break
             time.sleep(0.001)
 
     def release(self):
@@ -125,9 +136,11 @@ class RLock(object):
     AssertionError: cannot release un-acquired lock
 
     """
-    def __init__(self, cache, key):
+    def __init__(self, cache, key, expire=None, tag=None):
         self._cache = cache
         self._key = key
+        self._expire = expire
+        self._tag = tag
         pid = os.getpid()
         tid = threading.get_ident()
         self._value = '{}-{}'.format(pid, tid)
@@ -138,7 +151,10 @@ class RLock(object):
             with self._cache.transact():
                 value, count = self._cache.get(self._key, default=(None, 0))
                 if self._value == value or count == 0:
-                    self._cache.set(self._key, (self._value, count + 1))
+                    self._cache.set(
+                        self._key, (self._value, count + 1),
+                        expire=self._expire, tag=self._tag,
+                    )
                     return
             time.sleep(0.001)
 
@@ -148,7 +164,10 @@ class RLock(object):
             value, count = self._cache.get(self._key, default=(None, 0))
             is_owned = self._value == value and count > 0
             assert is_owned, 'cannot release un-acquired lock'
-            self._cache.set(self._key, (value, count - 1))
+            self._cache.set(
+                self._key, (value, count - 1), expire=self._expire,
+                tag=self._tag,
+            )
 
     def __enter__(self):
         self.acquire()
@@ -175,10 +194,12 @@ class BoundedSemaphore(object):
     AssertionError: cannot release un-acquired semaphore
 
     """
-    def __init__(self, cache, key, value=1):
+    def __init__(self, cache, key, value=1, expire=None, tag=None):
         self._cache = cache
         self._key = key
         self._value = value
+        self._expire = expire
+        self._tag = tag
 
     def acquire(self):
         "Acquire semaphore by decrementing value using spin-lock algorithm."
@@ -186,7 +207,10 @@ class BoundedSemaphore(object):
             with self._cache.transact():
                 value = self._cache.get(self._key, default=self._value)
                 if value > 0:
-                    self._cache.set(self._key, value - 1)
+                    self._cache.set(
+                        self._key, value - 1, expire=self._expire,
+                        tag=self._tag,
+                    )
                     return
             time.sleep(0.001)
 
@@ -196,7 +220,9 @@ class BoundedSemaphore(object):
             value = self._cache.get(self._key, default=self._value)
             assert self._value > value, 'cannot release un-acquired semaphore'
             value += 1
-            self._cache.set(self._key, value)
+            self._cache.set(
+                self._key, value, expire=self._expire, tag=self._tag,
+            )
 
     def __enter__(self):
         self.acquire()
@@ -205,8 +231,8 @@ class BoundedSemaphore(object):
         self.release()
 
 
-def throttle(cache, count, seconds, name=None, time=time.time,
-             sleep=time.sleep):
+def throttle(cache, count, seconds, name=None, expire=None, tag=None,
+             time=time.time, sleep=time.sleep):
     """Decorator to throttle calls to function.
 
     >>> import diskcache, time
@@ -232,7 +258,7 @@ def throttle(cache, count, seconds, name=None, time=time.time,
         else:
             key = name
 
-        cache.set(key, (time(), count), retry=True)
+        cache.set(key, (time(), count), expire=expire, tag=tag, retry=True)
 
         @functools.wraps(func)
         def wrapper(*args, **kwargs):
@@ -244,9 +270,9 @@ def throttle(cache, count, seconds, name=None, time=time.time,
                     delay = 0
 
                     if tally > count:
-                        cache.set(key, (now, count - 1), retry=True)
+                        cache.set(key, (now, count - 1), expire, retry=True)
                     elif tally >= 1:
-                        cache.set(key, (now, tally - 1), retry=True)
+                        cache.set(key, (now, tally - 1), expire, retry=True)
                     else:
                         delay = (1 - tally) / rate
 
@@ -262,7 +288,7 @@ def throttle(cache, count, seconds, name=None, time=time.time,
     return decorator
 
 
-def barrier(cache, lock_factory, name=None):
+def barrier(cache, lock_factory, name=None, expire=None, tag=None):
     """Barrier to calling decorated function.
 
     >>> import diskcache, time
@@ -289,7 +315,7 @@ def barrier(cache, lock_factory, name=None):
         else:
             key = name
 
-        lock = lock_factory(cache, key)
+        lock = lock_factory(cache, key, expire=expire, tag=tag)
 
         @functools.wraps(func)
         def wrapper(*args, **kwargs):
