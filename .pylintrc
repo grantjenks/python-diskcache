@@ -145,7 +145,6 @@ disable=print-statement,
         inconsistent-return-statements,
         ungrouped-imports,
         not-callable,
-        duplicate-code  # PyCQA/pylint #1055
 
 # Enable the message, report, category or checker with the given id(s). You can
 # either give multiple identifier separated by comma (,) or put this option
@@ -361,7 +360,7 @@ ignore-docstrings=yes
 ignore-imports=no
 
 # Minimum lines number of a similarity.
-min-similarity-lines=4
+min-similarity-lines=9
 
 
 [BASIC]

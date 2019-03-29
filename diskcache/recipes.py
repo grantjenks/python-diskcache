@@ -234,7 +234,7 @@ class BoundedSemaphore(object):
 
 
 def throttle(cache, count, seconds, name=None, expire=None, tag=None,
-             time=time.time, sleep=time.sleep):
+             time_func=time.time, sleep_func=time.sleep):
     """Decorator to throttle calls to function.
 
     >>> import diskcache, time
@@ -260,14 +260,15 @@ def throttle(cache, count, seconds, name=None, expire=None, tag=None,
         else:
             key = name
 
-        cache.set(key, (time(), count), expire=expire, tag=tag, retry=True)
+        now = time_func()
+        cache.set(key, (now, count), expire=expire, tag=tag, retry=True)
 
         @functools.wraps(func)
         def wrapper(*args, **kwargs):
             while True:
                 with cache.transact():
                     last, tally = cache.get(key, retry=True)
-                    now = time()
+                    now = time_func()
                     tally += (now - last) * rate
                     delay = 0
 
@@ -279,7 +280,7 @@ def throttle(cache, count, seconds, name=None, expire=None, tag=None,
                         delay = (1 - tally) / rate
 
                 if delay:
-                    sleep(delay)
+                    sleep_func(delay)
                 else:
                     break
 
