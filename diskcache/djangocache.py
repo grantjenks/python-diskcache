@@ -10,7 +10,7 @@ except ImportError:
     DEFAULT_TIMEOUT = 300
 
 from .fanout import FanoutCache
-from .memo import MARK, args_to_key, full_name
+from .memo import MARK, _args_to_key, full_name
 
 
 class DjangoCache(BaseCache):
@@ -399,7 +399,7 @@ class DjangoCache(BaseCache):
             @wraps(func)
             def wrapper(*args, **kwargs):
                 "Wrapper for callable to cache arguments and return values."
-                key = args_to_key(base, args, kwargs, typed)
+                key = wrapper.make_key(args, kwargs)
                 result = self.get(key, MARK, version, retry=True)
 
                 if result is MARK:
@@ -408,6 +408,10 @@ class DjangoCache(BaseCache):
 
                 return result
 
+            def make_key(args, kwargs):
+                return _args_to_key(base, args, kwargs, typed)
+
+            wrapper.make_key = make_key
             return wrapper
 
         return decorator

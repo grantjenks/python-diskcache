@@ -18,7 +18,7 @@ def full_name(func):
     return func.__module__ + '.' + name
 
 
-def args_to_key(base, args, kwargs, typed):
+def _args_to_key(base, args, kwargs, typed):
     """Create cache key out of function arguments.
 
     :param tuple base: base of key
@@ -107,7 +107,7 @@ def memoize(cache, name=None, typed=False, expire=None, tag=None):
         @wraps(func)
         def wrapper(*args, **kwargs):
             "Wrapper for callable to cache arguments and return values."
-            key = args_to_key(base, args, kwargs, typed)
+            key = wrapper.make_key(args, kwargs)
             result = cache.get(key, default=MARK, retry=True)
 
             if result is MARK:
@@ -116,6 +116,10 @@ def memoize(cache, name=None, typed=False, expire=None, tag=None):
 
             return result
 
+        def make_key(args, kwargs):
+            return _args_to_key(base, args, kwargs, typed)
+
+        wrapper.make_key = make_key
         return wrapper
 
     return decorator
