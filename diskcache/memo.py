@@ -10,6 +10,8 @@ MARK = object()
 def full_name(func):
     "Return full name of `func` by adding the module and function name."
     try:
+        # The __qualname__ attribute is only available in Python 3.3 and later.
+        # GrantJ 2019-03-29 Remove after support for Python 2 is dropped.
         name = func.__qualname__
     except AttributeError:
         name = func.__name__

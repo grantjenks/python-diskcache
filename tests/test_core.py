@@ -935,8 +935,10 @@ def test_push_pull_prefix(cache):
         cache.push(value, prefix='key')
 
     for value in range(10):
+        key, peek_value = cache.peek(prefix='key')
         key, pull_value = cache.pull(prefix='key')
         assert key.startswith('key')
+        assert peek_value == value
         assert pull_value == value
 
     assert len(cache) == 0
@@ -949,6 +951,11 @@ def test_push_pull_extras(cache):
     assert len(cache) == 0
 
     cache.push('test', expire=10)
+    (key, value), expire_time = cache.peek(expire_time=True)
+    assert key == 500000000000000
+    assert value == 'test'
+    assert expire_time > time.time()
+    assert len(cache) == 1
     (key, value), expire_time = cache.pull(expire_time=True)
     assert key == 500000000000000
     assert value == 'test'
@@ -956,6 +963,11 @@ def test_push_pull_extras(cache):
     assert len(cache) == 0
 
     cache.push('test', tag='foo')
+    (key, value), tag = cache.peek(tag=True)
+    assert key == 500000000000000
+    assert value == 'test'
+    assert tag == 'foo'
+    assert len(cache) == 1
     (key, value), tag = cache.pull(tag=True)
     assert key == 500000000000000
     assert value == 'test'
@@ -963,6 +975,12 @@ def test_push_pull_extras(cache):
     assert len(cache) == 0
 
     cache.push('test')
+    (key, value), expire_time, tag = cache.peek(expire_time=True, tag=True)
+    assert key == 500000000000000
+    assert value == 'test'
+    assert expire_time is None
+    assert tag is None
+    assert len(cache) == 1
     (key, value), expire_time, tag = cache.pull(expire_time=True, tag=True)
     assert key == 500000000000000
     assert value == 'test'
@@ -986,11 +1004,30 @@ def test_push_pull_expire(cache):
     assert len(cache.check()) == 0
 
 
+def test_push_peek_expire(cache):
+    cache.push(0, expire=0.1)
+    cache.push(0, expire=0.1)
+    cache.push(0, expire=0.1)
+    cache.push(1)
+    time.sleep(0.2)
+    assert cache.peek() == (500000000000003, 1)
+    assert len(cache) == 1
+    assert len(cache.check()) == 0
+
+
 def test_push_pull_large_value(cache):
     value = b'test' * (2 ** 20)
     cache.push(value)
     assert cache.pull() == (500000000000000, value)
     assert len(cache) == 0
+    assert len(cache.check()) == 0
+
+
+def test_push_peek_large_value(cache):
+    value = b'test' * (2 ** 20)
+    cache.push(value)
+    assert cache.peek() == (500000000000000, value)
+    assert len(cache) == 1
     assert len(cache.check()) == 0
 
 
@@ -1012,6 +1049,25 @@ def test_pull_ioerror(cache):
         assert cache.pull() == (None, None)
 
 
+def test_peek_ioerror(cache):
+    assert cache.push(0) == 500000000000000
+
+    disk = mock.Mock()
+    put = mock.Mock()
+    fetch = mock.Mock()
+
+    disk.put = put
+    put.side_effect = [(0, True)]
+    disk.fetch = fetch
+    io_error = IOError()
+    io_error.errno = errno.ENOENT
+    fetch.side_effect = [io_error, 0]
+
+    with mock.patch.object(cache, '_disk', disk):
+        _, value = cache.peek()
+        assert value == 0
+
+
 def test_pull_ioerror_eacces(cache):
     assert cache.push(0) == 500000000000000
 
@@ -1029,6 +1085,97 @@ def test_pull_ioerror_eacces(cache):
     with mock.patch.object(cache, '_disk', disk):
         with pytest.raises(IOError):
             cache.pull()
+
+
+def test_peek_ioerror_eacces(cache):
+    assert cache.push(0) == 500000000000000
+
+    disk = mock.Mock()
+    put = mock.Mock()
+    fetch = mock.Mock()
+
+    disk.put = put
+    put.side_effect = [(0, True)]
+    disk.fetch = fetch
+    io_error = IOError()
+    io_error.errno = errno.EACCES
+    fetch.side_effect = io_error
+
+    with mock.patch.object(cache, '_disk', disk):
+        with pytest.raises(IOError):
+            cache.peek()
+
+
+def test_peekitem_extras(cache):
+    with pytest.raises(KeyError):
+        cache.peekitem()
+
+    assert cache.set('a', 0)
+    assert cache.set('b', 1)
+    assert cache.set('c', 2, expire=10, tag='foo')
+    assert cache.set('d', 3, expire=0.1)
+    assert cache.set('e', 4, expire=0.1)
+
+    time.sleep(0.2)
+
+    (key, value), expire_time, tag = cache.peekitem(expire_time=True, tag=True)
+    assert key == 'c'
+    assert value == 2
+    assert expire_time > 0
+    assert tag == 'foo'
+
+    (key, value), expire_time = cache.peekitem(expire_time=True)
+    assert key == 'c'
+    assert value == 2
+    assert expire_time > 0
+
+    (key, value), tag = cache.peekitem(tag=True)
+    assert key == 'c'
+    assert value == 2
+    assert expire_time > 0
+    assert tag == 'foo'
+
+
+def test_peekitem_ioerror(cache):
+    assert cache.set('a', 0)
+    assert cache.set('b', 1)
+    assert cache.set('c', 2)
+
+    disk = mock.Mock()
+    put = mock.Mock()
+    fetch = mock.Mock()
+
+    disk.put = put
+    put.side_effect = [(0, True)]
+    disk.fetch = fetch
+    io_error = IOError()
+    io_error.errno = errno.ENOENT
+    fetch.side_effect = [io_error, 2]
+
+    with mock.patch.object(cache, '_disk', disk):
+        _, value = cache.peekitem()
+        assert value == 2
+
+
+def test_peekitem_ioerror_eacces(cache):
+    assert cache.set('a', 0)
+    assert cache.set('b', 1)
+    assert cache.set('c', 2)
+
+    disk = mock.Mock()
+    put = mock.Mock()
+    fetch = mock.Mock()
+
+    disk.put = put
+    put.side_effect = [(0, True)]
+    disk.fetch = fetch
+    io_error = IOError()
+    io_error.errno = errno.EACCES
+    fetch.side_effect = io_error
+
+    with mock.patch.object(cache, '_disk', disk):
+        with pytest.raises(IOError):
+            cache.peekitem()
 
 
 def test_iterkeys(cache):

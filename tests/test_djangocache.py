@@ -990,6 +990,11 @@ class DiskCacheTests(BaseCacheTests, TestCase):
         self.assertEqual(index.directory, directory)
 
     def test_memoize(self):
+        with self.assertRaises(TypeError):
+            @cache.memoize  # <-- Missing parens!
+            def test():
+                pass
+
         count = 1000
 
         def fibiter(num):

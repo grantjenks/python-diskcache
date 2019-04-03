@@ -116,6 +116,8 @@ class Deque(Sequence):
         >>> cache = Cache('/tmp/diskcache/index')
         >>> _ = cache.clear()
         >>> deque = Deque.fromcache(cache, [5, 6, 7, 8])
+        >>> deque.cache is cache
+        True
         >>> len(deque)
         4
         >>> 7 in deque
@@ -736,6 +738,8 @@ class Index(MutableMapping):
         >>> cache = Cache('/tmp/diskcache/index')
         >>> _ = cache.clear()
         >>> index = Index.fromcache(cache, {'a': 1, 'b': 2, 'c': 3})
+        >>> index.cache is cache
+        True
         >>> len(index)
         3
         >>> 'b' in index

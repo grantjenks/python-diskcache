@@ -1706,9 +1706,6 @@ class Cache(object):
                     continue
                 else:
                     raise
-            finally:
-                if name is not None:
-                    self._disk.remove(name)
             break
 
         if expire_time and tag:

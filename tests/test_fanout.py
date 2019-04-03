@@ -117,6 +117,19 @@ def test_touch(cache):
     assert not cache.touch(0)
 
 
+def test_touch_timeout(cache):
+    shards = mock.Mock()
+    shard = mock.Mock()
+    touch_func = mock.Mock()
+
+    shards.__getitem__ = mock.Mock(side_effect=lambda key: shard)
+    shard.touch = touch_func
+    touch_func.side_effect = dc.Timeout
+
+    with mock.patch.object(cache, '_shards', shards):
+        assert not cache.touch(0)
+
+
 def test_add(cache):
     assert cache.add(0, 0)
     assert not cache.add(0, 1)
@@ -187,6 +200,19 @@ def test_incr_timeout(cache):
 
 def test_decr(cache):
     cache.decr('key', delta=2) == -2
+
+
+def test_decr_timeout(cache):
+    shards = mock.Mock()
+    shard = mock.Mock()
+    decr_func = mock.Mock()
+
+    shards.__getitem__ = mock.Mock(side_effect=lambda key: shard)
+    shard.decr = decr_func
+    decr_func.side_effect = dc.Timeout
+
+    with mock.patch.object(cache, '_shards', shards):
+        assert cache.decr('key', 1) is None
 
 
 def stress_incr(cache, limit):
