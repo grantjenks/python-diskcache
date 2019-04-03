@@ -11,6 +11,7 @@ pytest
 pytest-cov
 pytest-django
 pytest-env
+pytest-xdist
 sphinx
 tox
 twine
