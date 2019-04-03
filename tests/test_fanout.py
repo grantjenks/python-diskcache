@@ -16,6 +16,7 @@ import shutil
 import sqlite3
 import subprocess as sp
 import sys
+import tempfile
 import threading
 import time
 import warnings
@@ -36,15 +37,12 @@ if sys.hexversion < 0x03000000:
 
 @pytest.fixture
 def cache():
-    shutil.rmtree('tmp', ignore_errors=True)
-    with dc.FanoutCache('tmp') as cache:
+    with dc.FanoutCache() as cache:
         yield cache
-    shutil.rmtree('tmp', ignore_errors=True)
+    shutil.rmtree(cache.directory, ignore_errors=True)
 
 
 def test_init(cache):
-    assert cache.directory == 'tmp'
-
     default_settings = dc.DEFAULT_SETTINGS.copy()
     del default_settings['size_limit']
     for key, value in default_settings.items():
@@ -160,8 +158,7 @@ def stress_add(cache, limit, results):
 
 
 def test_add_concurrent():
-    shutil.rmtree('tmp', ignore_errors=True)
-    with dc.FanoutCache('tmp', shards=1) as cache:
+    with dc.FanoutCache(shards=1) as cache:
         results = co.deque()
         limit = 1000
 
@@ -178,7 +175,7 @@ def test_add_concurrent():
 
         assert sum(results) == limit
         cache.check()
-    shutil.rmtree('tmp', ignore_errors=True)
+    shutil.rmtree(cache.directory, ignore_errors=True)
 
 
 def test_incr(cache):
@@ -222,8 +219,7 @@ def stress_incr(cache, limit):
 
 
 def test_incr_concurrent():
-    shutil.rmtree('tmp', ignore_errors=True)
-    with dc.FanoutCache('tmp', shards=1, timeout=0.001) as cache:
+    with dc.FanoutCache(shards=1, timeout=0.001) as cache:
         count = 16
         limit = 50
 
@@ -240,7 +236,7 @@ def test_incr_concurrent():
 
         assert cache.get(b'key') == count * limit
         cache.check()
-    shutil.rmtree('tmp', ignore_errors=True)
+    shutil.rmtree(cache.directory, ignore_errors=True)
 
 
 def test_getsetdel(cache):
@@ -568,7 +564,7 @@ def test_memoize(cache):
 
 
 def test_copy():
-    cache_dir1 = op.join('tmp', 'foo')
+    cache_dir1 = tempfile.mkdtemp()
 
     with dc.FanoutCache(cache_dir1) as cache1:
         for count in range(10):
@@ -577,7 +573,8 @@ def test_copy():
         for count in range(10, 20):
             cache1[count] = str(count) * int(1e5)
 
-    cache_dir2 = op.join('tmp', 'bar')
+    cache_dir2 = tempfile.mkdtemp()
+    shutil.rmtree(cache_dir2)
     shutil.copytree(cache_dir1, cache_dir2)
 
     with dc.FanoutCache(cache_dir2) as cache2:
@@ -587,7 +584,8 @@ def test_copy():
         for count in range(10, 20):
             assert cache2[count] == str(count) * int(1e5)
 
-    shutil.rmtree('tmp', ignore_errors=True)
+    shutil.rmtree(cache_dir1, ignore_errors=True)
+    shutil.rmtree(cache_dir2, ignore_errors=True)
 
 
 def run(command):
@@ -607,8 +605,8 @@ def test_rsync():
         return  # No rsync installed. Skip test.
 
     rsync_args = ['rsync', '-a', '--checksum', '--delete', '--stats']
-    cache_dir1 = op.join('tmp', 'foo') + os.sep
-    cache_dir2 = op.join('tmp', 'bar') + os.sep
+    cache_dir1 = tempfile.mkdtemp() + os.sep
+    cache_dir2 = tempfile.mkdtemp() + os.sep
 
     # Store some items in cache_dir1.
 
@@ -660,7 +658,8 @@ def test_rsync():
         for count in range(300, 400):
             assert cache1[count] == str(count) * int(1e5)
 
-    shutil.rmtree('tmp', ignore_errors=True)
+    shutil.rmtree(cache_dir1, ignore_errors=True)
+    shutil.rmtree(cache_dir2, ignore_errors=True)
 
 
 class SHA256FilenameDisk(dc.Disk):
@@ -671,24 +670,24 @@ class SHA256FilenameDisk(dc.Disk):
 
 
 def test_custom_filename_disk():
-    with dc.FanoutCache('tmp', disk=SHA256FilenameDisk) as cache:
+    with dc.FanoutCache(disk=SHA256FilenameDisk) as cache:
         for count in range(100, 200):
             key = str(count).encode('ascii')
             cache[key] = str(count) * int(1e5)
 
-    disk = SHA256FilenameDisk('tmp')
+    disk = SHA256FilenameDisk(cache.directory)
 
     for count in range(100, 200):
         key = str(count).encode('ascii')
         subdir = '%03d' % (disk.hash(key) % 8)
         filename = hashlib.sha256(key).hexdigest()[:32]
-        full_path = op.join('tmp', subdir, filename)
+        full_path = op.join(cache.directory, subdir, filename)
 
         with open(full_path) as reader:
             content = reader.read()
             assert content == str(count) * int(1e5)
 
-    shutil.rmtree('tmp', ignore_errors=True)
+    shutil.rmtree(cache.directory, ignore_errors=True)
 
 
 if __name__ == '__main__':

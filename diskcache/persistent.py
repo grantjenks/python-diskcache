@@ -70,10 +70,7 @@ class Deque(Sequence):
     Items are serialized to disk. Deque may be initialized from directory path
     where items are stored.
 
-    >>> deque = Deque(directory='/tmp/diskcache/deque')
-    >>> deque
-    Deque(directory='/tmp/diskcache/deque')
-    >>> deque.clear()
+    >>> deque = Deque()
     >>> deque += range(5)
     >>> list(deque)
     [0, 1, 2, 3, 4]
@@ -102,8 +99,6 @@ class Deque(Sequence):
         :param directory: deque directory (default None)
 
         """
-        if directory is None:
-            directory = mkdtemp()
         self._cache = Cache(directory, eviction_policy='none')
         with self.transact():
             self.extend(iterable)
@@ -113,8 +108,7 @@ class Deque(Sequence):
     def fromcache(cls, cache, iterable=()):
         """Initialize deque using `cache`.
 
-        >>> cache = Cache('/tmp/diskcache/index')
-        >>> _ = cache.clear()
+        >>> cache = Cache()
         >>> deque = Deque.fromcache(cache, [5, 6, 7, 8])
         >>> deque.cache is cache
         True
@@ -189,8 +183,7 @@ class Deque(Sequence):
         See also `Deque.peekleft` and `Deque.peek` for indexing deque at index
         ``0`` or ``-1``.
 
-        >>> deque = Deque(directory='/tmp/diskcache/deque')
-        >>> deque.clear()
+        >>> deque = Deque()
         >>> deque.extend('abcde')
         >>> deque[1]
         'b'
@@ -210,8 +203,7 @@ class Deque(Sequence):
 
         Store `value` in deque at `index`.
 
-        >>> deque = Deque(directory='/tmp/diskcache/deque')
-        >>> deque.clear()
+        >>> deque = Deque()
         >>> deque.extend([None] * 3)
         >>> deque[0] = 'a'
         >>> deque[1] = 'b'
@@ -233,8 +225,7 @@ class Deque(Sequence):
 
         Delete item in deque at `index`.
 
-        >>> deque = Deque(directory='/tmp/diskcache/deque')
-        >>> deque.clear()
+        >>> deque = Deque()
         >>> deque.extend([None] * 3)
         >>> del deque[0]
         >>> del deque[1]
@@ -309,8 +300,7 @@ class Deque(Sequence):
 
         Return iterator of deque from back to front.
 
-        >>> deque = Deque(directory='/tmp/diskcache/deque')
-        >>> deque.clear()
+        >>> deque = Deque()
         >>> deque.extend('abcd')
         >>> iterator = reversed(deque)
         >>> next(iterator)
@@ -339,8 +329,7 @@ class Deque(Sequence):
     def append(self, value):
         """Add `value` to back of deque.
 
-        >>> deque = Deque(directory='/tmp/diskcache/deque')
-        >>> deque.clear()
+        >>> deque = Deque()
         >>> deque.append('a')
         >>> deque.append('b')
         >>> deque.append('c')
@@ -356,8 +345,7 @@ class Deque(Sequence):
     def appendleft(self, value):
         """Add `value` to front of deque.
 
-        >>> deque = Deque(directory='/tmp/diskcache/deque')
-        >>> deque.clear()
+        >>> deque = Deque()
         >>> deque.appendleft('a')
         >>> deque.appendleft('b')
         >>> deque.appendleft('c')
@@ -380,8 +368,7 @@ class Deque(Sequence):
     def count(self, value):
         """Return number of occurrences of `value` in deque.
 
-        >>> deque = Deque(directory='/tmp/diskcache/deque')
-        >>> deque.clear()
+        >>> deque = Deque()
         >>> deque += [num for num in range(1, 5) for _ in range(num)]
         >>> deque.count(0)
         0
@@ -410,8 +397,7 @@ class Deque(Sequence):
     def extendleft(self, iterable):
         """Extend front side of deque with value from `iterable`.
 
-        >>> deque = Deque(directory='/tmp/diskcache/deque')
-        >>> deque.clear()
+        >>> deque = Deque()
         >>> deque.extendleft('abc')
         >>> list(deque)
         ['c', 'b', 'a']
@@ -430,8 +416,7 @@ class Deque(Sequence):
 
         If deque is empty then raise IndexError.
 
-        >>> deque = Deque(directory='/tmp/diskcache/deque')
-        >>> deque.clear()
+        >>> deque = Deque()
         >>> deque.peek()
         Traceback (most recent call last):
             ...
@@ -458,8 +443,7 @@ class Deque(Sequence):
 
         If deque is empty then raise IndexError.
 
-        >>> deque = Deque(directory='/tmp/diskcache/deque')
-        >>> deque.clear()
+        >>> deque = Deque()
         >>> deque.peekleft()
         Traceback (most recent call last):
             ...
@@ -484,8 +468,7 @@ class Deque(Sequence):
 
         If deque is empty then raise IndexError.
 
-        >>> deque = Deque(directory='/tmp/diskcache/deque')
-        >>> deque.clear()
+        >>> deque = Deque()
         >>> deque += 'ab'
         >>> deque.pop()
         'b'
@@ -510,8 +493,7 @@ class Deque(Sequence):
     def popleft(self):
         """Remove and return value at front of deque.
 
-        >>> deque = Deque(directory='/tmp/diskcache/deque')
-        >>> deque.clear()
+        >>> deque = Deque()
         >>> deque += 'ab'
         >>> deque.popleft()
         'a'
@@ -536,8 +518,7 @@ class Deque(Sequence):
     def remove(self, value):
         """Remove first occurrence of `value` in deque.
 
-        >>> deque = Deque(directory='/tmp/diskcache/deque')
-        >>> deque.clear()
+        >>> deque = Deque()
         >>> deque += 'aab'
         >>> deque.remove('a')
         >>> list(deque)
@@ -575,8 +556,7 @@ class Deque(Sequence):
     def reverse(self):
         """Reverse deque in place.
 
-        >>> deque = Deque(directory='/tmp/diskcache/deque')
-        >>> deque.clear()
+        >>> deque = Deque()
         >>> deque += 'abc'
         >>> deque.reverse()
         >>> list(deque)
@@ -601,8 +581,7 @@ class Deque(Sequence):
 
         If steps is negative then rotate left.
 
-        >>> deque = Deque(directory='/tmp/diskcache/deque')
-        >>> deque.clear()
+        >>> deque = Deque()
         >>> deque += range(5)
         >>> deque.rotate(2)
         >>> list(deque)
@@ -661,8 +640,7 @@ class Deque(Sequence):
         Transactions may be nested and may not be shared between threads.
 
         >>> from diskcache import Deque
-        >>> deque = Deque(directory='/tmp/diskcache/deque')
-        >>> deque.clear()
+        >>> deque = Deque()
         >>> deque += range(5)
         >>> with deque.transact():  # Atomically rotate elements.
         ...     value = deque.pop()
@@ -687,10 +665,7 @@ class Index(MutableMapping):
     Hashing protocol is not used. Keys are looked up by their serialized
     format. See ``diskcache.Disk`` for details.
 
-    >>> index = Index('/tmp/diskcache/index')
-    >>> index
-    Index('/tmp/diskcache/index')
-    >>> index.clear()
+    >>> index = Index()
     >>> index.update([('a', 1), ('b', 2), ('c', 3)])
     >>> index['a']
     1
@@ -726,7 +701,7 @@ class Index(MutableMapping):
         else:
             if args and args[0] is None:
                 args = args[1:]
-            directory = mkdtemp(prefix='diskcache-')
+            directory = None
         self._cache = Cache(directory, eviction_policy='none')
         self.update(*args, **kwargs)
 
@@ -735,8 +710,7 @@ class Index(MutableMapping):
     def fromcache(cls, cache, *args, **kwargs):
         """Initialize index using `cache` and update items.
 
-        >>> cache = Cache('/tmp/diskcache/index')
-        >>> _ = cache.clear()
+        >>> cache = Cache()
         >>> index = Index.fromcache(cache, {'a': 1, 'b': 2, 'c': 3})
         >>> index.cache is cache
         True
@@ -777,8 +751,7 @@ class Index(MutableMapping):
 
         Return corresponding value for `key` in index.
 
-        >>> index = Index('/tmp/diskcache/index')
-        >>> index.clear()
+        >>> index = Index()
         >>> index.update({'a': 1, 'b': 2})
         >>> index['a']
         1
@@ -802,8 +775,7 @@ class Index(MutableMapping):
 
         Set `key` and `value` item in index.
 
-        >>> index = Index('/tmp/diskcache/index')
-        >>> index.clear()
+        >>> index = Index()
         >>> index['a'] = 1
         >>> index[0] = None
         >>> len(index)
@@ -821,8 +793,7 @@ class Index(MutableMapping):
 
         Delete corresponding item for `key` from index.
 
-        >>> index = Index('/tmp/diskcache/index')
-        >>> index.clear()
+        >>> index = Index()
         >>> index.update({'a': 1, 'b': 2})
         >>> del index['a']
         >>> del index['b']
@@ -846,8 +817,7 @@ class Index(MutableMapping):
         If `key` is not in index then set corresponding value to `default`. If
         `key` is in index then ignore `default` and return existing value.
 
-        >>> index = Index('/tmp/diskcache/index')
-        >>> index.clear()
+        >>> index = Index()
         >>> index.setdefault('a', 0)
         0
         >>> index.setdefault('a', 1)
@@ -869,8 +839,7 @@ class Index(MutableMapping):
     def peekitem(self, last=True):
         """Peek at key and value item pair in index based on iteration order.
 
-        >>> index = Index('/tmp/diskcache/index')
-        >>> index.clear()
+        >>> index = Index()
         >>> for num, letter in enumerate('xyz'):
         ...     index[letter] = num
         >>> index.peekitem()
@@ -892,7 +861,7 @@ class Index(MutableMapping):
         If `key` is missing then return `default`. If `default` is `ENOVAL`
         then raise KeyError.
 
-        >>> index = Index('/tmp/diskcache/index', {'a': 1, 'b': 2})
+        >>> index = Index({'a': 1, 'b': 2})
         >>> index.pop('a')
         1
         >>> index.pop('b')
@@ -924,8 +893,7 @@ class Index(MutableMapping):
         True else first-in-first-out (FIFO) order. LIFO order imitates a stack
         and FIFO order imitates a queue.
 
-        >>> index = Index('/tmp/diskcache/index')
-        >>> index.clear()
+        >>> index = Index()
         >>> index.update([('a', 1), ('b', 2), ('c', 3)])
         >>> index.popitem()
         ('c', 3)
@@ -974,8 +942,7 @@ class Index(MutableMapping):
 
         See also `Index.pull`.
 
-        >>> index = Index('/tmp/diskcache/index')
-        >>> index.clear()
+        >>> index = Index()
         >>> print(index.push('apples'))
         500000000000000
         >>> print(index.push('beans'))
@@ -1010,8 +977,7 @@ class Index(MutableMapping):
 
         See also `Index.push`.
 
-        >>> index = Index('/tmp/diskcache/index')
-        >>> index.clear()
+        >>> index = Index()
         >>> for letter in 'abc':
         ...     print(index.push(letter))
         500000000000000
@@ -1059,8 +1025,7 @@ class Index(MutableMapping):
 
         Return iterator of index keys in reversed insertion order.
 
-        >>> index = Index('/tmp/diskcache/index')
-        >>> index.clear()
+        >>> index = Index()
         >>> index.update([('a', 1), ('b', 2), ('c', 3)])
         >>> iterator = reversed(index)
         >>> next(iterator)
@@ -1085,8 +1050,7 @@ class Index(MutableMapping):
         def keys(self):
             """List of index keys.
 
-            >>> index = Index('/tmp/diskcache/index')
-            >>> index.clear()
+            >>> index = Index()
             >>> index.update([('a', 1), ('b', 2), ('c', 3)])
             >>> index.keys()
             ['a', 'b', 'c']
@@ -1100,8 +1064,7 @@ class Index(MutableMapping):
         def values(self):
             """List of index values.
 
-            >>> index = Index('/tmp/diskcache/index')
-            >>> index.clear()
+            >>> index = Index()
             >>> index.update([('a', 1), ('b', 2), ('c', 3)])
             >>> index.values()
             [1, 2, 3]
@@ -1115,8 +1078,7 @@ class Index(MutableMapping):
         def items(self):
             """List of index items.
 
-            >>> index = Index('/tmp/diskcache/index')
-            >>> index.clear()
+            >>> index = Index()
             >>> index.update([('a', 1), ('b', 2), ('c', 3)])
             >>> index.items()
             [('a', 1), ('b', 2), ('c', 3)]
@@ -1130,8 +1092,7 @@ class Index(MutableMapping):
         def iterkeys(self):
             """Iterator of index keys.
 
-            >>> index = Index('/tmp/diskcache/index')
-            >>> index.clear()
+            >>> index = Index()
             >>> index.update([('a', 1), ('b', 2), ('c', 3)])
             >>> list(index.iterkeys())
             ['a', 'b', 'c']
@@ -1145,8 +1106,7 @@ class Index(MutableMapping):
         def itervalues(self):
             """Iterator of index values.
 
-            >>> index = Index('/tmp/diskcache/index')
-            >>> index.clear()
+            >>> index = Index()
             >>> index.update([('a', 1), ('b', 2), ('c', 3)])
             >>> list(index.itervalues())
             [1, 2, 3]
@@ -1168,8 +1128,7 @@ class Index(MutableMapping):
         def iteritems(self):
             """Iterator of index items.
 
-            >>> index = Index('/tmp/diskcache/index')
-            >>> index.clear()
+            >>> index = Index()
             >>> index.update([('a', 1), ('b', 2), ('c', 3)])
             >>> list(index.iteritems())
             [('a', 1), ('b', 2), ('c', 3)]
@@ -1191,8 +1150,7 @@ class Index(MutableMapping):
         def viewkeys(self):
             """Set-like object providing a view of index keys.
 
-            >>> index = Index('/tmp/diskcache/index')
-            >>> index.clear()
+            >>> index = Index()
             >>> index.update({'a': 1, 'b': 2, 'c': 3})
             >>> keys_view = index.viewkeys()
             >>> 'b' in keys_view
@@ -1207,8 +1165,7 @@ class Index(MutableMapping):
         def viewvalues(self):
             """Set-like object providing a view of index values.
 
-            >>> index = Index('/tmp/diskcache/index')
-            >>> index.clear()
+            >>> index = Index()
             >>> index.update({'a': 1, 'b': 2, 'c': 3})
             >>> values_view = index.viewvalues()
             >>> 2 in values_view
@@ -1223,8 +1180,7 @@ class Index(MutableMapping):
         def viewitems(self):
             """Set-like object providing a view of index items.
 
-            >>> index = Index('/tmp/diskcache/index')
-            >>> index.clear()
+            >>> index = Index()
             >>> index.update({'a': 1, 'b': 2, 'c': 3})
             >>> items_view = index.viewitems()
             >>> ('b', 2) in items_view
@@ -1240,8 +1196,7 @@ class Index(MutableMapping):
         def keys(self):
             """Set-like object providing a view of index keys.
 
-            >>> index = Index('/tmp/diskcache/index')
-            >>> index.clear()
+            >>> index = Index()
             >>> index.update({'a': 1, 'b': 2, 'c': 3})
             >>> keys_view = index.keys()
             >>> 'b' in keys_view
@@ -1256,8 +1211,7 @@ class Index(MutableMapping):
         def values(self):
             """Set-like object providing a view of index values.
 
-            >>> index = Index('/tmp/diskcache/index')
-            >>> index.clear()
+            >>> index = Index()
             >>> index.update({'a': 1, 'b': 2, 'c': 3})
             >>> values_view = index.values()
             >>> 2 in values_view
@@ -1272,8 +1226,7 @@ class Index(MutableMapping):
         def items(self):
             """Set-like object providing a view of index items.
 
-            >>> index = Index('/tmp/diskcache/index')
-            >>> index.clear()
+            >>> index = Index()
             >>> index.update({'a': 1, 'b': 2, 'c': 3})
             >>> items_view = index.items()
             >>> ('b', 2) in items_view
@@ -1304,8 +1257,7 @@ class Index(MutableMapping):
         Comparison to another index or ordered dictionary is
         order-sensitive. Comparison to all other mappings is order-insensitive.
 
-        >>> index = Index('/tmp/diskcache/index')
-        >>> index.clear()
+        >>> index = Index()
         >>> pairs = [('a', 1), ('b', 2), ('c', 3)]
         >>> index.update(pairs)
         >>> from collections import OrderedDict
@@ -1339,8 +1291,7 @@ class Index(MutableMapping):
         Comparison to another index or ordered dictionary is
         order-sensitive. Comparison to all other mappings is order-insensitive.
 
-        >>> index = Index('/tmp/diskcache/index')
-        >>> index.clear()
+        >>> index = Index()
         >>> index.update([('a', 1), ('b', 2), ('c', 3)])
         >>> from collections import OrderedDict
         >>> od = OrderedDict([('c', 3), ('b', 2), ('a', 1)])
@@ -1375,7 +1326,7 @@ class Index(MutableMapping):
         or for rewrapping the function with a different cache.
 
         >>> from diskcache import Index
-        >>> mapping = Index('/tmp/diskcache/index')
+        >>> mapping = Index()
         >>> @mapping.memoize(typed=True)
         ... def fibonacci(number):
         ...     if number == 0:
@@ -1418,7 +1369,7 @@ class Index(MutableMapping):
         Transactions may be nested and may not be shared between threads.
 
         >>> from diskcache import Index
-        >>> mapping = Index('/tmp/diskcache/index')
+        >>> mapping = Index()
         >>> with mapping.transact():  # Atomically increment two keys.
         ...     mapping['total'] = mapping.get('total', 0) + 123.4
         ...     mapping['count'] = mapping.get('count', 0) + 1

@@ -13,6 +13,7 @@ import pickletools
 import sqlite3
 import struct
 import sys
+import tempfile
 import threading
 import time
 import warnings
@@ -359,7 +360,7 @@ class EmptyDirWarning(UserWarning):
 class Cache(object):
     "Disk and file backed cache."
     # pylint: disable=bad-continuation
-    def __init__(self, directory, timeout=60, disk=Disk, **settings):
+    def __init__(self, directory=None, timeout=60, disk=Disk, **settings):
         """Initialize cache instance.
 
         :param str directory: cache directory
@@ -372,6 +373,11 @@ class Cache(object):
             assert issubclass(disk, Disk)
         except (TypeError, AssertionError):
             raise ValueError('disk must subclass diskcache.Disk')
+
+        if directory is None:
+            directory = tempfile.mkdtemp(prefix='diskcache-')
+        directory = op.expanduser(directory)
+        directory = op.expandvars(directory)
 
         self._directory = directory
         self._timeout = 0  # Manually handle retries during initialization.
@@ -621,8 +627,7 @@ class Cache(object):
         Raises :exc:`Timeout` error when database timeout occurs and `retry` is
         `False` (default).
 
-        >>> cache = Cache('/tmp/diskcache')
-        >>> _ = cache.clear()
+        >>> cache = Cache()
         >>> with cache.transact():  # Atomically increment two keys.
         ...     _ = cache.incr('total', 123.4)
         ...     _ = cache.incr('count', 1)
@@ -1344,8 +1349,7 @@ class Cache(object):
 
         See also `Cache.pull`.
 
-        >>> cache = Cache('/tmp/diskcache')
-        >>> _ = cache.clear()
+        >>> cache = Cache()
         >>> print(cache.push('first value'))
         500000000000000
         >>> cache.get(500000000000000)
@@ -1438,8 +1442,7 @@ class Cache(object):
 
         See also `Cache.push` and `Cache.get`.
 
-        >>> cache = Cache('/tmp/diskcache')
-        >>> _ = cache.clear()
+        >>> cache = Cache()
         >>> cache.pull()
         (None, None)
         >>> for letter in 'abc':
@@ -1555,8 +1558,7 @@ class Cache(object):
 
         See also `Cache.pull` and `Cache.push`.
 
-        >>> cache = Cache('/tmp/diskcache')
-        >>> _ = cache.clear()
+        >>> cache = Cache()
         >>> for letter in 'abc':
         ...     print(cache.push(letter))
         500000000000000
@@ -1654,8 +1656,7 @@ class Cache(object):
         Raises :exc:`Timeout` error when database timeout occurs and `retry` is
         `False` (default).
 
-        >>> cache = Cache('/tmp/diskcache')
-        >>> _ = cache.clear()
+        >>> cache = Cache()
         >>> for num, letter in enumerate('abc'):
         ...     cache[letter] = num
         >>> cache.peekitem()
@@ -2043,8 +2044,7 @@ class Cache(object):
     def iterkeys(self, reverse=False):
         """Iterate Cache keys in database sort order.
 
-        >>> cache = Cache('/tmp/diskcache')
-        >>> _ = cache.clear()
+        >>> cache = Cache()
         >>> for key in [4, 1, 3, 0, 2]:
         ...     cache[key] = key
         >>> list(cache.iterkeys())

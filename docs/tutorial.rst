@@ -68,7 +68,7 @@ represents a disk and file backed cache. As a Cache, it supports a familiar
 Python Mapping interface with additional cache and performance parameters.
 
     >>> from diskcache import Cache
-    >>> cache = Cache('/tmp/mycachedir')
+    >>> cache = Cache()
 
 Initialization requires a directory path reference. If the directory path does
 not exist, it will be created. Additional keyword parameters are discussed
@@ -85,7 +85,7 @@ in a `with` statement to safeguard calling :meth:`close
 <diskcache.Cache.close>`.
 
     >>> cache.close()
-    >>> with Cache('/tmp/mycachedir') as reference:
+    >>> with Cache(cache.directory) as reference:
     ...     pass
 
 Closed Cache objects will automatically re-open when accessed. But opening
@@ -100,7 +100,6 @@ safely leave Cache objects open.
 
 Set an item, get a value, and delete a key using the usual operators:
 
-    >>> cache = Cache('/tmp/mycachedir')
     >>> cache[b'key'] = b'value'
     >>> cache[b'key']
     b'value'
@@ -227,7 +226,8 @@ tag. The default tag is ``None``. Tag values may be any of integer, float,
 string, bytes and None. To accelerate the eviction of items by tag, an index
 can be created. To do so, initialize the cache with ``tag_index=True``.
 
-    >>> cache = Cache('/tmp/mycachedir', tag_index=True)
+    >>> cache.clear()
+    50
     >>> for num in range(100):
     ...     _ = cache.set(num, num, tag=(num % 2))
     >>> cache.evict(0)
@@ -311,6 +311,9 @@ The third is :meth:`check <diskcache.Cache.check>` which verifies cache
 consistency. It can also fix inconsistencies and reclaim unused space. The
 return value is a list of warnings.
 
+    >>> import shutil
+    >>> shutil.rmtree(cache.directory)
+
 .. _tutorial-fanoutcache:
 
 FanoutCache
@@ -343,20 +346,19 @@ when :exc:`Timeout <diskcache.Timeout>` errors occur. :class:`FanoutCache
 exception. The default `timeout` is 0.010 (10 milliseconds).
 
     >>> from diskcache import FanoutCache
-    >>> cache = FanoutCache('/tmp/mycachedir', shards=4, timeout=1)
+    >>> cache = FanoutCache(shards=4, timeout=1)
 
-The example above creates a cache in the local ``/tmp/mycachedir`` directory
-with four shards and a one second timeout. Operations will attempt to abort if
-they take longer than one second. The remaining API of :class:`FanoutCache
-<diskcache.FanoutCache>` matches :class:`Cache <diskcache.Cache>` as described
-above.
+The example above creates a cache in a temporary directory with four shards and
+a one second timeout. Operations will attempt to abort if they take longer than
+one second. The remaining API of :class:`FanoutCache <diskcache.FanoutCache>`
+matches :class:`Cache <diskcache.Cache>` as described above.
 
 :class:`FanoutCache <diskcache.FanoutCache>` adds an additional feature:
 :meth:`memoizing <diskcache.FanoutCache.memoize>` cache decorator. The
 decorator wraps a callable and caches arguments and return values.
 
     >>> from diskcache import FanoutCache
-    >>> cache = FanoutCache('/tmp/diskcache/fanoutcache')
+    >>> cache = FanoutCache()
     >>> @cache.memoize(typed=True, expire=1, tag='fib')
     ... def fibonacci(number):
     ...     if number == 0:
@@ -547,9 +549,7 @@ are updated lazily. Prefer idioms like :meth:`len
 <diskcache.FanoutCache.__init__>` rather than using :meth:`reset
 <diskcache.FanoutCache.reset>` directly.
 
-    >>> cache = Cache('/tmp/mycachedir', size_limit=int(4e9))
-    >>> cache.clear()
-    100
+    >>> cache = Cache(size_limit=int(4e9))
     >>> cache.size_limit
     4000000000
     >>> cache.disk_min_file_size
@@ -559,7 +559,7 @@ are updated lazily. Prefer idioms like :meth:`len
     >>> cache.set(b'key', 1.234)
     True
     >>> cache.count           # Stale attribute.
-    100
+    0
     >>> cache.reset('count')  # Prefer: len(cache)
     1
 
@@ -615,10 +615,10 @@ tradeoffs for accessing and storing items.
 All clients accessing the cache are expected to use the same eviction
 policy. The policy can be set during initialization using a keyword argument.
 
-    >>> cache = Cache('/tmp/mydir')
+    >>> cache = Cache()
     >>> cache.eviction_policy
     'least-recently-stored'
-    >>> cache = Cache('/tmp/mydir', eviction_policy='least-frequently-used')
+    >>> cache = Cache(eviction_policy='least-frequently-used')
     >>> cache.eviction_policy
     'least-frequently-used'
     >>> cache.reset('eviction_policy', 'least-recently-used')
@@ -673,7 +673,7 @@ example below uses compressed JSON.
                 data = json.loads(zlib.decompress(data).decode('utf-8'))
             return data
 
-    with Cache('/tmp/mydir', disk=JSONDisk, disk_compress_level=6) as cache:
+    with Cache(disk=JSONDisk, disk_compress_level=6) as cache:
         pass
 
 Four data types can be stored natively in the cache metadata database:

@@ -4,6 +4,7 @@ import itertools as it
 import operator
 import os.path as op
 import sqlite3
+import tempfile
 import time
 
 try:
@@ -18,7 +19,7 @@ from .persistent import Deque, Index
 
 class FanoutCache(object):
     "Cache that shards keys and values."
-    def __init__(self, directory, shards=8, timeout=0.010, disk=Disk,
+    def __init__(self, directory=None, shards=8, timeout=0.010, disk=Disk,
                  **settings):
         """Initialize cache instance.
 
@@ -29,13 +30,19 @@ class FanoutCache(object):
         :param settings: any of `DEFAULT_SETTINGS`
 
         """
-        self._directory = directory
-        self._count = shards
+        if directory is None:
+            directory = tempfile.mkdtemp(prefix='diskcache-')
+        directory = op.expanduser(directory)
+        directory = op.expandvars(directory)
+
         default_size_limit = DEFAULT_SETTINGS['size_limit']
         size_limit = settings.pop('size_limit', default_size_limit) / shards
+
+        self._count = shards
+        self._directory = directory
         self._shards = tuple(
             Cache(
-                op.join(directory, '%03d' % num),
+                directory=op.join(directory, '%03d' % num),
                 timeout=timeout,
                 disk=disk,
                 size_limit=size_limit,
@@ -564,9 +571,8 @@ class FanoutCache(object):
     def cache(self, name):
         """Return Cache with given `name` in subdirectory.
 
-        >>> fanout_cache = FanoutCache('/tmp/diskcache/fanoutcache')
+        >>> fanout_cache = FanoutCache()
         >>> cache = fanout_cache.cache('test')
-        >>> _ = cache.clear()
         >>> cache.set('abc', 123)
         True
         >>> cache.get('abc')
@@ -595,9 +601,8 @@ class FanoutCache(object):
     def deque(self, name):
         """Return Deque with given `name` in subdirectory.
 
-        >>> cache = FanoutCache('/tmp/diskcache/fanoutcache')
+        >>> cache = FanoutCache()
         >>> deque = cache.deque('test')
-        >>> deque.clear()
         >>> deque.extend('abc')
         >>> deque.popleft()
         'a'
@@ -625,9 +630,8 @@ class FanoutCache(object):
     def index(self, name):
         """Return Index with given `name` in subdirectory.
 
-        >>> cache = FanoutCache('/tmp/diskcache/fanoutcache')
+        >>> cache = FanoutCache()
         >>> index = cache.index('test')
-        >>> index.clear()
         >>> index['abc'] = 123
         >>> index['def'] = 456
         >>> index['ghi'] = 789

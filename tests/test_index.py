@@ -20,11 +20,8 @@ def rmdir(directory):
 @pytest.fixture
 def index():
     index = dc.Index()
-    try:
-        yield index
-    except Exception:
-        rmdir(index.directory)
-        raise
+    yield index
+    rmdir(index.directory)
 
 
 def test_init():

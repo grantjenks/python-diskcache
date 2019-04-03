@@ -17,6 +17,7 @@ import shutil
 import sqlite3
 import subprocess as sp
 import sys
+import tempfile
 import threading
 import time
 import unittest
@@ -38,10 +39,9 @@ if sys.hexversion < 0x03000000:
 
 @pytest.fixture
 def cache():
-    shutil.rmtree('tmp', ignore_errors=True)
-    with dc.Cache('tmp') as cache:
+    with dc.Cache() as cache:
         yield cache
-    shutil.rmtree('tmp', ignore_errors=True)
+    shutil.rmtree(cache.directory, ignore_errors=True)
 
 
 def test_init(cache):
@@ -53,18 +53,17 @@ def test_init(cache):
 
 
 def test_init_disk():
-    with dc.Cache('tmp', disk_pickle_protocol=1, disk_min_file_size=2 ** 20) as cache:
+    with dc.Cache(disk_pickle_protocol=1, disk_min_file_size=2 ** 20) as cache:
         key = (None, 0, 'abc')
         cache[key] = 0
         cache.check()
-        assert cache.directory == 'tmp'
         assert cache.disk_min_file_size == 2 ** 20
         assert cache.disk_pickle_protocol == 1
-    shutil.rmtree('tmp', ignore_errors=True)
+    shutil.rmtree(cache.directory, ignore_errors=True)
 
 
 def test_disk_reset():
-    with dc.Cache('tmp', disk_min_file_size=0, disk_pickle_protocol=0) as cache:
+    with dc.Cache(disk_min_file_size=0, disk_pickle_protocol=0) as cache:
         value = (None, 0, 'abc')
 
         cache[0] = value
@@ -86,12 +85,12 @@ def test_disk_reset():
         assert cache._disk.min_file_size == 2 ** 10
         assert cache._disk.pickle_protocol == 2
 
-    shutil.rmtree('tmp', ignore_errors=True)
+    shutil.rmtree(cache.directory, ignore_errors=True)
 
 
 def test_disk_valueerror():
     with pytest.raises(ValueError):
-        with dc.Cache('tmp', disk=dc.Disk('tmp')) as cache:
+        with dc.Cache(disk=dc.Disk('test')):
             pass
 
 
@@ -123,7 +122,7 @@ class JSONDisk(diskcache.Disk):
 
 
 def test_custom_disk():
-    with dc.Cache('tmp', disk=JSONDisk, disk_compress_level=6) as cache:
+    with dc.Cache(disk=JSONDisk, disk_compress_level=6) as cache:
         values = [None, True, 0, 1.23, {}, [None] * 10000]
 
         for value in values:
@@ -132,7 +131,7 @@ def test_custom_disk():
         for value in values:
             assert cache[value] == value
 
-    shutil.rmtree('tmp', ignore_errors=True)
+    shutil.rmtree(cache.directory, ignore_errors=True)
 
 
 class SHA256FilenameDisk(diskcache.Disk):
@@ -143,7 +142,7 @@ class SHA256FilenameDisk(diskcache.Disk):
 
 
 def test_custom_filename_disk():
-    with dc.Cache('tmp', disk=SHA256FilenameDisk) as cache:
+    with dc.Cache(disk=SHA256FilenameDisk) as cache:
         for count in range(100, 200):
             key = str(count).encode('ascii')
             cache[key] = str(count) * int(1e5)
@@ -151,25 +150,26 @@ def test_custom_filename_disk():
     for count in range(100, 200):
         key = str(count).encode('ascii')
         filename = hashlib.sha256(key).hexdigest()[:32]
-        full_path = op.join('tmp', filename)
+        full_path = op.join(cache.directory, filename)
 
         with open(full_path) as reader:
             content = reader.read()
             assert content == str(count) * int(1e5)
 
-    shutil.rmtree('tmp', ignore_errors=True)
+    shutil.rmtree(cache.directory, ignore_errors=True)
 
 
 def test_init_makedirs():
-    shutil.rmtree('tmp', ignore_errors=True)
+    cache_dir = tempfile.mkdtemp()
+    shutil.rmtree(cache_dir)
     makedirs = mock.Mock(side_effect=OSError(errno.EACCES))
 
     with pytest.raises(EnvironmentError):
         try:
             with mock.patch('os.makedirs', makedirs):
-                cache = dc.Cache('tmp')
+                cache = dc.Cache(cache_dir)
         except EnvironmentError:
-            shutil.rmtree('tmp')
+            shutil.rmtree(cache_dir, ignore_errors=True)
             raise
 
 
@@ -689,11 +689,11 @@ def test_integrity_check(cache):
 
     cache.close()
 
-    with io.open('tmp/cache.db', 'r+b') as writer:
+    with io.open(op.join(cache.directory, 'cache.db'), 'r+b') as writer:
         writer.seek(52)
         writer.write(b'\x00\x01') # Should be 0, change it.
 
-    cache = dc.Cache('tmp')
+    cache = dc.Cache(cache.directory)
 
     with warnings.catch_warnings():
         warnings.filterwarnings('ignore')
@@ -724,9 +724,9 @@ def test_expire(cache):
 
 
 def test_tag_index():
-    with dc.Cache('tmp', tag_index=True) as cache:
+    with dc.Cache(tag_index=True) as cache:
         assert cache.tag_index == 1
-    shutil.rmtree('tmp', ignore_errors=True)
+    shutil.rmtree(cache.directory, ignore_errors=True)
 
 
 def test_evict(cache):
@@ -771,7 +771,7 @@ def test_tag(cache):
 
 
 def test_with(cache):
-    with dc.Cache('tmp') as tmp:
+    with dc.Cache(cache.directory) as tmp:
         tmp[u'a'] = 0
         tmp[u'b'] = 1
 
@@ -1323,7 +1323,7 @@ def test_constant():
 
 
 def test_copy():
-    cache_dir1 = op.join('tmp', 'foo')
+    cache_dir1 = tempfile.mkdtemp()
 
     with dc.Cache(cache_dir1) as cache1:
         for count in range(10):
@@ -1332,7 +1332,8 @@ def test_copy():
         for count in range(10, 20):
             cache1[count] = str(count) * int(1e5)
 
-    cache_dir2 = op.join('tmp', 'bar')
+    cache_dir2 = tempfile.mkdtemp()
+    shutil.rmtree(cache_dir2)
     shutil.copytree(cache_dir1, cache_dir2)
 
     with dc.Cache(cache_dir2) as cache2:
@@ -1342,7 +1343,8 @@ def test_copy():
         for count in range(10, 20):
             assert cache2[count] == str(count) * int(1e5)
 
-    shutil.rmtree('tmp', ignore_errors=True)
+    shutil.rmtree(cache_dir1, ignore_errors=True)
+    shutil.rmtree(cache_dir2, ignore_errors=True)
 
 
 def run(command):
@@ -1362,8 +1364,8 @@ def test_rsync():
         return  # No rsync installed. Skip test.
 
     rsync_args = ['rsync', '-a', '--checksum', '--delete', '--stats']
-    cache_dir1 = op.join('tmp', 'foo') + os.sep
-    cache_dir2 = op.join('tmp', 'bar') + os.sep
+    cache_dir1 = tempfile.mkdtemp() + os.sep
+    cache_dir2 = tempfile.mkdtemp() + os.sep
 
     # Store some items in cache_dir1.
 
@@ -1415,7 +1417,8 @@ def test_rsync():
         for count in range(300, 400):
             assert cache1[count] == str(count) * int(1e5)
 
-    shutil.rmtree('tmp', ignore_errors=True)
+    shutil.rmtree(cache_dir1, ignore_errors=True)
+    shutil.rmtree(cache_dir2, ignore_errors=True)
 
 
 def test_custom_eviction_policy(cache):

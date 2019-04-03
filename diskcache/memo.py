@@ -65,7 +65,7 @@ def memoize(cache, name=None, typed=False, expire=None, tag=None):
     for rewrapping the function with a different cache.
 
     >>> from diskcache import FanoutCache
-    >>> cache = FanoutCache('/tmp/diskcache/fanoutcache')
+    >>> cache = FanoutCache()
     >>> @cache.memoize(typed=True, expire=1, tag='fib')
     ... def fibonacci(number):
     ...     if number == 0:

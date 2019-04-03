@@ -1,7 +1,7 @@
 """Disk Cache Recipes
 
 >>> import diskcache as dc, time
->>> cache = dc.Cache('/tmp/diskcache/example')
+>>> cache = dc.Cache()
 >>> @dc.memoize(cache)
 ... @dc.barrier(cache, dc.Lock)
 ... @dc.memoize(cache)
@@ -43,7 +43,7 @@ class Averager(object):
     total and count. The average can then be calculated at any time.
 
     >>> import diskcache
-    >>> cache = diskcache.Cache('/tmp/diskcache/recipes')
+    >>> cache = diskcache.Cache()
     >>> ave = Averager(cache, 'latency')
     >>> ave.add(0.080)
     >>> ave.add(0.120)
@@ -85,7 +85,7 @@ class Lock(object):
     """Recipe for cross-process and cross-thread lock.
 
     >>> import diskcache
-    >>> cache = diskcache.Cache('/tmp/diskcache/recipes')
+    >>> cache = diskcache.Cache()
     >>> lock = Lock(cache, 'report-123')
     >>> lock.acquire()
     >>> lock.release()
@@ -124,7 +124,7 @@ class RLock(object):
     """Recipe for cross-process and cross-thread re-entrant lock.
 
     >>> import diskcache
-    >>> cache = diskcache.Cache('/tmp/diskcache/recipes')
+    >>> cache = diskcache.Cache()
     >>> rlock = RLock(cache, 'user-123')
     >>> rlock.acquire()
     >>> rlock.acquire()
@@ -182,7 +182,7 @@ class BoundedSemaphore(object):
     """Recipe for cross-process and cross-thread bounded semaphore.
 
     >>> import diskcache
-    >>> cache = diskcache.Cache('/tmp/diskcache/recipes')
+    >>> cache = diskcache.Cache()
     >>> semaphore = BoundedSemaphore(cache, 'max-connections', value=2)
     >>> semaphore.acquire()
     >>> semaphore.acquire()
@@ -238,7 +238,7 @@ def throttle(cache, count, seconds, name=None, expire=None, tag=None,
     """Decorator to throttle calls to function.
 
     >>> import diskcache, time
-    >>> cache = diskcache.Cache('/tmp/diskcache/recipes')
+    >>> cache = diskcache.Cache()
     >>> @throttle(cache, 1, 1)
     ... def int_time():
     ...     return int(time.time())
@@ -295,7 +295,7 @@ def barrier(cache, lock_factory, name=None, expire=None, tag=None):
     """Barrier to calling decorated function.
 
     >>> import diskcache, time
-    >>> cache = diskcache.Cache('/tmp/diskcache/recipes')
+    >>> cache = diskcache.Cache()
     >>> @barrier(cache, Lock)
     ... def work(num):
     ...     time.sleep(1)

@@ -20,11 +20,8 @@ def rmdir(directory):
 @pytest.fixture
 def deque():
     deque = dc.Deque()
-    try:
-        yield deque
-    except Exception:
-        rmdir(deque.directory)
-        raise
+    yield deque
+    rmdir(deque.directory)
 
 
 def test_init():
