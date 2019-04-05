@@ -7,14 +7,14 @@
 ... @dc.memoize(cache)
 ... def work(num):
 ...     time.sleep(1)
-...     return -num
+...     return num
 >>> from concurrent.futures import ThreadPoolExecutor
 >>> with ThreadPoolExecutor() as executor:
 ...     start = time.time()
 ...     times = list(executor.map(work, range(5)))
 ...     end = time.time()
 >>> times
-[0, -1, -2, -3, -4]
+[0, 1, 2, 3, 4]
 >>> int(end - start)
 5
 >>> with ThreadPoolExecutor() as executor:
@@ -22,7 +22,7 @@
 ...     times = list(executor.map(work, range(5)))
 ...     end = time.time()
 >>> times
-[0, -1, -2, -3, -4]
+[0, 1, 2, 3, 4]
 >>> int(end - start)
 0
 
@@ -293,6 +293,8 @@ def throttle(cache, count, seconds, name=None, expire=None, tag=None,
 
 def barrier(cache, lock_factory, name=None, expire=None, tag=None):
     """Barrier to calling decorated function.
+
+    Supports different kinds of locks: Lock, RLock, BoundedSemaphore.
 
     >>> import diskcache, time
     >>> cache = diskcache.Cache()
