@@ -1,6 +1,7 @@
 "Django-compatible disk and file backed cache."
 
 from functools import wraps
+from time import time
 from django.core.cache.backends.base import BaseCache
 
 try:
@@ -358,7 +359,7 @@ class DjangoCache(BaseCache):
 
 
     def memoize(self, name=None, timeout=DEFAULT_TIMEOUT, version=None,
-                typed=False, tag=None):
+                typed=False, tag=None, early_recompute=False, time_func=time):
         """Memoizing cache decorator.
 
         Decorator to wrap callable with memoizing function using cache.
@@ -372,12 +373,29 @@ class DjangoCache(BaseCache):
         cached separately. For example, f(3) and f(3.0) will be treated as
         distinct calls with distinct results.
 
+        Cache stampedes are a type of cascading failure that can occur when
+        parallel computing systems using memoization come under heavy
+        load. This behaviour is sometimes also called dog-piling, cache miss
+        storm, cache choking, or the thundering herd problem.
+
+        The memoization decorator includes cache stampede protection through
+        the early recomputation parameter. When set to True (default False),
+        the expire parameter must not be None. Early recomputation of results
+        will occur probabilistically before expiration.
+
+        Early probabilistic recomputation is based on research by Vattani, A.;
+        Chierichetti, F.; Lowenstein, K. (2015), Optimal Probabilistic Cache
+        Stampede Prevention, VLDB, pp. 886?897, ISSN 2150-8097
+
         The original underlying function is accessible through the __wrapped__
         attribute. This is useful for introspection, for bypassing the cache,
         or for rewrapping the function with a different cache.
 
-        Remember to call memoize when decorating a callable. If you forget, then a
-        TypeError will occur.
+        An additional `__cache_key__` attribute can be used to generate the
+        cache key used for the given arguments.
+
+        Remember to call memoize when decorating a callable. If you forget,
+        then a TypeError will occur.
 
         :param str name: name given for callable (default None, automatic)
         :param float timeout: seconds until the item expires
@@ -385,6 +403,9 @@ class DjangoCache(BaseCache):
         :param int version: key version number (default None, cache parameter)
         :param bool typed: cache different types separately (default False)
         :param str tag: text to associate with arguments (default None)
+        :param bool early_recompute: probabilistic early recomputation
+            (default False)
+        :param time_func: callable for calculating current time
         :return: callable decorator
 
         """
@@ -392,26 +413,56 @@ class DjangoCache(BaseCache):
         if callable(name):
             raise TypeError('name cannot be callable')
 
+        if early_recompute and expire is None:
+            raise ValueError('expire required')
+
         def decorator(func):
             "Decorator created by memoize call for callable."
             base = (full_name(func),) if name is None else (name,)
 
-            @wraps(func)
-            def wrapper(*args, **kwargs):
-                "Wrapper for callable to cache arguments and return values."
-                key = wrapper.make_key(args, kwargs)
-                result = self.get(key, MARK, version, retry=True)
+            if early_recompute:
+                @wraps(func)
+                def wrapper(*args, **kwargs):
+                    "Wrapper for callable to cache arguments and return values."
+                    key = wrapper.__cache_key__(*args, **kwargs)
+                    pair, expire_time = self.get(
+                        key, MARK, version, expire_time=True, retry=True,
+                    )
 
-                if result is MARK:
+                    if pair is not MARK:
+                        result, delta = pair
+                        now = time_func()
+                        ttl = expire_time - now
+
+                        if (-delta * log(random())) < ttl:
+                            return result
+
+                    start = time_func()
                     result = func(*args, **kwargs)
-                    self.set(key, result, timeout, version, tag=tag, retry=True)
+                    delta = time_func() - start
+                    pair = result, delta
+                    self.set(key, pair, timeout, version, tag=tag, retry=True)
+                    return result
+            else:
+                @wraps(func)
+                def wrapper(*args, **kwargs):
+                    "Wrapper for callable to cache arguments and return values."
+                    key = wrapper.__cache_key__(*args, **kwargs)
+                    result = self.get(key, MARK, version, retry=True)
 
-                return result
+                    if result is MARK:
+                        result = func(*args, **kwargs)
+                        self.set(
+                            key, result, timeout, version, tag=tag, retry=True,
+                        )
 
-            def make_key(args, kwargs):
+                    return result
+
+            def __cache_key__(*args, **kwargs):
+                "Make key for cache given function arguments."
                 return _args_to_key(base, args, kwargs, typed)
 
-            wrapper.make_key = make_key
+            wrapper.__cache_key__ = __cache_key__
             return wrapper
 
         return decorator

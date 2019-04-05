@@ -3,6 +3,9 @@
 """
 
 from functools import wraps
+from math import log
+from random import random
+from time import time
 
 MARK = object()
 
@@ -46,7 +49,8 @@ def _args_to_key(base, args, kwargs, typed):
     return key
 
 
-def memoize(cache, name=None, typed=False, expire=None, tag=None):
+def memoize(cache, name=None, typed=False, expire=None, tag=None,
+            early_recompute=False, time_func=time):
     """Memoizing cache decorator.
 
     Decorator to wrap callable with memoizing function using cache. Repeated
@@ -59,6 +63,20 @@ def memoize(cache, name=None, typed=False, expire=None, tag=None):
     If typed is set to True, function arguments of different types will be
     cached separately. For example, f(3) and f(3.0) will be treated as distinct
     calls with distinct results.
+
+    Cache stampedes are a type of cascading failure that can occur when
+    parallel computing systems using memoization come under heavy load. This
+    behaviour is sometimes also called dog-piling, cache miss storm, cache
+    choking, or the thundering herd problem.
+
+    The memoization decorator includes cache stampede protection through the
+    early recomputation parameter. When set to True (default False), the expire
+    parameter must not be None. Early recomputation of results will occur
+    probabilistically before expiration.
+
+    Early probabilistic recomputation is based on research by Vattani, A.;
+    Chierichetti, F.; Lowenstein, K. (2015), Optimal Probabilistic Cache
+    Stampede Prevention, VLDB, pp. 886?897, ISSN 2150-8097
 
     The original underlying function is accessible through the __wrapped__
     attribute. This is useful for introspection, for bypassing the cache, or
@@ -74,8 +92,15 @@ def memoize(cache, name=None, typed=False, expire=None, tag=None):
     ...         return 1
     ...     else:
     ...         return fibonacci(number - 1) + fibonacci(number - 2)
-    >>> print(sum(fibonacci(number=value) for value in range(100)))
-    573147844013817084100
+    >>> fibonacci(100)
+    354224848179261915075
+
+    An additional `__cache_key__` attribute can be used to generate the cache key
+    used for the given arguments.
+
+    >>> key = fibonacci.__cache_key__(100)
+    >>> cache[key]
+    354224848179261915075
 
     Remember to call memoize when decorating a callable. If you forget, then a
     TypeError will occur. Note the lack of parenthenses after memoize below:
@@ -93,6 +118,9 @@ def memoize(cache, name=None, typed=False, expire=None, tag=None):
     :param float expire: seconds until arguments expire
         (default None, no expiry)
     :param str tag: text to associate with arguments (default None)
+    :param bool early_recompute: probabilistic early recomputation
+        (default False)
+    :param time_func: callable for calculating current time
     :return: callable decorator
 
     """
@@ -100,26 +128,54 @@ def memoize(cache, name=None, typed=False, expire=None, tag=None):
     if callable(name):
         raise TypeError('name cannot be callable')
 
+    if early_recompute and expire is None:
+        raise ValueError('expire required')
+
     def decorator(func):
         "Decorator created by memoize call for callable."
         base = (full_name(func),) if name is None else (name,)
 
-        @wraps(func)
-        def wrapper(*args, **kwargs):
-            "Wrapper for callable to cache arguments and return values."
-            key = wrapper.make_key(args, kwargs)
-            result = cache.get(key, default=MARK, retry=True)
+        if early_recompute:
+            @wraps(func)
+            def wrapper(*args, **kwargs):
+                "Wrapper for callable to cache arguments and return values."
+                key = wrapper.__cache_key__(*args, **kwargs)
+                pair, expire_time = cache.get(
+                    key, default=MARK, expire_time=True, retry=True,
+                )
 
-            if result is MARK:
+                if pair is not MARK:
+                    result, delta = pair
+                    now = time_func()
+                    ttl = expire_time - now
+
+                    if (-delta * log(random())) < ttl:
+                        return result
+
+                start = time_func()
                 result = func(*args, **kwargs)
-                cache.set(key, result, expire=expire, tag=tag, retry=True)
+                delta = time_func() - start
+                pair = result, delta
+                cache.set(key, pair, expire=expire, tag=tag, retry=True)
+                return result
+        else:
+            @wraps(func)
+            def wrapper(*args, **kwargs):
+                "Wrapper for callable to cache arguments and return values."
+                key = wrapper.__cache_key__(*args, **kwargs)
+                result = cache.get(key, default=MARK, retry=True)
 
-            return result
+                if result is MARK:
+                    result = func(*args, **kwargs)
+                    cache.set(key, result, expire=expire, tag=tag, retry=True)
 
-        def make_key(args, kwargs):
+                return result
+
+        def __cache_key__(*args, **kwargs):
+            "Make key for cache given function arguments."
             return _args_to_key(base, args, kwargs, typed)
 
-        wrapper.make_key = make_key
+        wrapper.__cache_key__ = __cache_key__
         return wrapper
 
     return decorator
