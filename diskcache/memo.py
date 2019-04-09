@@ -149,7 +149,7 @@ def memoize(cache, name=None, typed=False, expire=None, tag=None,
                     now = time_func()
                     ttl = expire_time - now
 
-                    if (-delta * log(random())) < ttl:
+                    if (-delta * early_recompute * log(random())) < ttl:
                         return result
 
                 start = time_func()

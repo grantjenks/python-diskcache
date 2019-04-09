@@ -707,6 +707,9 @@ class Cache(object):
         :raises Timeout: if database timeout occurs
 
         """
+        if expire is not None and expire <= 0:
+            return False
+
         now = time.time()
         db_key, raw = self._disk.put(key)
         expire_time = None if expire is None else now + expire
