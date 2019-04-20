@@ -1,51 +1,50 @@
-from time import time, sleep
-from diskcache import FanoutCache
+"""Benchmark for Issue #109
 
-# Initialise the maximum delay reference
-max_delay = 0
+"""
 
-# Initialise the reference to current time
-# Add a significant amount of time to ignore the first measurement due to other initialisations
-current_time = time() + 100
-
-# Initialise the Fanout Cache instance
-data = FanoutCache('test', shards=8)
+import time
+import diskcache as dc
 
 
-# Declare the function used to modify the data
-def set_data(**kwargs):
-    """
+def main():
+    import argparse
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--cache-dir', default='/tmp/test')
+    parser.add_argument('--iterations', type=int, default=100)
+    parser.add_argument('--sleep', type=float, default=0.1)
+    parser.add_argument('--size', type=int, default=25)
+    args = parser.parse_args()
 
-    Function used to modify the cache.
+    data = dc.FanoutCache(args.cache_dir)
+    delays = []
+    values = {str(num): num for num in range(args.size)}
+    iterations = args.iterations
 
-    :param kwargs: Key, value pairs of data to modify.
+    for i in range(args.iterations):
+        print(f'Iteration {i + 1}/{iterations}', end='\r')
+        time.sleep(args.sleep)
+        for key, value in values.items():
+            start = time.monotonic()
+            data[key] = value
+            stop = time.monotonic()
+            diff = stop - start
+            delays.append(diff)
 
-    """
+    # Discard warmup delays, first two iterations.
+    del delays[:(len(values) * 2)]
 
-    # Fetch the global variables
-    global max_delay
-    global current_time
-    global data
+    # Convert seconds to microseconds.
+    delays = sorted(delay * 1e6 for delay in delays)
 
-    # Update the data with the given keyword arguments
-    for key, value in kwargs.items():
-
-        # Measure the time taken to update it for each item
-        temp = time()
-        dif = temp - current_time
-        if dif > max_delay:
-            max_delay = dif
-            print("New max delay encountered: ", max_delay)
-        current_time = temp
-
-        # Update the data
-        data[key] = value
+    # Display performance.
+    print()
+    print(f'Total #:  {len(delays)}')
+    print(f'Min delay (us): {delays[0]:>8.3f}')
+    print(f'50th %ile (us): {delays[int(len(delays) * 0.50)]:>8.3f}')
+    print(f'90th %ile (us): {delays[int(len(delays) * 0.90)]:>8.3f}')
+    print(f'99th %ile (us): {delays[int(len(delays) * 0.99)]:>8.3f}')
+    print(f'Max delay (us): {delays[-1]:>8.3f}')
 
 
-# Initialise some test values
-test_values = {str(key): value for key in range(25) for value in range(25)}
-
-# Keep writing the data in 0.1 sec intervals
-while True:
-    sleep(0.1)
-    set_data(**test_values)
+if __name__ == '__main__':
+    main()
