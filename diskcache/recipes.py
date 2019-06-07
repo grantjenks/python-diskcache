@@ -9,7 +9,7 @@
 ...     time.sleep(1)
 ...     return num
 >>> from concurrent.futures import ThreadPoolExecutor
->>> with ThreadPoolExecutor() as executor:
+>>> with ThreadPoolExecutor(5) as executor:
 ...     start = time.time()
 ...     times = list(executor.map(work, range(5)))
 ...     end = time.time()
@@ -17,7 +17,7 @@
 [0, 1, 2, 3, 4]
 >>> int(end - start)
 5
->>> with ThreadPoolExecutor() as executor:
+>>> with ThreadPoolExecutor(5) as executor:
 ...     start = time.time()
 ...     times = list(executor.map(work, range(5)))
 ...     end = time.time()
@@ -303,7 +303,7 @@ def barrier(cache, lock_factory, name=None, expire=None, tag=None):
     ...     time.sleep(1)
     ...     return int(time.time())
     >>> from concurrent.futures import ThreadPoolExecutor
-    >>> with ThreadPoolExecutor() as executor:
+    >>> with ThreadPoolExecutor(4) as executor:
     ...     times = sorted(executor.map(work, range(4)))
     >>> [times[i] - times[i - 1] for i in range(1, 4)]
     [1, 1, 1]
