@@ -178,6 +178,44 @@ class RLock(object):
         self.release()
 
 
+class FairLock(object):
+    """Recipe for cross-process and cross-thread fair lock.
+
+    # TODO: I don't think this is correct yet. How to handle expiry?
+
+    Based on the "Ticket Lock" algorithm:
+    https://en.wikipedia.org/wiki/Ticket_lock
+
+    """
+    def __init__(self):
+        self._cache.add('tickets', 0)
+        self._cache.add('serving', 1)
+
+    def acquire(self):
+        while True:
+            ticket = self._cache.incr(
+                self._tickets, expire=self._expire, tag=self._tag, retry=True,
+            )
+            while True:
+                serving = self._cache.get(self._serving)
+                if serving is None:
+                    # Expiration occurred!
+                    pass  # TODO
+                elif serving < ticket:
+                    time.sleep(0.001)
+                elif serving == ticket:
+                    return
+                else:
+                    assert serving > ticket
+                    # We got skipped!
+                    pass  # TODO
+
+    def release(self):
+        self._cache.incr(
+            self._serving, expire=self._expire, tag=self._tag, retry=True,
+        )
+
+
 class BoundedSemaphore(object):
     """Recipe for cross-process and cross-thread bounded semaphore.
 
