@@ -195,7 +195,7 @@ Another four methods remove items from the cache.
     >>> cache.reset('cull_limit', 0)       # Disable automatic evictions.
     0
     >>> for num in range(10):
-    ...     _ = cache.set(num, num, expire=0)  # Expire immediately.
+    ...     _ = cache.set(num, num, expire=1e-9)  # Expire immediately.
     >>> len(cache)
     10
     >>> list(cache)

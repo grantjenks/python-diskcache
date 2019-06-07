@@ -402,7 +402,7 @@ def test_pop(cache):
     assert cache.set('alpha', 123, expire=1, tag='blue')
     assert cache.pop('alpha', tag=True) == (123, 'blue')
 
-    assert cache.set('beta', 456, expire=0, tag='green')
+    assert cache.set('beta', 456, expire=1e-9, tag='green')
     time.sleep(0.01)
     assert cache.pop('beta', 'dne') == 'dne'
 
@@ -522,7 +522,7 @@ def test_expire_rows(cache):
     cache.reset('cull_limit', 0)
 
     for value in range(10):
-        assert cache.set(value, value, expire=0)
+        assert cache.set(value, value, expire=1e-9)
 
     for value in range(10, 15):
         assert cache.set(value, value)
@@ -709,12 +709,12 @@ def test_expire(cache):
     time_time = mock.Mock(return_value=now)
 
     with mock.patch('time.time', time_time):
-        for value in range(100):
+        for value in range(1, 101):
             assert cache.set(value, value, expire=value)
 
     assert len(cache) == 100
 
-    time_time = mock.Mock(return_value=now + 10)
+    time_time = mock.Mock(return_value=now + 11)
     cache.reset('cull_limit', 10)
     with mock.patch('time.time', time_time):
         assert cache.expire() == 10
@@ -885,7 +885,7 @@ def test_iter(cache):
 def test_iter_expire(cache):
     cache.reset('cull_limit', 0)
     for num in range(100):
-        cache.set(num, num, expire=0)
+        cache.set(num, num, expire=1e-9)
     assert len(cache) == 100
     assert list(cache) == list(range(100))
 

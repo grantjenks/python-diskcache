@@ -693,6 +693,9 @@ class Cache(object):
         When `read` is `True`, `value` should be a file-like object opened
         for reading in binary mode.
 
+        If `expire` is less than or equal to zero then immediately returns
+        `False`.
+
         Raises :exc:`Timeout` error when database timeout occurs and `retry` is
         `False` (default).
 

@@ -374,7 +374,7 @@ def test_expire(cache):
     cache.reset('cull_limit', 0)
 
     for value in range(100):
-        cache.set(value, value, expire=0)
+        cache.set(value, value, expire=1e-9)
 
     assert len(cache) == 100
 
@@ -502,7 +502,7 @@ def test_iter_expire(cache):
     """
     cache.reset('cull_limit', 0)
     for num in range(100):
-        cache.set(num, num, expire=0)
+        cache.set(num, num, expire=1e-9)
     time.sleep(0.1)
     assert set(cache) == set(range(100))
     cache.expire()
