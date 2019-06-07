@@ -10,10 +10,9 @@ TODO
 
 """
 
-import concurrent.futures
 import diskcache as dc
 import functools
-import matplotlib.pyplot as plt
+import multiprocessing.pool
 import shutil
 import threading
 import time
@@ -70,6 +69,8 @@ def frange(start, stop, step=1e-3):
 
 def plot(cache_times, worker_times):
     "Plot concurrent workers and latency."
+    import matplotlib.pyplot as plt
+
     fig, (workers, latency) = plt.subplots(2, sharex=True)
 
     changes = [(start, 1) for start, _ in worker_times]
@@ -135,7 +136,7 @@ if __name__ == '__main__':
 
     repeater = make_repeater(worker)
 
-    with concurrent.futures.ThreadPoolExecutor(count) as executor:
-        executor.map(repeater, [worker] * count)
+    with multiprocessing.pool.ThreadPool() as pool:
+        pool.map(repeater, [worker] * count)
 
     plot(cache_times, worker_times)

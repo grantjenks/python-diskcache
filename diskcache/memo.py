@@ -92,14 +92,14 @@ def memoize(cache, name=None, typed=False, expire=None, tag=None,
     ...         return 1
     ...     else:
     ...         return fibonacci(number - 1) + fibonacci(number - 2)
-    >>> fibonacci(100)
+    >>> print(fibonacci(100))
     354224848179261915075
 
     An additional `__cache_key__` attribute can be used to generate the cache key
     used for the given arguments.
 
     >>> key = fibonacci.__cache_key__(100)
-    >>> cache[key]
+    >>> print(cache[key])
     354224848179261915075
 
     Remember to call memoize when decorating a callable. If you forget, then a
