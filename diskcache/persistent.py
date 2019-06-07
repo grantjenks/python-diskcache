@@ -8,7 +8,6 @@ import sys
 from collections import OrderedDict
 from contextlib import contextmanager
 from shutil import rmtree
-from tempfile import mkdtemp
 
 from .core import BytesType, Cache, ENOVAL, TextType
 
