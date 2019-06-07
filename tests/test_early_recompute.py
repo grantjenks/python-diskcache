@@ -69,8 +69,8 @@ def frange(start, stop, step=1e-3):
 
 def plot(cache_times, worker_times):
     "Plot concurrent workers and latency."
+    # TODO: Update x-axis to normalize to 0
     import matplotlib.pyplot as plt
-
     fig, (workers, latency) = plt.subplots(2, sharex=True)
 
     changes = [(start, 1) for start, _ in worker_times]
@@ -90,12 +90,13 @@ def plot(cache_times, worker_times):
         pair = (mark, counts[-1][1] + diff)
         counts.append(pair)
 
+    min_x = min(start for start, _ in cache_times)
     max_x = max(start for start, _ in cache_times)
     for step in frange(counts[-1][0], max_x):
         pair = (step, counts[-1][1])
         counts.append(pair)
 
-    x_counts = [x for x, y in counts]
+    x_counts = [x - min_x for x, y in counts]
     y_counts = [y for x, y in counts]
 
     workers.set_title('Concurrent Workers')
@@ -105,7 +106,7 @@ def plot(cache_times, worker_times):
     latency.set_title('Latency')
     latency.set_ylabel('Seconds')
     latency.set_xlabel('Time')
-    x_latency = [start for start, _ in cache_times]
+    x_latency = [start - min_x for start, _ in cache_times]
     y_latency = [stop - start for start, stop in cache_times]
     latency.scatter(x_latency, y_latency)
 
@@ -122,15 +123,34 @@ if __name__ == '__main__':
     count = 16
 
     cache_times = []
-    worker_times = []
+    timer = make_timer(cache_times)
 
-    worker = make_worker(worker_times)
     decorators = [
-        make_timer(cache_times),
-        cache.memoize(expire=10, early_recompute=1.5),
+        timer,
+
+        # Option 0: No Caching
+
+        # Option 1: Traditional Caching
+        # cache.memoize(expire=10),
+
+        # Option 2: Synchronized Locking
+        # cache.memoize(expire=0),
         # dc.barrier(cache, dc.Lock),
         # cache.memoize(expire=10),
+
+        # Option 3: Early Recomputation
+        # cache.memoize(expire=10, early_recompute=True),
+
+        # Option 4: Early Recomputation Tuning
+        # cache.memoize(expire=10, early_recompute=1.5),  # =0.5),
+
+        # Option 5: Background Early Recomputation
+        # cache.memoize(expire=10, early_recompute=True, background='threading'),
+        # TODO: background parameter? or early_recompute='background'
     ]
+
+    worker_times = []
+    worker = make_worker(worker_times)
     for decorator in reversed(decorators):
         worker = decorator(worker)
 

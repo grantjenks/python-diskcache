@@ -5,6 +5,7 @@
 from functools import wraps
 from math import log
 from random import random
+from threading import Thread
 from time import time
 
 MARK = object()
@@ -144,6 +145,14 @@ def memoize(cache, name=None, typed=False, expire=None, tag=None,
                     key, default=MARK, expire_time=True, retry=True,
                 )
 
+                def recompute():
+                    start = time_func()
+                    result = func(*args, **kwargs)
+                    delta = time_func() - start
+                    pair = result, delta
+                    cache.set(key, pair, expire=expire, tag=tag, retry=True)
+                    return result
+
                 if pair is not MARK:
                     result, delta = pair
                     now = time_func()
@@ -151,13 +160,16 @@ def memoize(cache, name=None, typed=False, expire=None, tag=None,
 
                     if (-delta * early_recompute * log(random())) < ttl:
                         return result
+                    elif True: # Background
+                        # How to support asyncio?
+                        thread_key = key + (MARK,)
+                        if cache.add(thread_key, None, expire=delta):
+                            thread = Thread(target=recompute)
+                            thread.daemon = True
+                            thread.start()
+                        return result
 
-                start = time_func()
-                result = func(*args, **kwargs)
-                delta = time_func() - start
-                pair = result, delta
-                cache.set(key, pair, expire=expire, tag=tag, retry=True)
-                return result
+                return recompute()
         else:
             @wraps(func)
             def wrapper(*args, **kwargs):
