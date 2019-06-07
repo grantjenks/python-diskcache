@@ -156,7 +156,16 @@ if __name__ == '__main__':
 
     repeater = make_repeater(worker)
 
+<<<<<<< HEAD
     with multiprocessing.pool.ThreadPool() as pool:
         pool.map(repeater, [worker] * count)
+=======
+    import multiprocessing.pool as mp
+    with mp.ThreadPool(count) as pool:
+        list(pool.map(repeater, [worker] * count))
+
+    # with concurrent.futures.ThreadPoolExecutor(count) as executor:
+    #     executor.map(repeater, [worker] * count)
+>>>>>>> Add changes for threaded recomputation
 
     plot(cache_times, worker_times)
