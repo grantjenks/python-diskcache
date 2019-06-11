@@ -418,7 +418,7 @@ class DjangoCache(BaseCache):
 
             def __cache_key__(*args, **kwargs):
                 "Make key for cache given function arguments."
-                return _args_to_key(base, args, kwargs, typed)
+                return args_to_key(base, args, kwargs, typed)
 
             wrapper.__cache_key__ = __cache_key__
             return wrapper

@@ -1341,7 +1341,7 @@ class Index(MutableMapping):
         cache key used for the given arguments.
 
         >>> key = fibonacci.__cache_key__(100)
-        >>> print(cache[key])
+        >>> print(mapping[key])
         354224848179261915075
 
         Remember to call memoize when decorating a callable. If you forget,

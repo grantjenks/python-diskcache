@@ -1,11 +1,11 @@
 "DiskCache: disk and file backed cache."
 
-from .core import Cache, Disk, UnknownFileWarning, EmptyDirWarning, Timeout
+from .core import Cache, Disk, EmptyDirWarning, UnknownFileWarning, Timeout
 from .core import DEFAULT_SETTINGS, ENOVAL, EVICTION_POLICY, UNKNOWN
 from .fanout import FanoutCache
-from .memo import memoize
 from .persistent import Deque, Index
-from .recipes import Averager, Lock, RLock, BoundedSemaphore, throttle, barrier
+from .recipes import Averager, BoundedSemaphore, Lock, RLock
+from .recipes import barrier, memoize_stampede, throttle
 
 __all__ = [
     'Averager',
@@ -25,7 +25,7 @@ __all__ = [
     'UNKNOWN',
     'UnknownFileWarning',
     'barrier',
-    'memoize',
+    'memoize_stampede',
     'throttle',
 ]
 
@@ -35,7 +35,6 @@ try:
 except Exception:  # pylint: disable=broad-except
     # Django not installed or not setup so ignore.
     pass
-
 
 __title__ = 'diskcache'
 __version__ = '3.1.1'

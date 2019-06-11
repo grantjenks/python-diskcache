@@ -2,26 +2,26 @@
 
 >>> import diskcache as dc, time
 >>> cache = dc.Cache()
->>> @dc.memoize(cache)
-... @dc.barrier(cache, dc.Lock)
-... @dc.memoize(cache)
+>>> @cache.memoize(expire=0)
+... @barrier(cache, dc.Lock)
+... @cache.memoize()
 ... def work(num):
 ...     time.sleep(1)
 ...     return num
 >>> from concurrent.futures import ThreadPoolExecutor
 >>> with ThreadPoolExecutor(5) as executor:
 ...     start = time.time()
-...     times = list(executor.map(work, range(5)))
+...     nums = list(executor.map(work, range(5)))
 ...     end = time.time()
->>> times
+>>> nums
 [0, 1, 2, 3, 4]
 >>> int(end - start)
 5
 >>> with ThreadPoolExecutor(5) as executor:
 ...     start = time.time()
-...     times = list(executor.map(work, range(5)))
+...     nums = list(executor.map(work, range(5)))
 ...     end = time.time()
->>> times
+>>> nums
 [0, 1, 2, 3, 4]
 >>> int(end - start)
 0
@@ -29,11 +29,13 @@
 """
 
 import functools
+import math
 import os
+import random
 import threading
 import time
 
-from .memo import full_name
+from .core import ENOVAL, args_to_key, full_name
 
 
 class Averager(object):
@@ -234,7 +236,7 @@ class BoundedSemaphore(object):
 
 
 def throttle(cache, count, seconds, name=None, expire=None, tag=None,
-             time_func=time.time, sleep_func=time.sleep):
+             time_func=time.monotonic, sleep_func=time.sleep):
     """Decorator to throttle calls to function.
 
     >>> import diskcache, time
@@ -323,13 +325,21 @@ def barrier(cache, lock_factory, name=None, expire=None, tag=None):
     return decorator
 
 
-def memoize(cache, name=None, typed=False, expire=None, tag=None,
-            early_recompute=False, time_func=time):
-    """Memoizing cache decorator.
+def memoize_stampede(cache, expire, name=None, typed=False, tag=None,
+                     time_func=time.monotonic):
+    """Memoizing cache decorator with cache stampede protection.
 
-    Decorator to wrap callable with memoizing function using cache. Repeated
-    calls with the same arguments will lookup result in cache and avoid
-    function evaluation.
+    Cache stampedes are a type of cascading failure that can occur when
+    parallel computing systems using memoization come under heavy load. This
+    behaviour is sometimes also called dog-piling, cache miss storm, cache
+    choking, or the thundering herd problem.
+
+    The memoization decorator implements cache stampede protection through
+    early recomputation. Early recomputation of function results will occur
+    probabilistically before expiration in a background thread of
+    execution. Early probabilistic recomputation is based on research by
+    Vattani, A.; Chierichetti, F.; Lowenstein, K. (2015), Optimal Probabilistic
+    Cache Stampede Prevention, VLDB, pp. 886?897, ISSN 2150-8097
 
     If name is set to None (default), the callable name will be determined
     automatically.
@@ -338,27 +348,13 @@ def memoize(cache, name=None, typed=False, expire=None, tag=None,
     cached separately. For example, f(3) and f(3.0) will be treated as distinct
     calls with distinct results.
 
-    Cache stampedes are a type of cascading failure that can occur when
-    parallel computing systems using memoization come under heavy load. This
-    behaviour is sometimes also called dog-piling, cache miss storm, cache
-    choking, or the thundering herd problem.
-
-    The memoization decorator includes cache stampede protection through the
-    early recomputation parameter. When set to True (default False), the expire
-    parameter must not be None. Early recomputation of results will occur
-    probabilistically before expiration.
-
-    Early probabilistic recomputation is based on research by Vattani, A.;
-    Chierichetti, F.; Lowenstein, K. (2015), Optimal Probabilistic Cache
-    Stampede Prevention, VLDB, pp. 886?897, ISSN 2150-8097
-
     The original underlying function is accessible through the __wrapped__
     attribute. This is useful for introspection, for bypassing the cache, or
     for rewrapping the function with a different cache.
 
-    >>> from diskcache import FanoutCache
-    >>> cache = FanoutCache()
-    >>> @cache.memoize(typed=True, expire=1, tag='fib')
+    >>> from diskcache import Cache
+    >>> cache = Cache()
+    >>> @memoize_stampede(cache, expire=1)
     ... def fibonacci(number):
     ...     if number == 0:
     ...         return 0
@@ -369,96 +365,70 @@ def memoize(cache, name=None, typed=False, expire=None, tag=None,
     >>> print(fibonacci(100))
     354224848179261915075
 
-    An additional `__cache_key__` attribute can be used to generate the cache key
-    used for the given arguments.
+    An additional `__cache_key__` attribute can be used to generate the cache
+    key used for the given arguments.
 
     >>> key = fibonacci.__cache_key__(100)
-    >>> print(cache[key])
-    354224848179261915075
+    >>> del cache[key]
 
     Remember to call memoize when decorating a callable. If you forget, then a
-    TypeError will occur. Note the lack of parenthenses after memoize below:
-
-    >>> @cache.memoize
-    ... def test():
-    ...     pass
-    Traceback (most recent call last):
-        ...
-    TypeError: name cannot be callable
+    TypeError will occur.
 
     :param cache: cache to store callable arguments and return values
+    :param float expire: seconds until arguments expire
     :param str name: name given for callable (default None, automatic)
     :param bool typed: cache different types separately (default False)
-    :param float expire: seconds until arguments expire
-        (default None, no expiry)
     :param str tag: text to associate with arguments (default None)
-    :param bool early_recompute: probabilistic early recomputation
-        (default False)
     :param time_func: callable for calculating current time
     :return: callable decorator
 
     """
-    # Caution: Nearly identical code exists in DjangoCache.memoize
-    if callable(name):
-        raise TypeError('name cannot be callable')
-
-    if early_recompute and expire is None:
-        raise ValueError('expire required')
-
+    # Caution: Nearly identical code exists in Cache.memoize
     def decorator(func):
         "Decorator created by memoize call for callable."
         base = (full_name(func),) if name is None else (name,)
 
-        if early_recompute:
-            @wraps(func)
-            def wrapper(*args, **kwargs):
-                "Wrapper for callable to cache arguments and return values."
-                key = wrapper.__cache_key__(*args, **kwargs)
-                pair, expire_time = cache.get(
-                    key, default=MARK, expire_time=True, retry=True,
-                )
+        @functools.wraps(func)
+        def wrapper(*args, **kwargs):
+            "Wrapper for callable to cache arguments and return values."
+            key = wrapper.__cache_key__(*args, **kwargs)
+            pair, expire_time = cache.get(
+                key, default=ENOVAL, expire_time=True, retry=True,
+            )
 
-                def recompute():
-                    start = time_func()
-                    result = func(*args, **kwargs)
-                    delta = time_func() - start
-                    pair = result, delta
-                    cache.set(key, pair, expire=expire, tag=tag, retry=True)
-                    return result
+            def recompute():
+                start = time_func()
+                result = func(*args, **kwargs)
+                delta = time_func() - start
+                pair = result, delta
+                cache.set(key, pair, expire=expire, tag=tag, retry=True)
+                return result
 
-                if pair is not MARK:
-                    result, delta = pair
-                    now = time_func()
-                    ttl = expire_time - now
+            if pair is not ENOVAL:
+                result, delta = pair
+                now = time_func()
+                ttl = expire_time - now
 
-                    if (-delta * early_recompute * log(random())) < ttl:
-                        return result
-                    elif True: # Background
-                        # How to support asyncio?
-                        thread_key = key + (MARK,)
-                        if cache.add(thread_key, None, expire=delta):
-                            thread = Thread(target=recompute)
-                            thread.daemon = True
-                            thread.start()
-                        return result
+                if (-delta * math.log(random.random())) < ttl:
+                    return result  # Cache hit.
 
-                return recompute()
-        else:
-            @wraps(func)
-            def wrapper(*args, **kwargs):
-                "Wrapper for callable to cache arguments and return values."
-                key = wrapper.__cache_key__(*args, **kwargs)
-                result = cache.get(key, default=MARK, retry=True)
+                # Check whether a thread has started for early recomputation.
 
-                if result is MARK:
-                    result = func(*args, **kwargs)
-                    cache.set(key, result, expire=expire, tag=tag, retry=True)
+                thread_key = key + (ENOVAL,)
+
+                if cache.add(thread_key, None, expire=delta):
+                    # Start thread for early recomputation.
+                    thread = threading.Thread(target=recompute)
+                    thread.daemon = True
+                    thread.start()
 
                 return result
 
+            return recompute()  # Cache miss.
+
         def __cache_key__(*args, **kwargs):
             "Make key for cache given function arguments."
-            return _args_to_key(base, args, kwargs, typed)
+            return args_to_key(base, args, kwargs, typed)
 
         wrapper.__cache_key__ = __cache_key__
         return wrapper

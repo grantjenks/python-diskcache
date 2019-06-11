@@ -5,7 +5,6 @@ import sys
 import diskcache.core
 import diskcache.djangocache
 import diskcache.fanout
-import diskcache.memo
 import diskcache.persistent
 import diskcache.recipes
 
@@ -22,11 +21,6 @@ def test_djangocache():
 
 def test_fanout():
     failures, _ = doctest.testmod(diskcache.fanout)
-    assert failures == 0
-
-
-def test_memo():
-    failures, _ = doctest.testmod(diskcache.memo)
     assert failures == 0
 
 

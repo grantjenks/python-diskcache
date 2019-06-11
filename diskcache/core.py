@@ -1827,7 +1827,7 @@ class Cache(object):
             "Decorator created by memoize() for callable `func`."
             base = (full_name(func),) if name is None else (name,)
 
-            @wraps(func)
+            @ft.wraps(func)
             def wrapper(*args, **kwargs):
                 "Wrapper for callable to cache arguments and return values."
                 key = wrapper.__cache_key__(*args, **kwargs)
