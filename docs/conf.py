@@ -51,7 +51,7 @@ master_doc = 'index'
 
 # General information about the project.
 project = u'DiskCache'
-copyright = u'2016, Grant Jenks'
+copyright = u'2019, Grant Jenks'
 author = u'Grant Jenks'
 
 # The version info for the project you're documenting, acts as replacement for

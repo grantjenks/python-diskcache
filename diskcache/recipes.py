@@ -325,8 +325,7 @@ def barrier(cache, lock_factory, name=None, expire=None, tag=None):
     return decorator
 
 
-def memoize_stampede(cache, expire, name=None, typed=False, tag=None,
-                     time_func=time.monotonic):
+def memoize_stampede(cache, expire, name=None, typed=False, tag=None, beta=1):
     """Memoizing cache decorator with cache stampede protection.
 
     Cache stampedes are a type of cascading failure that can occur when
@@ -379,7 +378,6 @@ def memoize_stampede(cache, expire, name=None, typed=False, tag=None,
     :param str name: name given for callable (default None, automatic)
     :param bool typed: cache different types separately (default False)
     :param str tag: text to associate with arguments (default None)
-    :param time_func: callable for calculating current time
     :return: callable decorator
 
     """
@@ -397,26 +395,27 @@ def memoize_stampede(cache, expire, name=None, typed=False, tag=None,
             )
 
             def recompute():
-                start = time_func()
+                start = time.time()
                 result = func(*args, **kwargs)
-                delta = time_func() - start
+                delta = time.time() - start
                 pair = result, delta
                 cache.set(key, pair, expire=expire, tag=tag, retry=True)
                 return result
 
             if pair is not ENOVAL:
                 result, delta = pair
-                now = time_func()
+                now = time.time()
                 ttl = expire_time - now
 
-                if (-delta * math.log(random.random())) < ttl:
+                if (-delta * beta * math.log(random.random())) < ttl:
                     return result  # Cache hit.
 
                 # Check whether a thread has started for early recomputation.
 
                 thread_key = key + (ENOVAL,)
+                thread_added = cache.add(thread_key, None, expire=delta)
 
-                if cache.add(thread_key, None, expire=delta):
+                if thread_added:
                     # Start thread for early recomputation.
                     thread = threading.Thread(target=recompute)
                     thread.daemon = True

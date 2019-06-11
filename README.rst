@@ -4,7 +4,7 @@ DiskCache: Disk Backed Cache
 `DiskCache`_ is an Apache2 licensed disk and file backed cache library, written
 in pure-Python, and compatible with Django.
 
-The cloud-based computing of 2018 puts a premium on memory. Gigabytes of empty
+The cloud-based computing of 2019 puts a premium on memory. Gigabytes of empty
 space is left on disks as processes vie for memory. Among these processes is
 Memcached (and sometimes Redis) which is used as a cache. Wouldn't it be nice
 to leverage empty disk space for caching?

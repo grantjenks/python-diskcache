@@ -1,17 +1,9 @@
 """Early Recomputation Measurements
 
-TODO
-
-* Publish graphs:
-  1. Cache stampede (single memo decorator).
-  2. Double-checked locking (memo, barrier, memo).
-  3. Early recomputation (memo with early recomputation).
-  4. Advanced usage: adjust "Beta" parameter.
-
 """
 
 import diskcache as dc
-import functools
+import functools as ft
 import multiprocessing.pool
 import shutil
 import threading
@@ -25,7 +17,7 @@ def make_timer(times):
     """
     lock = threading.Lock()
     def timer(func):
-        @functools.wraps(func)
+        @ft.wraps(func)
         def wrapper(*args, **kwargs):
             start = time.time()
             result = func(*args, **kwargs)
@@ -36,7 +28,7 @@ def make_timer(times):
     return timer
 
 
-def make_worker(times, delay=1):
+def make_worker(times, delay=0.2):
     """Make a worker which accumulates (start, end) in `times` and sleeps for
     `delay` seconds.
 
@@ -47,7 +39,7 @@ def make_worker(times, delay=1):
     return worker
 
 
-def make_repeater(func, total=60, delay=0.01):
+def make_repeater(func, total=10, delay=0.01):
     """Make a repeater which calls `func` and sleeps for `delay` seconds
     repeatedly until `total` seconds have elapsed.
 
@@ -67,11 +59,12 @@ def frange(start, stop, step=1e-3):
         start += step
 
 
-def plot(cache_times, worker_times):
+def plot(option, filename, cache_times, worker_times):
     "Plot concurrent workers and latency."
-    # TODO: Update x-axis to normalize to 0
     import matplotlib.pyplot as plt
     fig, (workers, latency) = plt.subplots(2, sharex=True)
+
+    fig.suptitle(option)
 
     changes = [(start, 1) for start, _ in worker_times]
     changes.extend((stop, -1) for _, stop in worker_times)
@@ -99,64 +92,77 @@ def plot(cache_times, worker_times):
     x_counts = [x - min_x for x, y in counts]
     y_counts = [y for x, y in counts]
 
-    workers.set_title('Concurrent Workers')
+    workers.set_title('Concurrency')
     workers.set_ylabel('Workers')
+    workers.set_ylim(0, 11)
     workers.plot(x_counts, y_counts)
 
     latency.set_title('Latency')
     latency.set_ylabel('Seconds')
+    latency.set_ylim(0, 0.5)
     latency.set_xlabel('Time')
     x_latency = [start - min_x for start, _ in cache_times]
     y_latency = [stop - start for start, stop in cache_times]
     latency.scatter(x_latency, y_latency)
 
-    plt.show()
+    plt.savefig(filename)
 
 
-if __name__ == '__main__':
-    import argparse
-    parser = argparse.ArgumentParser()
-
-    shutil.rmtree('/tmp/cache', ignore_errors=True)
+def main():
+    shutil.rmtree('/tmp/cache')
     cache = dc.Cache('/tmp/cache')
 
-    count = 16
+    count = 10
 
     cache_times = []
     timer = make_timer(cache_times)
 
-    decorators = [
-        timer,
+    options = {
+        ('No Caching', 'no-caching.png'): [
+            timer,
+        ],
+        ('Traditional Caching', 'traditional-caching.png'): [
+            timer,
+            cache.memoize(expire=1),
+        ],
+        ('Synchronized Locking', 'synchronized-locking.png'): [
+            timer,
+            cache.memoize(expire=0),
+            dc.barrier(cache, dc.Lock),
+            cache.memoize(expire=1),
+        ],
+        ('Early Recomputation', 'early-recomputation.png'): [
+            timer,
+            dc.memoize_stampede(cache, expire=1),
+        ],
+        ('Early Recomputation (beta=0.5)', 'early-recomputation-05.png'): [
+            timer,
+            dc.memoize_stampede(cache, expire=1, beta=0.5),
+        ],
+        ('Early Recomputation (beta=0.3)', 'early-recomputation-03.png'): [
+            timer,
+            dc.memoize_stampede(cache, expire=1, beta=0.3),
+        ],
+    }
 
-        # Option 0: No Caching
+    for (option, filename), decorators in options.items():
+        print('Simulating:', option)
+        worker_times = []
+        worker = make_worker(worker_times)
+        for decorator in reversed(decorators):
+            worker = decorator(worker)
 
-        # Option 1: Traditional Caching
-        # cache.memoize(expire=10),
+        worker()
+        repeater = make_repeater(worker)
 
-        # Option 2: Synchronized Locking
-        # cache.memoize(expire=0),
-        # dc.barrier(cache, dc.Lock),
-        # cache.memoize(expire=10),
+        with multiprocessing.pool.ThreadPool(count) as pool:
+            pool.map(repeater, [worker] * count)
 
-        # Option 3: Early Recomputation
-        # cache.memoize(expire=10, early_recompute=True),
+        plot(option, filename, cache_times, worker_times)
 
-        # Option 4: Early Recomputation Tuning
-        # cache.memoize(expire=10, early_recompute=1.5),  # =0.5),
+        cache.clear()
+        cache_times.clear()
 
-        # Option 5: Background Early Recomputation
-        # cache.memoize(expire=10, early_recompute=True, background='threading'),
-        # TODO: background parameter? or early_recompute='background'
-    ]
 
-    worker_times = []
-    worker = make_worker(worker_times)
-    for decorator in reversed(decorators):
-        worker = decorator(worker)
-
-    repeater = make_repeater(worker)
-
-    with multiprocessing.pool.ThreadPool() as pool:
-        pool.map(repeater, [worker] * count)
-
-    plot(cache_times, worker_times)
+if __name__ == '__main__':
+    main()
