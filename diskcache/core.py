@@ -19,8 +19,6 @@ import time
 import warnings
 import zlib
 
-from .memo import memoize
-
 if sys.hexversion < 0x03000000:
     import cPickle as pickle  # pylint: disable=import-error
     # ISSUE #25 Fix for http://bugs.python.org/issue10211
@@ -39,6 +37,16 @@ else:
     BytesType = bytes
     INT_TYPES = (int,)
     io_open = open  # pylint: disable=invalid-name
+
+def full_name(func):
+    "Return full name of `func` by adding the module and function name."
+    try:
+        # The __qualname__ attribute is only available in Python 3.3 and later.
+        # GrantJ 2019-03-29 Remove after support for Python 2 is dropped.
+        name = func.__qualname__
+    except AttributeError:
+        name = func.__name__
+    return func.__module__ + '.' + name
 
 try:
     WindowsError
@@ -355,6 +363,34 @@ class UnknownFileWarning(UserWarning):
 
 class EmptyDirWarning(UserWarning):
     "Warning used by Cache.check for empty directories."
+
+
+def args_to_key(base, args, kwargs, typed):
+    """Create cache key out of function arguments.
+
+    :param tuple base: base of key
+    :param tuple args: function arguments
+    :param dict kwargs: function keyword arguments
+    :param bool typed: include types in cache key
+    :return: cache key tuple
+
+    """
+    key = base + args
+
+    if kwargs:
+        key += (ENOVAL,)
+        sorted_items = sorted(kwargs.items())
+
+        for item in sorted_items:
+            key += item
+
+    if typed:
+        key += tuple(type(arg) for arg in args)
+
+        if kwargs:
+            key += tuple(type(value) for _, value in sorted_items)
+
+    return key
 
 
 class Cache(object):
@@ -1725,7 +1761,92 @@ class Cache(object):
             return key, value
 
 
-    memoize = memoize
+    def memoize(self, name=None, typed=False, expire=None, tag=None):
+        """Memoizing cache decorator.
+
+        Decorator to wrap callable with memoizing function using cache.
+        Repeated calls with the same arguments will lookup result in cache and
+        avoid function evaluation.
+
+        If name is set to None (default), the callable name will be determined
+        automatically.
+
+        If typed is set to True, function arguments of different types will be
+        cached separately. For example, f(3) and f(3.0) will be treated as
+        distinct calls with distinct results.
+
+        The original underlying function is accessible through the __wrapped__
+        attribute. This is useful for introspection, for bypassing the cache,
+        or for rewrapping the function with a different cache.
+
+        >>> from diskcache import Cache
+        >>> cache = Cache()
+        >>> @cache.memoize(expire=1, tag='fib')
+        ... def fibonacci(number):
+        ...     if number == 0:
+        ...         return 0
+        ...     elif number == 1:
+        ...         return 1
+        ...     else:
+        ...         return fibonacci(number - 1) + fibonacci(number - 2)
+        >>> print(fibonacci(100))
+        354224848179261915075
+
+        An additional `__cache_key__` attribute can be used to generate the
+        cache key used for the given arguments.
+
+        >>> key = fibonacci.__cache_key__(100)
+        >>> print(cache[key])
+        354224848179261915075
+
+        Remember to call memoize when decorating a callable. If you forget,
+        then a TypeError will occur. Note the lack of parenthenses after
+        memoize below:
+
+        >>> @cache.memoize
+        ... def test():
+        ...     pass
+        Traceback (most recent call last):
+            ...
+        TypeError: name cannot be callable
+
+        :param cache: cache to store callable arguments and return values
+        :param str name: name given for callable (default None, automatic)
+        :param bool typed: cache different types separately (default False)
+        :param float expire: seconds until arguments expire
+            (default None, no expiry)
+        :param str tag: text to associate with arguments (default None)
+        :return: callable decorator
+
+        """
+        # Caution: Nearly identical code exists in DjangoCache.memoize
+        if callable(name):
+            raise TypeError('name cannot be callable')
+
+        def decorator(func):
+            "Decorator created by memoize() for callable `func`."
+            base = (full_name(func),) if name is None else (name,)
+
+            @wraps(func)
+            def wrapper(*args, **kwargs):
+                "Wrapper for callable to cache arguments and return values."
+                key = wrapper.__cache_key__(*args, **kwargs)
+                result = self.get(key, default=ENOVAL, retry=True)
+
+                if result is ENOVAL:
+                    result = func(*args, **kwargs)
+                    self.set(key, result, expire=expire, tag=tag, retry=True)
+
+                return result
+
+            def __cache_key__(*args, **kwargs):
+                "Make key for cache given function arguments."
+                return args_to_key(base, args, kwargs, typed)
+
+            wrapper.__cache_key__ = __cache_key__
+            return wrapper
+
+        return decorator
 
 
     def check(self, fix=False, retry=False):

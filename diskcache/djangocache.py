@@ -12,8 +12,8 @@ except ImportError:
     # For older versions of Django simply use 300 seconds.
     DEFAULT_TIMEOUT = 300
 
+from .core import ENOVAL, args_to_key, full_name
 from .fanout import FanoutCache
-from .memo import MARK, _args_to_key, full_name
 
 
 class DjangoCache(BaseCache):
@@ -361,7 +361,7 @@ class DjangoCache(BaseCache):
 
 
     def memoize(self, name=None, timeout=DEFAULT_TIMEOUT, version=None,
-                typed=False, tag=None, early_recompute=False, time_func=time):
+                typed=False, tag=None):
         """Memoizing cache decorator.
 
         Decorator to wrap callable with memoizing function using cache.
@@ -374,20 +374,6 @@ class DjangoCache(BaseCache):
         If typed is set to True, function arguments of different types will be
         cached separately. For example, f(3) and f(3.0) will be treated as
         distinct calls with distinct results.
-
-        Cache stampedes are a type of cascading failure that can occur when
-        parallel computing systems using memoization come under heavy
-        load. This behaviour is sometimes also called dog-piling, cache miss
-        storm, cache choking, or the thundering herd problem.
-
-        The memoization decorator includes cache stampede protection through
-        the early recomputation parameter. When set to True (default False),
-        the expire parameter must not be None. Early recomputation of results
-        will occur probabilistically before expiration.
-
-        Early probabilistic recomputation is based on research by Vattani, A.;
-        Chierichetti, F.; Lowenstein, K. (2015), Optimal Probabilistic Cache
-        Stampede Prevention, VLDB, pp. 886?897, ISSN 2150-8097
 
         The original underlying function is accessible through the __wrapped__
         attribute. This is useful for introspection, for bypassing the cache,
@@ -405,60 +391,30 @@ class DjangoCache(BaseCache):
         :param int version: key version number (default None, cache parameter)
         :param bool typed: cache different types separately (default False)
         :param str tag: text to associate with arguments (default None)
-        :param bool early_recompute: probabilistic early recomputation
-            (default False)
-        :param time_func: callable for calculating current time
         :return: callable decorator
 
         """
-        # Caution: Nearly identical code exists in memo.memoize
+        # Caution: Nearly identical code exists in Cache.memoize
         if callable(name):
             raise TypeError('name cannot be callable')
 
-        if early_recompute and timeout is None:
-            raise ValueError('timeout required')
-
         def decorator(func):
-            "Decorator created by memoize call for callable."
+            "Decorator created by memoize() for callable `func`."
             base = (full_name(func),) if name is None else (name,)
 
-            if early_recompute:
-                @wraps(func)
-                def wrapper(*args, **kwargs):
-                    "Wrapper for callable to cache arguments and return values."
-                    key = wrapper.__cache_key__(*args, **kwargs)
-                    pair, expire_time = self.get(
-                        key, MARK, version, expire_time=True, retry=True,
+            @wraps(func)
+            def wrapper(*args, **kwargs):
+                "Wrapper for callable to cache arguments and return values."
+                key = wrapper.__cache_key__(*args, **kwargs)
+                result = self.get(key, ENOVAL, version, retry=True)
+
+                if result is ENOVAL:
+                    result = func(*args, **kwargs)
+                    self.set(
+                        key, result, timeout, version, tag=tag, retry=True,
                     )
 
-                    if pair is not MARK:
-                        result, delta = pair
-                        now = time_func()
-                        ttl = expire_time - now
-
-                        if (-delta * log(random())) < ttl:
-                            return result
-
-                    start = time_func()
-                    result = func(*args, **kwargs)
-                    delta = time_func() - start
-                    pair = result, delta
-                    self.set(key, pair, timeout, version, tag=tag, retry=True)
-                    return result
-            else:
-                @wraps(func)
-                def wrapper(*args, **kwargs):
-                    "Wrapper for callable to cache arguments and return values."
-                    key = wrapper.__cache_key__(*args, **kwargs)
-                    result = self.get(key, MARK, version, retry=True)
-
-                    if result is MARK:
-                        result = func(*args, **kwargs)
-                        self.set(
-                            key, result, timeout, version, tag=tag, retry=True,
-                        )
-
-                    return result
+                return result
 
             def __cache_key__(*args, **kwargs):
                 "Make key for cache given function arguments."

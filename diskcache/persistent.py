@@ -1326,7 +1326,7 @@ class Index(MutableMapping):
 
         >>> from diskcache import Index
         >>> mapping = Index()
-        >>> @mapping.memoize(typed=True)
+        >>> @mapping.memoize()
         ... def fibonacci(number):
         ...     if number == 0:
         ...         return 0
@@ -1334,8 +1334,15 @@ class Index(MutableMapping):
         ...         return 1
         ...     else:
         ...         return fibonacci(number - 1) + fibonacci(number - 2)
-        >>> print(sum(fibonacci(number=value) for value in range(100)))
-        573147844013817084100
+        >>> print(fibonacci(100))
+        354224848179261915075
+
+        An additional `__cache_key__` attribute can be used to generate the
+        cache key used for the given arguments.
+
+        >>> key = fibonacci.__cache_key__(100)
+        >>> print(cache[key])
+        354224848179261915075
 
         Remember to call memoize when decorating a callable. If you forget,
         then a TypeError will occur. Note the lack of parenthenses after

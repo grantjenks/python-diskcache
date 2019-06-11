@@ -13,7 +13,6 @@ except ImportError:
     reduce  # pylint: disable=pointless-statement
 
 from .core import ENOVAL, DEFAULT_SETTINGS, Cache, Disk, Timeout
-from .memo import memoize
 from .persistent import Deque, Index
 
 
@@ -356,7 +355,7 @@ class FanoutCache(object):
         del shard[key]
 
 
-    memoize = memoize
+    memoize = Cache.memoize
 
 
     def check(self, fix=False, retry=False):
