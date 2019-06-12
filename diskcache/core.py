@@ -19,6 +19,10 @@ import time
 import warnings
 import zlib
 
+############################################################################
+# BEGIN Python 2/3 Shims
+############################################################################
+
 if sys.hexversion < 0x03000000:
     import cPickle as pickle  # pylint: disable=import-error
     # ISSUE #25 Fix for http://bugs.python.org/issue10211
@@ -47,6 +51,10 @@ def full_name(func):
     except AttributeError:
         name = func.__name__
     return func.__module__ + '.' + name
+
+############################################################################
+# END Python 2/3 Shims
+############################################################################
 
 try:
     WindowsError
