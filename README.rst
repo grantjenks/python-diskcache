@@ -113,40 +113,8 @@ tutorial, benchmarks, API, and development.
 .. _`DiskCache API Reference`: http://www.grantjenks.com/docs/diskcache/api.html
 .. _`DiskCache Development`: http://www.grantjenks.com/docs/diskcache/development.html
 
-Comparison
-----------
-
-Features
-
-* Atomic? Yes/No
-* Persistent? Yes/No
-* Thread-safe? Yes/No
-* Process-safe? Yes/No
-* Backend? Memory/Filesystem/SQLite/Redis/SQLAlchemy/etc.
-* Serialization? Pickle/JSON/etc.
-* Data Types? Mapping (Ordered, Sorted)/Deque/etc.
-* Eviction Policies? LRU/LFU/MRU/LRS/Random/Dummy/Infinite
-* Vacuum? Automatic/Manual
-* Can be pickled? (Important for multiprocessing module)
-* Supports process forking? (Important for multiprocessing)
-* Supports metadata?
-
-* Tests? Yes/No
-* Coverage? Yes/No
-* Stress? Yes/No
-* CI Tests? None/Travis/AppVeyor/etc.
-* Python? 2/3/PyPy/Jython
-* Platforms? \*nix/Windows
-* License? Apache2/GPL/etc.
-* Docs? None/Readme/Extensive
-* Benchmarks? Yes/No
-* Timings for get/set/delete
-* Sources? GitHub/SourceForge
-* Structure? Document/Relational/Key-Value
-* Pure-Python? Yes/No
-* Server? Yes/No
-* Goal? Database/ORM/KV Store/etc.
-* Web Framework Support? Django, Flask, Pyramid, Plone
+Comparisons
+-----------
 
 Simple Key-Value Stores
 .......................
@@ -155,6 +123,8 @@ Simple Key-Value Stores
 * shelve -- https://docs.python.org/library/shelve.html
 * sqlitedict -- https://github.com/RaRe-Technologies/sqlitedict
 * pickleDB -- https://pythonhosted.org/pickleDB/
+
+**Features**
 
 ================ ================ ======= ======= ============ ============
 Feature          diskcache        dbm     shelve  sqlitedict   pickleDB
@@ -166,12 +136,15 @@ Process-safe?    Yes              No      No      Maybe        No
 Backend?         SQLite           DBM     DBM     SQLite       File
 Serialization?   Customizable     None    Pickle  Customizable JSON
 Data Types?      Mapping/Deque    Mapping Mapping Mapping      Mapping
+Ordering?        Insertion/Sorted None    None    None         None
 Eviction?        None/LRS/LRU/LFU None    None    None         None
 Vacuum?          Automatic        Maybe   Maybe   Manual       Automatic
 Multiprocessing? Yes              No      No      No           No
 Forkable?        Yes              No      No      No           No
 Metadata?        Yes              No      No      No           No
 ================ ================ ======= ======= ============ ============
+
+**Quality**
 
 ================ ================ ======= ======= ============ ============
 Project          diskcache        dbm     shelve  sqlitedict   pickleDB
@@ -187,56 +160,43 @@ Benchmarks?      Yes              No      No      No           No
 Sources?         GitHub           GitHub  GitHub  GitHub       GitHub
 Pure-Python?     Yes              Yes     Yes     Yes          Yes
 Server?          No               No      No      No           No
-Framework?       None/Django      None    None    None         None
+Integrations?    Django           None    None    None         None
 ================ ================ ======= ======= ============ ============
 
-* Timings for get/set/delete
+**Timings**
 
-```python
-import dbm
-import diskcache
-import pickledb
-import shelve
-import sqlitedict
+These are very rough measurements. See benchmarks for more rigorous data.
 
-print('diskcache')
-dc = diskcache.FanoutCache('/tmp/diskcache')
-%timeit dc['key'] = 'value'
-
-print('dbm')
-%timeit d = dbm.open('/tmp/dbm', 'c'); d['key'] = 'value'; d.close()
-
-print('shelve')
-%timeit s = shelve.open('/tmp/shelve'); s['key'] = 'value'; s.close()
-
-print('sqlitedict')
-sd = sqlitedict.SqliteDict('/tmp/sqlitedict', autocommit=True)
-%timeit sd['key'] = 'value'
-
-print('pickledb')
-p = pickledb.load('/tmp/pickledb', True)
-%timeit p['key'] = 'value'
-```
+================ ================ ======= ======= ============ ============
+Project          diskcache        dbm     shelve  sqlitedict   pickleDB
+================ ================ ======= ======= ============ ============
+get                         25 µs   36 µs   41 µs       513 µs        92 µs
+set                        198 µs  900 µs  928 µs       697 µs     1,020 µs
+delete                     248 µs  740 µs  702 µs     1,717 µs     1,020 µs
+================ ================ ======= ======= ============ ============
 
 Caching Libraries
+.................
 
 * klepto -- https://pypi.org/project/klepto/
 * joblib.Memory -- https://joblib.readthedocs.io/en/latest/memory.html
 
 In-Memory Data Structures
+.........................
 
 * dict -- https://docs.python.org/3/library/stdtypes.html#typesmapping
 * pandas -- https://pandas.pydata.org/
 * Sorted Containers -- http://www.grantjenks.com/docs/sortedcontainers/
-* ldtable -- https://github.com/Jwink3101/ldtable
 
 Pure-Python Databases
+.....................
 
 * ZODB -- http://www.zodb.org/
 * CodernityDB -- http://labs.codernity.com/codernitydb/
 * TinyDB -- https://tinydb.readthedocs.io/
 
 Object Relational Mappings (ORM)
+................................
 
 * Django ORM -- https://docs.djangoproject.com/en/dev/topics/db/
 * SQLAlchemy -- https://www.sqlalchemy.org/
@@ -246,6 +206,7 @@ Object Relational Mappings (ORM)
 * Pony ORM -- https://ponyorm.com/
 
 SQL Databases
+.............
 
 * SQLite -- https://docs.python.org/library/sqlite3.html
 * MySQL -- https://dev.mysql.com/downloads/connector/python/
@@ -254,6 +215,7 @@ SQL Databases
 * Microsoft SQL Server -- https://pypi.org/project/pyodbc/
 
 Other Databases
+...............
 
 * Memcached -- https://pypi.org/project/python-memcached/
 * MongoDB -- https://api.mongodb.com/python/current/
