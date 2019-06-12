@@ -311,6 +311,8 @@ The third is :meth:`check <diskcache.Cache.check>` which verifies cache
 consistency. It can also fix inconsistencies and reclaim unused space. The
 return value is a list of warnings.
 
+    >>> _ = cache.check(fix=True)
+    >>> cache.close()
     >>> import shutil
     >>> shutil.rmtree(cache.directory)
 
