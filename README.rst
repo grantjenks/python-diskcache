@@ -86,10 +86,12 @@ You can access documentation in the interpreter with Python's built-in help
 function::
 
   >>> from diskcache import Cache, FanoutCache, DjangoCache
+  >>> help(Cache)
   >>> help(FanoutCache)
-  >>> cache = FanoutCache('path/to/cache/directory')
-  >>> help(cache)
   >>> help(DjangoCache)
+  >>> from diskcache import Deque, Index
+  >>> help(Deque)
+  >>> help(Index)
 
 User Guide
 ----------
