@@ -236,7 +236,7 @@ class BoundedSemaphore(object):
 
 
 def throttle(cache, count, seconds, name=None, expire=None, tag=None,
-             time_func=time.monotonic, sleep_func=time.sleep):
+             time_func=time.time, sleep_func=time.sleep):
     """Decorator to throttle calls to function.
 
     >>> import diskcache, time
