@@ -46,8 +46,23 @@ testing has 100% coverage with unit tests and hours of stress.
 Testimonials
 ------------
 
+`Daren Hasenkamp`_, Founder --
+
+    "It's a useful, simple API, just like I love about Redis. It has reduced
+    the amount of queries hitting my Elasticsearch cluster by over 25% for a
+    website that gets over a million users/day (100+ hits/second)."
+
+`Mathias Petermann`_, Senior Linux System Engineer --
+
+    "I implemented it into a wrapper for our Ansible lookup modules and we were
+    able to speed up some Ansible runs by almost 3 times. DiskCache is saving
+    us a ton of time."
+
 Does your company or website use `DiskCache`_? Send us a `message
 <contact@grantjenks.com>`_ and let us know.
+
+.. _`Daren Hasenkamp`: https://www.linkedin.com/in/daren-hasenkamp-93006438/
+.. _`Mathias Petermann`: https://www.linkedin.com/in/mathias-petermann-a8aa273b/
 
 Features
 --------
