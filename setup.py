@@ -1,3 +1,4 @@
+from io import open
 from setuptools import setup
 from setuptools.command.test import test as TestCommand
 
@@ -15,7 +16,7 @@ class Tox(TestCommand):
         exit(errno)
 
 
-with open('README.rst') as reader:
+with open('README.rst', encoding='utf-8') as reader:
     readme = reader.read()
 
 setup(
