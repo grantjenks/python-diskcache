@@ -1,31 +1,5 @@
 """Disk Cache Recipes
 
->>> import diskcache as dc, time
->>> cache = dc.Cache()
->>> @cache.memoize(expire=0)
-... @barrier(cache, dc.Lock)
-... @cache.memoize()
-... def work(num):
-...     time.sleep(1)
-...     return num
->>> from concurrent.futures import ThreadPoolExecutor
->>> with ThreadPoolExecutor(5) as executor:
-...     start = time.time()
-...     nums = list(executor.map(work, range(5)))
-...     end = time.time()
->>> nums
-[0, 1, 2, 3, 4]
->>> int(end - start)
-5
->>> with ThreadPoolExecutor(5) as executor:
-...     start = time.time()
-...     nums = list(executor.map(work, range(5)))
-...     end = time.time()
->>> nums
-[0, 1, 2, 3, 4]
->>> int(end - start)
-0
-
 """
 
 import functools
@@ -241,12 +215,16 @@ def throttle(cache, count, seconds, name=None, expire=None, tag=None,
 
     >>> import diskcache, time
     >>> cache = diskcache.Cache()
-    >>> @throttle(cache, 1, 1)
-    ... def int_time():
-    ...     return int(time.time())
-    >>> times = [int_time() for _ in range(4)]
-    >>> [times[i] - times[i - 1] for i in range(1, 4)]
-    [1, 1, 1]
+    >>> count = 0
+    >>> @throttle(cache, 5, 1)
+    ... def increment():
+    ...     global count
+    ...     count += 1
+    >>> start = time.time()
+    >>> while (time.time() - start) <= 4:
+    ...     increment()
+    >>> count
+    25
 
     """
     def decorator(func):
