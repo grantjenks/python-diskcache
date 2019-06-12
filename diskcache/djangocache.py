@@ -1,9 +1,6 @@
 "Django-compatible disk and file backed cache."
 
 from functools import wraps
-from math import log
-from random import random
-from time import time
 from django.core.cache.backends.base import BaseCache
 
 try:
