@@ -355,9 +355,6 @@ class FanoutCache(object):
         del shard[key]
 
 
-    memoize = Cache.memoize
-
-
     def check(self, fix=False, retry=False):
         """Check database and file system consistency.
 
@@ -656,3 +653,21 @@ class FanoutCache(object):
             temp = Index(directory)
             _indexes[name] = temp
             return temp
+
+
+############################################################################
+# BEGIN Python 2/3 Shims
+############################################################################
+
+import sys  # pylint: disable=wrong-import-position,wrong-import-order
+
+if sys.hexversion < 0x03000000:
+    import types
+    memoize_func = Cache.__dict__['memoize']  # pylint: disable=invalid-name
+    FanoutCache.memoize = types.MethodType(memoize_func, None, FanoutCache)
+else:
+    FanoutCache.memoize = Cache.memoize
+
+############################################################################
+# END Python 2/3 Shims
+############################################################################
