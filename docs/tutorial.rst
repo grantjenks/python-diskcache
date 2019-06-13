@@ -322,7 +322,7 @@ return value is a list of warnings.
     >>> import shutil
     >>> try:
     ...     shutil.rmtree(cache.directory)
-    ... except PermissionError:  # Windows wonkiness
+    ... except OSError:  # Windows wonkiness
     ...     pass
 
 .. _tutorial-fanoutcache:
