@@ -711,6 +711,12 @@ this reason, :doc:`DiskCache <index>` currently `performs poorly`_ on `Python
 Anywhere`_. Users have also reported issues running inside of `Parallels`_
 shared folders.
 
+:doc:`DiskCache <index>` uses transactions when writing data to disk using
+SQLite. When the disk or database is full, a :exc:`sqlite3.OperationalError`
+will be raised from any method that attempts to write data. Read operations
+will still succeed so long as they do not cause any write (as might occur if
+cache statistics are being recorded).
+
 .. _`hash protocol`: https://docs.python.org/library/functions.html#hash
 .. _`not recommended`: https://www.sqlite.org/faq.html#q5
 .. _`performs poorly`: https://www.pythonanywhere.com/forums/topic/1847/
