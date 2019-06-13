@@ -230,7 +230,7 @@ def throttle(cache, count, seconds, name=None, expire=None, tag=None,
     >>> import diskcache, time
     >>> cache = diskcache.Cache()
     >>> count = 0
-    >>> @throttle(cache, 5, 1)
+    >>> @throttle(cache, 2, 1)
     ... def increment():
     ...     global count
     ...     count += 1
@@ -238,7 +238,7 @@ def throttle(cache, count, seconds, name=None, expire=None, tag=None,
     >>> while (time.time() - start) <= 2:
     ...     increment()
     >>> count
-    15
+    6
 
     """
     def decorator(func):
