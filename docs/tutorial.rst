@@ -561,7 +561,7 @@ are updated lazily. Prefer idioms like :meth:`len
 <diskcache.FanoutCache.reset>` directly.
 
     >>> cache = Cache(size_limit=int(4e9))
-    >>> cache.size_limit
+    >>> print(cache.size_limit)
     4000000000
     >>> cache.disk_min_file_size
     32768
