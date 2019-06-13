@@ -92,26 +92,26 @@ Closed Cache objects will automatically re-open when accessed. But opening
 Cache objects is relatively slow, and since all operations are atomic, you can
 safely leave Cache objects open.
 
-    >>> cache.set(b'key', b'value')
+    >>> cache.set('key', 'value')
     True
     >>> cache.close()
-    >>> cache.get(b'key')  # Automatically opens, but slower.
-    b'value'
+    >>> cache.get('key')  # Automatically opens, but slower.
+    'value'
 
 Set an item, get a value, and delete a key using the usual operators:
 
-    >>> cache[b'key'] = b'value'
-    >>> cache[b'key']
-    b'value'
-    >>> b'key' in cache
+    >>> cache['key'] = 'value'
+    >>> cache['key']
+    'value'
+    >>> 'key' in cache
     True
-    >>> del cache[b'key']
+    >>> del cache['key']
 
 There's also a :meth:`set <diskcache.Cache.set>` method with additional keyword
 parameters: `expire`, `read`, and `tag`.
 
     >>> from io import BytesIO
-    >>> cache.set(b'key', BytesIO(b'value'), expire=5, read=True, tag='data')
+    >>> cache.set('key', BytesIO(b'value'), expire=5, read=True, tag='data')
     True
 
 In the example above: the key expires in 5 seconds, the value is read as a
@@ -119,14 +119,14 @@ file-like object, and tag metadata is stored with the key. Another method,
 :meth:`get <diskcache.Cache.get>` supports querying extra information with
 `default`, `read`, `expire_time`, and `tag` keyword parameters.
 
-    >>> result = cache.get(b'key', default=b'', read=True, expire_time=True, tag=True)
+    >>> result = cache.get('key', read=True, expire_time=True, tag=True)
     >>> reader, timestamp, tag = result
-    >>> type(reader)
-    <class '_io.BufferedReader'>
-    >>> type(timestamp)
-    <class 'float'>
-    >>> tag
-    'data'
+    >>> print(reader.read().decode())
+    value
+    >>> type(timestamp).__name__
+    'float'
+    >>> print(tag)
+    data
 
 The return value is a tuple containing the value, expire time (seconds from
 epoch), and tag. Because we passed ``read=True`` the value is returned as a
@@ -180,8 +180,14 @@ used to delete an item in the cache and return its value.
     'does not exist'
     >>> cache.set('dave', 0, expire=None, tag='admin')
     True
-    >>> cache.pop('dave', expire_time=True, tag=True)
-    (0, None, 'admin')
+    >>> result = cache.pop('dave', expire_time=True, tag=True)
+    >>> value, timestamp, tag = result
+    >>> value
+    0
+    >>> print(timestamp)
+    None
+    >>> print(tag)
+    admin
 
 The :meth:`pop <diskcache.Cache.pop>` operation is atomic and using :meth:`incr
 <diskcache.Cache.incr>` together is an accurate method for counting and dumping
@@ -313,9 +319,11 @@ return value is a list of warnings.
 
     >>> warnings = cache.check()
     >>> cache.close()
-    >>> import contextlib, shutil
-    >>> with contextlib.suppress(PermissionError):  # Windows wonkiness
+    >>> import shutil
+    >>> try:
     ...     shutil.rmtree(cache.directory)
+    ... except PermissionError:  # Windows wonkiness
+    ...     pass
 
 .. _tutorial-fanoutcache:
 
@@ -475,8 +483,8 @@ access and editing at both front and back sides. :class:`Deque
     >>> deque.appendleft('foo')
     >>> len(deque)
     4
-    >>> type(deque.directory)
-    <class 'str'>
+    >>> type(deque.directory).__name__
+    'str'
     >>> other = Deque(directory=deque.directory)
     >>> len(other)
     4
@@ -619,13 +627,13 @@ All clients accessing the cache are expected to use the same eviction
 policy. The policy can be set during initialization using a keyword argument.
 
     >>> cache = Cache()
-    >>> cache.eviction_policy
-    'least-recently-stored'
+    >>> print(cache.eviction_policy)
+    least-recently-stored
     >>> cache = Cache(eviction_policy='least-frequently-used')
-    >>> cache.eviction_policy
-    'least-frequently-used'
-    >>> cache.reset('eviction_policy', 'least-recently-used')
-    'least-recently-used'
+    >>> print(cache.eviction_policy)
+    least-frequently-used
+    >>> print(cache.reset('eviction_policy', 'least-recently-used'))
+    least-recently-used
 
 Though the eviction policy is changed, the previously created indexes will not
 be dropped. Prefer to always specify the eviction policy as a keyword argument

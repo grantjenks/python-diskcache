@@ -35,7 +35,5 @@ def test_recipes():
 
 
 def test_tutorial():
-    if sys.hexversion < 0x03000000:
-        return
     failures, _ = doctest.testfile('../docs/tutorial.rst')
     assert failures == 0
