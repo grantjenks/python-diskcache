@@ -430,6 +430,11 @@ class BaseCacheTests(object):
         self.assertEqual(cache.get('key3'), 'sausage')
         self.assertEqual(cache.get('key4'), 'lobster bisque')
 
+        cache.set('key5', 'belgian fries', timeout=1)
+        cache.touch('key5', timeout=None)
+        time.sleep(2)
+        self.assertEqual(cache.get('key5'), 'belgian fries')
+
     def test_zero_timeout(self):
         """
         Passing in zero into timeout results in a value that is not cached
@@ -443,6 +448,10 @@ class BaseCacheTests(object):
         cache.set_many({'key3': 'sausage', 'key4': 'lobster bisque'}, 0)
         self.assertIsNone(cache.get('key3'))
         self.assertIsNone(cache.get('key4'))
+
+        cache.set('key5', 'belgian fries', timeout=5)
+        cache.touch('key5', timeout=0)
+        self.assertIsNone(cache.get('key5'))
 
     def test_float_timeout(self):
         # Make sure a timeout given as a float doesn't crash anything.
