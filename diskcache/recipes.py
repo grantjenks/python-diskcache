@@ -230,30 +230,20 @@ def throttle(cache, count, seconds, name=None, expire=None, tag=None,
     >>> import diskcache, time
     >>> cache = diskcache.Cache()
     >>> count = 0
-    >>> @throttle(cache, 2, 1)
+    >>> @throttle(cache, 2, 1)  # 2 calls per 1 second
     ... def increment():
     ...     global count
     ...     count += 1
     >>> start = time.time()
     >>> while (time.time() - start) <= 2:
     ...     increment()
-    >>> count
-    6
+    >>> count in (6, 7)  # 6 or 7 calls depending on processor load
+    True
 
     """
     def decorator(func):
         rate = count / float(seconds)
-
-        if name is None:
-            try:
-                key = func.__qualname__
-            except AttributeError:
-                key = func.__name__
-
-            key = func.__module__ + '.' + key
-        else:
-            key = name
-
+        key = full_name(func) if name is None else name
         now = time_func()
         cache.set(key, (now, count), expire=expire, tag=tag, retry=True)
 
