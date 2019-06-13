@@ -6,10 +6,24 @@ import functools
 import math
 import os
 import random
+import sys
 import threading
 import time
 
 from .core import ENOVAL, args_to_key, full_name
+
+############################################################################
+# BEGIN Python 2/3 Shims
+############################################################################
+
+if sys.hexversion < 0x03000000:
+    from thread import get_ident
+else:
+    from threading import get_ident
+
+############################################################################
+# END Python 2/3 Shims
+############################################################################
 
 
 class Averager(object):
@@ -120,7 +134,7 @@ class RLock(object):
         self._expire = expire
         self._tag = tag
         pid = os.getpid()
-        tid = threading.get_ident()
+        tid = get_ident()
         self._value = '{}-{}'.format(pid, tid)
 
     def acquire(self):
@@ -221,10 +235,10 @@ def throttle(cache, count, seconds, name=None, expire=None, tag=None,
     ...     global count
     ...     count += 1
     >>> start = time.time()
-    >>> while (time.time() - start) <= 4:
+    >>> while (time.time() - start) <= 2:
     ...     increment()
     >>> count
-    25
+    15
 
     """
     def decorator(func):
@@ -280,13 +294,17 @@ def barrier(cache, lock_factory, name=None, expire=None, tag=None):
     >>> cache = diskcache.Cache()
     >>> @barrier(cache, Lock)
     ... def work(num):
+    ...     print('worker started')
     ...     time.sleep(1)
-    ...     return int(time.time())
-    >>> from concurrent.futures import ThreadPoolExecutor
-    >>> with ThreadPoolExecutor(4) as executor:
-    ...     times = sorted(executor.map(work, range(4)))
-    >>> [times[i] - times[i - 1] for i in range(1, 4)]
-    [1, 1, 1]
+    ...     print('worker finished')
+    >>> import multiprocessing.pool
+    >>> pool = multiprocessing.pool.ThreadPool(2)
+    >>> _ = pool.map(work, range(2))
+    worker started
+    worker finished
+    worker started
+    worker finished
+    >>> pool.terminate()
 
     """
     def decorator(func):

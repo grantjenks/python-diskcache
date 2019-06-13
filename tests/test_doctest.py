@@ -29,15 +29,13 @@ def test_persistent():
     assert failures == 0
 
 
+def test_recipes():
+    failures, _ = doctest.testmod(diskcache.recipes)
+    assert failures == 0
+
+
 def test_tutorial():
     if sys.hexversion < 0x03000000:
         return
     failures, _ = doctest.testfile('../docs/tutorial.rst')
-    assert failures == 0
-
-
-def test_recipes():
-    if sys.hexversion < 0x03000000:
-        return
-    failures, _ = doctest.testmod(diskcache.recipes)
     assert failures == 0
