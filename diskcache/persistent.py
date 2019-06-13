@@ -648,7 +648,6 @@ class Deque(Sequence):
         [4, 0, 1, 2, 3]
 
         :return: context manager for use in `with` statement
-        :raises Timeout: if database timeout occurs
 
         """
         with self._cache.transact(retry=True):
@@ -1385,7 +1384,6 @@ class Index(MutableMapping):
         123.4
 
         :return: context manager for use in `with` statement
-        :raises Timeout: if database timeout occurs
 
         """
         with self._cache.transact(retry=True):

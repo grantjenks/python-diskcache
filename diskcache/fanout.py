@@ -395,7 +395,7 @@ class FanoutCache(object):
     def create_tag_index(self):
         """Create tag index on cache database.
 
-        It is better to initialize cache with `tag_index=True` than use this.
+        Better to initialize cache with `tag_index=True` than use this.
 
         :raises Timeout: if database timeout occurs
 
@@ -550,7 +550,6 @@ class FanoutCache(object):
         :param str key: Settings key for item
         :param value: value for item (optional)
         :return: updated value for item
-        :raises Timeout: if database timeout occurs
 
         """
         for shard in self._shards:

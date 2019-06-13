@@ -295,7 +295,7 @@ class DjangoCache(BaseCache):
     def create_tag_index(self):
         """Create tag index on cache database.
 
-        It is better to initialize cache with `tag_index=True` than use this.
+        Better to initialize cache with `tag_index=True` than use this.
 
         :raises Timeout: if database timeout occurs
 
