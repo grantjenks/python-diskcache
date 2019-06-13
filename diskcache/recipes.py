@@ -17,7 +17,7 @@ from .core import ENOVAL, args_to_key, full_name
 ############################################################################
 
 if sys.hexversion < 0x03000000:
-    from thread import get_ident
+    from thread import get_ident  # pylint: disable=import-error
 else:
     from threading import get_ident
 
