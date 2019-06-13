@@ -311,10 +311,11 @@ The third is :meth:`check <diskcache.Cache.check>` which verifies cache
 consistency. It can also fix inconsistencies and reclaim unused space. The
 return value is a list of warnings.
 
-    >>> _ = cache.check(fix=True)
+    >>> warnings = cache.check()
     >>> cache.close()
-    >>> import shutil
-    >>> shutil.rmtree(cache.directory)
+    >>> import contextlib, shutil
+    >>> with contextlib.suppress(PermissionError):  # Windows wonkiness
+    ...     shutil.rmtree(cache.directory)
 
 .. _tutorial-fanoutcache:
 
