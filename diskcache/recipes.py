@@ -157,8 +157,8 @@ class RLock(object):
             is_owned = self._value == value and count > 0
             assert is_owned, 'cannot release un-acquired lock'
             self._cache.set(
-                self._key, (value, count - 1), expire=self._expire,
-                tag=self._tag,
+                self._key, (value, count - 1),
+                expire=self._expire, tag=self._tag,
             )
 
     def __enter__(self):
@@ -200,8 +200,8 @@ class BoundedSemaphore(object):
                 value = self._cache.get(self._key, default=self._value)
                 if value > 0:
                     self._cache.set(
-                        self._key, value - 1, expire=self._expire,
-                        tag=self._tag,
+                        self._key, value - 1,
+                        expire=self._expire, tag=self._tag,
                     )
                     return
             time.sleep(0.001)
