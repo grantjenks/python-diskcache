@@ -52,7 +52,7 @@ class Averager(object):
 
     def add(self, value):
         "Add `value` to average."
-        with self._cache.transact():
+        with self._cache.transact(retry=True):
             total, count = self._cache.get(self._key, default=(0.0, 0))
             total += value
             count += 1
@@ -140,7 +140,7 @@ class RLock(object):
     def acquire(self):
         "Acquire lock by incrementing count using spin-lock algorithm."
         while True:
-            with self._cache.transact():
+            with self._cache.transact(retry=True):
                 value, count = self._cache.get(self._key, default=(None, 0))
                 if self._value == value or count == 0:
                     self._cache.set(
@@ -152,7 +152,7 @@ class RLock(object):
 
     def release(self):
         "Release lock by decrementing count."
-        with self._cache.transact():
+        with self._cache.transact(retry=True):
             value, count = self._cache.get(self._key, default=(None, 0))
             is_owned = self._value == value and count > 0
             assert is_owned, 'cannot release un-acquired lock'
@@ -196,7 +196,7 @@ class BoundedSemaphore(object):
     def acquire(self):
         "Acquire semaphore by decrementing value using spin-lock algorithm."
         while True:
-            with self._cache.transact():
+            with self._cache.transact(retry=True):
                 value = self._cache.get(self._key, default=self._value)
                 if value > 0:
                     self._cache.set(
@@ -208,7 +208,7 @@ class BoundedSemaphore(object):
 
     def release(self):
         "Release semaphore by incrementing value."
-        with self._cache.transact():
+        with self._cache.transact(retry=True):
             value = self._cache.get(self._key, default=self._value)
             assert self._value > value, 'cannot release un-acquired semaphore'
             value += 1
@@ -250,16 +250,16 @@ def throttle(cache, count, seconds, name=None, expire=None, tag=None,
         @functools.wraps(func)
         def wrapper(*args, **kwargs):
             while True:
-                with cache.transact():
-                    last, tally = cache.get(key, retry=True)
+                with cache.transact(retry=True):
+                    last, tally = cache.get(key)
                     now = time_func()
                     tally += (now - last) * rate
                     delay = 0
 
                     if tally > count:
-                        cache.set(key, (now, count - 1), expire, retry=True)
+                        cache.set(key, (now, count - 1), expire)
                     elif tally >= 1:
-                        cache.set(key, (now, tally - 1), expire, retry=True)
+                        cache.set(key, (now, tally - 1), expire)
                     else:
                         delay = (1 - tally) / rate
 
@@ -399,7 +399,9 @@ def memoize_stampede(cache, expire, name=None, typed=False, tag=None, beta=1):
                 # Check whether a thread has started for early recomputation.
 
                 thread_key = key + (ENOVAL,)
-                thread_added = cache.add(thread_key, None, expire=delta)
+                thread_added = cache.add(
+                    thread_key, None, expire=delta, retry=True,
+                )
 
                 if thread_added:
                     # Start thread for early recomputation.
