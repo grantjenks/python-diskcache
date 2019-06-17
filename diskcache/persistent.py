@@ -918,21 +918,11 @@ class Index(MutableMapping):
         # pylint: disable=arguments-differ
         _cache = self._cache
 
-        while True:
-            try:
-                if last:
-                    key = next(reversed(_cache))
-                else:
-                    key = next(iter(_cache))
-            except StopIteration:
-                raise KeyError
+        with _cache.transact(retry=True):
+            key, value = _cache.peekitem(last=last)
+            del _cache[key]
 
-            try:
-                value = _cache.pop(key, retry=True)
-            except KeyError:
-                continue
-            else:
-                return key, value
+        return key, value
 
 
     def push(self, value, prefix=None, side='back'):
