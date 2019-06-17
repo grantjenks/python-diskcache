@@ -377,6 +377,13 @@ def memoize_stampede(cache, expire, name=None, typed=False, tag=None, beta=1):
         "Decorator created by memoize call for callable."
         base = (full_name(func),) if name is None else (name,)
 
+        def timer(*args, **kwargs):
+            "Time execution of `func` and return result and time delta."
+            start = time.time()
+            result = func(*args, **kwargs)
+            delta = time.time() - start
+            return result, delta
+
         @functools.wraps(func)
         def wrapper(*args, **kwargs):
             "Wrapper for callable to cache arguments and return values."
@@ -384,14 +391,6 @@ def memoize_stampede(cache, expire, name=None, typed=False, tag=None, beta=1):
             pair, expire_time = cache.get(
                 key, default=ENOVAL, expire_time=True, retry=True,
             )
-
-            def recompute():
-                start = time.time()
-                result = func(*args, **kwargs)
-                delta = time.time() - start
-                pair = result, delta
-                cache.set(key, pair, expire=expire, tag=tag, retry=True)
-                return result
 
             if pair is not ENOVAL:
                 result, delta = pair
@@ -410,13 +409,21 @@ def memoize_stampede(cache, expire, name=None, typed=False, tag=None, beta=1):
 
                 if thread_added:
                     # Start thread for early recomputation.
+                    def recompute():
+                        with cache:
+                            pair = timer(*args, **kwargs)
+                            cache.set(
+                                key, pair, expire=expire, tag=tag, retry=True,
+                            )
                     thread = threading.Thread(target=recompute)
                     thread.daemon = True
                     thread.start()
 
                 return result
 
-            return recompute()  # Cache miss.
+            pair = timer(*args, **kwargs)
+            cache.set(key, pair, expire=expire, tag=tag, retry=True)
+            return pair[0]
 
         def __cache_key__(*args, **kwargs):
             "Make key for cache given function arguments."
