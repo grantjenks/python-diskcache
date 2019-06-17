@@ -133,18 +133,19 @@ class RLock(object):
         self._key = key
         self._expire = expire
         self._tag = tag
-        pid = os.getpid()
-        tid = get_ident()
-        self._value = '{}-{}'.format(pid, tid)
 
     def acquire(self):
         "Acquire lock by incrementing count using spin-lock algorithm."
+        pid = os.getpid()
+        tid = get_ident()
+        pid_tid = '{}-{}'.format(pid, tid)
+
         while True:
             with self._cache.transact(retry=True):
                 value, count = self._cache.get(self._key, default=(None, 0))
-                if self._value == value or count == 0:
+                if pid_tid == value or count == 0:
                     self._cache.set(
-                        self._key, (self._value, count + 1),
+                        self._key, (pid_tid, count + 1),
                         expire=self._expire, tag=self._tag,
                     )
                     return
@@ -152,9 +153,13 @@ class RLock(object):
 
     def release(self):
         "Release lock by decrementing count."
+        pid = os.getpid()
+        tid = get_ident()
+        pid_tid = '{}-{}'.format(pid, tid)
+
         with self._cache.transact(retry=True):
             value, count = self._cache.get(self._key, default=(None, 0))
-            is_owned = self._value == value and count > 0
+            is_owned = pid_tid == value and count > 0
             assert is_owned, 'cannot release un-acquired lock'
             self._cache.set(
                 self._key, (value, count - 1),
