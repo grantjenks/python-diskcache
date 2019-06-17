@@ -173,7 +173,6 @@ class Deque(Sequence):
         raise IndexError('deque index out of range')
 
 
-
     def __getitem__(self, index):
         """deque.__getitem__(index) <==> deque[index]
 
@@ -359,6 +358,13 @@ class Deque(Sequence):
 
     def clear(self):
         """Remove all elements from deque.
+
+        >>> deque = Deque('abc')
+        >>> len(deque)
+        3
+        >>> deque.clear()
+        >>> list(deque)
+        []
 
         """
         self._cache.clear(retry=True)
@@ -902,7 +908,7 @@ class Index(MutableMapping):
         >>> index.popitem()
         Traceback (most recent call last):
           ...
-        KeyError
+        KeyError: 'dictionary is empty'
 
         :param bool last: pop last item pair (default True)
         :return: key and value item pair
@@ -1004,6 +1010,13 @@ class Index(MutableMapping):
 
     def clear(self):
         """Remove all items from index.
+
+        >>> index = Index({'a': 0, 'b': 1, 'c': 2})
+        >>> len(index)
+        3
+        >>> index.clear()
+        >>> dict(index)
+        {}
 
         """
         self._cache.clear(retry=True)
