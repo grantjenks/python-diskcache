@@ -2332,6 +2332,7 @@ class Cache(object):
 
 
     def __enter__(self):
+        connection = self._con  # Create connection in thread.
         return self
 
 
