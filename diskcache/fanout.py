@@ -665,8 +665,6 @@ class FanoutCache(object):
 # BEGIN Python 2/3 Shims
 ############################################################################
 
-import sys  # pylint: disable=wrong-import-position,wrong-import-order
-
 if sys.hexversion < 0x03000000:
     import types
     memoize_func = Cache.__dict__['memoize']  # pylint: disable=invalid-name

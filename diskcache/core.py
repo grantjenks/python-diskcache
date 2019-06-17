@@ -2332,7 +2332,8 @@ class Cache(object):
 
 
     def __enter__(self):
-        connection = self._con  # Create connection in thread.
+        # Create connection in thread.
+        connection = self._con  # pylint: disable=unused-variable
         return self
 
 
