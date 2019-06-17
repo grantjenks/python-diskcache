@@ -179,3 +179,7 @@ def test_memoize(index):
 
     assert hits2 == (hits1 + count)
     assert misses2 == misses1
+
+
+def test_repr(index):
+    assert repr(index).startswith('Index(')

@@ -76,10 +76,54 @@ def test_getsetdel(deque):
     assert len(deque) == 0
 
 
+def test_index_positive(deque):
+    cache = mock.MagicMock()
+    cache.__len__.return_value = 3
+    cache.iterkeys.return_value = ['a', 'b', 'c']
+    cache.__getitem__.side_effect = [KeyError, 101, 102]
+    with mock.patch.object(deque, '_cache', cache):
+        assert deque[0] == 101
+
+
+def test_index_negative(deque):
+    cache = mock.MagicMock()
+    cache.__len__.return_value = 3
+    cache.iterkeys.return_value = ['c', 'b', 'a']
+    cache.__getitem__.side_effect = [KeyError, 101, 100]
+    with mock.patch.object(deque, '_cache', cache):
+        assert deque[-1] == 101
+
+
+def test_index_out_of_range(deque):
+    cache = mock.MagicMock()
+    cache.__len__.return_value = 3
+    cache.iterkeys.return_value = ['a', 'b', 'c']
+    cache.__getitem__.side_effect = [KeyError] * 3
+    with mock.patch.object(deque, '_cache', cache):
+        with pytest.raises(IndexError):
+            deque[0]
+
+
+def test_iter_keyerror(deque):
+    cache = mock.MagicMock()
+    cache.iterkeys.return_value = ['a', 'b', 'c']
+    cache.__getitem__.side_effect = [KeyError, 101, 102]
+    with mock.patch.object(deque, '_cache', cache):
+        assert list(iter(deque)) == [101, 102]
+
+
 def test_reversed(deque):
     sequence = list('abcde')
     deque += sequence
     assert list(reversed(deque)) == list(reversed(sequence))
+
+
+def test_reversed_keyerror(deque):
+    cache = mock.MagicMock()
+    cache.iterkeys.return_value = ['c', 'b', 'a']
+    cache.__getitem__.side_effect = [KeyError, 101, 100]
+    with mock.patch.object(deque, '_cache', cache):
+        assert list(reversed(deque)) == [101, 100]
 
 
 def test_state(deque):
@@ -178,6 +222,15 @@ def test_remove_valueerror(deque):
         deque.remove(0)
 
 
+def test_remove_keyerror(deque):
+    cache = mock.MagicMock()
+    cache.iterkeys.return_value = ['a', 'b', 'c']
+    cache.__getitem__.side_effect = [KeyError, 100, 100]
+    cache.__delitem__.side_effect = [KeyError, None]
+    with mock.patch.object(deque, '_cache', cache):
+        deque.remove(100)
+
+
 def test_reverse(deque):
     deque += 'abcde'
     deque.reverse()
@@ -223,3 +276,7 @@ def test_rotate_indexerror_negative(deque):
 
     with mock.patch.object(deque, '_cache', cache):
         deque.rotate(-1)
+
+
+def test_repr(deque):
+    assert repr(deque).startswith('Deque(')
