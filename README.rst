@@ -67,7 +67,6 @@ Does your company or website use `DiskCache`_? Send us a `message
 Features
 --------
 
-- TODO: update with Comparison below
 - Pure-Python
 - Fully Documented
 - Benchmark comparisons (alternatives, Django cache backends)
@@ -161,56 +160,56 @@ other projects are shown in the tables below.
 
 **Features**
 
-================ ================ ======= ======= ============ ============
-Feature          diskcache        dbm     shelve  sqlitedict   pickleDB
-================ ================ ======= ======= ============ ============
-Atomic?          Always           Maybe   Maybe   Maybe        No
-Persistent?      Yes              Yes     Yes     Yes          Yes
-Thread-safe?     Yes              No      No      Yes          No
-Process-safe?    Yes              No      No      Maybe        No
-Backend?         SQLite           DBM     DBM     SQLite       File
-Serialization?   Customizable     None    Pickle  Customizable JSON
-Data Types?      Mapping/Deque    Mapping Mapping Mapping      Mapping
-Ordering?        Insertion/Sorted None    None    None         None
-Eviction?        None/LRS/LRU/LFU None    None    None         None
-Vacuum?          Automatic        Maybe   Maybe   Manual       Automatic
-Transactions?    Yes              No      No      Maybe        No
-Multiprocessing? Yes              No      No      No           No
-Forkable?        Yes              No      No      No           No
-Metadata?        Yes              No      No      No           No
-================ ================ ======= ======= ============ ============
+================ ============= ========= ========= ============ ============
+Feature          diskcache     dbm       shelve    sqlitedict   pickleDB
+================ ============= ========= ========= ============ ============
+Atomic?          Always        Maybe     Maybe     Maybe        No
+Persistent?      Yes           Yes       Yes       Yes          Yes
+Thread-safe?     Yes           No        No        Yes          No
+Process-safe?    Yes           No        No        Maybe        No
+Backend?         SQLite        DBM       DBM       SQLite       File
+Serialization?   Customizable  None      Pickle    Customizable JSON
+Data Types?      Mapping/Deque Mapping   Mapping   Mapping      Mapping
+Ordering?        Insert/Sorted None      None      None         None
+Eviction?        LRU/LFU/more  None      None      None         None
+Vacuum?          Automatic     Maybe     Maybe     Manual       Automatic
+Transactions?    Yes           No        No        Maybe        No
+Multiprocessing? Yes           No        No        No           No
+Forkable?        Yes           No        No        No           No
+Metadata?        Yes           No        No        No           No
+================ ============= ========= ========= ============ ============
 
 **Quality**
 
-================ ================ ======= ======= ============ ============
-Project          diskcache        dbm     shelve  sqlitedict   pickleDB
-================ ================ ======= ======= ============ ============
-Tests?           Yes              Yes     Yes     Yes          Yes
-Coverage?        Yes              Yes     Yes     Yes          No
-Stress?          Yes              No      No      No           No
-CI Tests?        Travis/AppVeyor  Yes     Yes     Travis       No
-Python?          2/3/PyPy         All     All     2/3          2/3
-License?         Apache2          Python  Python  Apache2      3-Clause BSD
-Docs?            Extensive        Summary Summary Readme       Summary
-Benchmarks?      Yes              No      No      No           No
-Sources?         GitHub           GitHub  GitHub  GitHub       GitHub
-Pure-Python?     Yes              Yes     Yes     Yes          Yes
-Server?          No               No      No      No           No
-Integrations?    Django           None    None    None         None
-================ ================ ======= ======= ============ ============
+================ ============= ========= ========= ============ ============
+Project          diskcache     dbm       shelve    sqlitedict   pickleDB
+================ ============= ========= ========= ============ ============
+Tests?           Yes           Yes       Yes       Yes          Yes
+Coverage?        Yes           Yes       Yes       Yes          No
+Stress?          Yes           No        No        No           No
+CI Tests?        Linux/Windows Yes       Yes       Linux        No
+Python?          2/3/PyPy      All       All       2/3          2/3
+License?         Apache2       Python    Python    Apache2      3-Clause BSD
+Docs?            Extensive     Summary   Summary   Readme       Summary
+Benchmarks?      Yes           No        No        No           No
+Sources?         GitHub        GitHub    GitHub    GitHub       GitHub
+Pure-Python?     Yes           Yes       Yes       Yes          Yes
+Server?          No            No        No        No           No
+Integrations?    Django        None      None      None         None
+================ ============= ========= ========= ============ ============
 
 **Timings**
 
 These are very rough measurements. See `DiskCache Cache Benchmarks`_ for more
 rigorous data.
 
-================ ================ ======= ======= ============ ============
-Project          diskcache        dbm     shelve  sqlitedict   pickleDB
-================ ================ ======= ======= ============ ============
-get                         25 µs   36 µs   41 µs       513 µs        92 µs
-set                        198 µs  900 µs  928 µs       697 µs     1,020 µs
-delete                     248 µs  740 µs  702 µs     1,717 µs     1,020 µs
-================ ================ ======= ======= ============ ============
+================ ============= ========= ========= ============ ============
+Project          diskcache     dbm       shelve    sqlitedict   pickleDB
+================ ============= ========= ========= ============ ============
+get                      25 µs     36 µs     41 µs       513 µs        92 µs
+set                     198 µs    900 µs    928 µs       697 µs     1,020 µs
+delete                  248 µs    740 µs    702 µs     1,717 µs     1,020 µs
+================ ============= ========= ========= ============ ============
 
 Caching Libraries
 .................
