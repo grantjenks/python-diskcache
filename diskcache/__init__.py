@@ -1,4 +1,10 @@
-"DiskCache: disk and file backed cache."
+"""
+DiskCache API Reference
+=======================
+
+The :doc:`tutorial` provides a helpful walkthrough of most methods.
+
+"""
 
 from .core import Cache, Disk, EmptyDirWarning, UnknownFileWarning, Timeout
 from .core import DEFAULT_SETTINGS, ENOVAL, EVICTION_POLICY, UNKNOWN

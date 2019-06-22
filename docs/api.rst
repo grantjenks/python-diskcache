@@ -1,19 +1,17 @@
-DiskCache API Reference
-=======================
-
-The :doc:`tutorial` provides a helpful walkthrough of most methods.
+.. automodule:: diskcache
 
 .. contents::
    :local:
 
-DjangoCache
------------
+Cache
+-----
 
-Read the :ref:`DjangoCache tutorial <tutorial-djangocache>` for example usage.
+Read the :ref:`Cache tutorial <tutorial-cache>` for example usage.
 
-.. autoclass:: diskcache.DjangoCache
+.. autoclass:: diskcache.Cache
    :members:
    :special-members:
+   :exclude-members: __weakref__
 
 FanoutCache
 -----------
@@ -25,12 +23,27 @@ Read the :ref:`FanoutCache tutorial <tutorial-fanoutcache>` for example usage.
    :special-members:
    :exclude-members: __weakref__
 
-Cache
+DjangoCache
+-----------
+
+Read the :ref:`DjangoCache tutorial <tutorial-djangocache>` for example usage.
+
+.. autoclass:: diskcache.DjangoCache
+   :members:
+   :special-members:
+
+Deque
 -----
 
-Read the :ref:`Cache tutorial <tutorial-cache>` for example usage.
+.. autoclass:: diskcache.Deque
+   :members:
+   :special-members:
+   :exclude-members: __weakref__
 
-.. autoclass:: diskcache.Cache
+Index
+-----
+
+.. autoclass:: diskcache.Index
    :members:
    :special-members:
    :exclude-members: __weakref__
@@ -84,19 +97,3 @@ Timeout
 -------
 
 .. autoexception:: diskcache.Timeout
-
-Deque
------
-
-.. autoclass:: diskcache.Deque
-   :members:
-   :special-members:
-   :exclude-members: __weakref__
-
-Index
------
-
-.. autoclass:: diskcache.Index
-   :members:
-   :special-members:
-   :exclude-members: __weakref__
