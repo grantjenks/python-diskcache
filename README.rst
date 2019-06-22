@@ -99,13 +99,30 @@ Installing DiskCache is simple with
 You can access documentation in the interpreter with Python's built-in help
 function::
 
+  >>> import diskcache
+  >>> help(diskcache)
+
+// caching
+
   >>> from diskcache import Cache, FanoutCache, DjangoCache
   >>> help(Cache)
   >>> help(FanoutCache)
   >>> help(DjangoCache)
+
+// persistence
+
   >>> from diskcache import Deque, Index
   >>> help(Deque)
   >>> help(Index)
+
+// recipes
+
+  >>> from diskcache import memoize_stampede, Lock, throttle
+  >>> help(memoize_stampede)
+  >>> help(Lock)
+  >>> help(throttle)
+
+// tutorial and api are required reading
 
 User Guide
 ----------
