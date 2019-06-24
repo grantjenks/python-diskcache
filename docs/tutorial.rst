@@ -527,6 +527,15 @@ cross-thread and cross-process communication. :class:`Index <diskcache.Index>`
 objects are also useful in scenarios where contents should remain persistent or
 limitations prohibit holding all items in memory at the same time.
 
+.. _tutorial-recipes:
+
+Recipes
+-------
+
+.. todo::
+
+   Synchronization recipes.
+
 .. _tutorial-settings:
 
 Settings
@@ -723,8 +732,8 @@ cache statistics are being recorded).
 .. _`Python Anywhere`: https://www.pythonanywhere.com/
 .. _`Parallels`: https://www.parallels.com/
 
-Implementation Notes
---------------------
+Implementation
+--------------
 
 :doc:`DiskCache <index>` is mostly built on SQLite and the filesystem. Some
 techniques used to improve performance:

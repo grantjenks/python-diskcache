@@ -91,8 +91,7 @@ Features
 Quickstart
 ----------
 
-Installing DiskCache is simple with
-`pip <http://www.pip-installer.org/>`_::
+Installing `DiskCache`_ is simple with `pip <http://www.pip-installer.org/>`_::
 
   $ pip install diskcache
 
@@ -102,27 +101,43 @@ function::
   >>> import diskcache
   >>> help(diskcache)
 
-// caching
+The core of `DiskCache`_ is three data types intended for caching. `Cache`_
+objects manage a SQLite database and filesystem directory to store key and
+value pairs. `FanoutCache`_ provides a sharding layer to utilize multiple
+caches and `DjangoCache`_ integrates that with `Django`_::
 
   >>> from diskcache import Cache, FanoutCache, DjangoCache
   >>> help(Cache)
   >>> help(FanoutCache)
   >>> help(DjangoCache)
 
-// persistence
+Built atop the caching data types, are `Deque`_ and `Index`_ which work as a
+cross-process, persistent replacement for Python's ``collections.deque`` and
+``dict``. These implement the sequence and mapping container base classes::
 
   >>> from diskcache import Deque, Index
   >>> help(Deque)
   >>> help(Index)
 
-// recipes
+Finally, a number of `recipes`_ for cross-process synchronization are provided
+using an underlying cache. Features like memoization with cache stampede
+prevention, cross-process locking, and cross-process throttling are available::
 
   >>> from diskcache import memoize_stampede, Lock, throttle
   >>> help(memoize_stampede)
   >>> help(Lock)
   >>> help(throttle)
 
-// tutorial and api are required reading
+Python's docstrings are a quick way to get started but not intended as a
+replacement for the `DiskCache Tutorial`_ and `DiskCache API Reference`_.
+
+.. _`Cache`: http://www.grantjenks.com/docs/diskcache/tutorial.html#cache
+.. _`FanoutCache`: http://www.grantjenks.com/docs/diskcache/tutorial.html#fanoutcache
+.. _`DjangoCache`: http://www.grantjenks.com/docs/diskcache/tutorial.html#djangocache
+.. _`Django`: https://www.djangoproject.com/
+.. _`Deque`: http://www.grantjenks.com/docs/diskcache/tutorial.html#deque
+.. _`Index`: http://www.grantjenks.com/docs/diskcache/tutorial.html#index
+.. _`recipes`: http://www.grantjenks.com/docs/diskcache/tutorial.html#recipes
 
 User Guide
 ----------
