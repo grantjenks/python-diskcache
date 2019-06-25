@@ -374,6 +374,13 @@ a one second timeout. Operations will attempt to abort if they take longer than
 one second. The remaining API of :class:`FanoutCache <diskcache.FanoutCache>`
 matches :class:`Cache <diskcache.Cache>` as described above.
 
+The :class:`.FanoutCache` :ref:`size_limit <constants>` is used as the total
+size of the cache. The size limit of individual cache shards is the total size
+divided by the number of shards. In the example above, the default total size
+is one gigabyte and there are four shards so each cache shard has a size limit
+of 256 megabytes. Items that are larger than the size limit are immediately
+culled.
+
 Caches have an additional feature: :meth:`memoizing
 <diskcache.FanoutCache.memoize>` decorator. The decorator wraps a callable and
 caches arguments and return values.
