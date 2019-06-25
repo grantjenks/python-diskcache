@@ -18,14 +18,14 @@ Pip & PyPI
 Installing :doc:`DiskCache <index>` is simple with `pip
 <https://pip.pypa.io/en/stable/>`_::
 
-    $ pip install diskcache
+    $ pip install --upgrade diskcache
 
-or, with `easy_install <https://setuptools.readthedocs.io/en/latest/easy_install.html>`_::
-
-    $ easy_install diskcache
-
-But `prefer pip <https://packaging.python.org/pip_easy_install/>`_ if at all
-possible.
+The versioning scheme uses `major.minor.micro` with `micro` intended for bug
+fixes, `minor` intended for small features or improvements, and `major`
+intended for significant new features and breaking changes. While it is
+intended that only `major` version changes are backwards incompatible, it is
+not always guaranteed. When running in production, it is recommended to pin at
+least the `major` version.
 
 Get the Code
 ............
