@@ -557,6 +557,9 @@ Transactions
 
    Demonstrate use of transactions on Cache, Index, and Deque objects.
 
+   Missing from FanoutCache and DjangoCache due to sharding. Request Cache,
+   Index, or Deque object.
+
    Example, consistency: Averager
 
    Example, performance: get_many, set_many, delete_many
