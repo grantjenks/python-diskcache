@@ -51,12 +51,12 @@ or install it into your site-packages easily::
     $ python setup.py install
 
 :doc:`DiskCache <index>` is looking for a Debian package maintainer. If you can
-help, please open an issue in the `DiskCache Issue Tracker
-<https://github.com/grantjenks/python-diskcache/issues/>`_.
+help, please open an issue in the `DiskCache Issue Tracker`_.
 
 :doc:`DiskCache <index>` is looking for a CentOS/RPM package maintainer.  If
-you can help, please open an issue in the `DiskCache Issue Tracker
-<https://github.com/grantjenks/python-diskcache/issues/>`_.
+you can help, please open an issue in the `DiskCache Issue Tracker`_.
+
+.. _`DiskCache Issue Tracker`: https://github.com/grantjenks/python-diskcache/issues/
 
 .. _tutorial-cache:
 
