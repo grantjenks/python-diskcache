@@ -546,6 +546,23 @@ Recipes
 
    Synchronization recipes.
 
+   Update docs for recipes.
+
+.. _tutorial-transactions:
+
+Transactions
+------------
+
+.. todo::
+
+   Demonstrate use of transactions on Cache, Index, and Deque objects.
+
+   Example, consistency: Averager
+
+   Example, performance: get_many, set_many, delete_many
+
+   Update docs for Cache.transact, Deque.transact, Index.transact
+
 .. _tutorial-settings:
 
 Settings
