@@ -48,6 +48,8 @@ Index
    :special-members:
    :exclude-members: __weakref__
 
+.. _constants:
+
 Constants
 ---------
 

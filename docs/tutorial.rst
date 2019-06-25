@@ -193,6 +193,8 @@ The :meth:`pop <diskcache.Cache.pop>` operation is atomic and using :meth:`incr
 statistics in long-running systems. Unlike :meth:`get <diskcache.Cache.get>`
 the `read` argument is not supported.
 
+.. _tutorial-culling:
+
 Another four methods remove items from the cache::
 
     >>> cache.clear()
@@ -645,22 +647,27 @@ accessible at :data:`diskcache.DEFAULT_SETTINGS`.
 Eviction Policies
 -----------------
 
-:doc:`DiskCache <index>` supports three eviction policies each with different
+:doc:`DiskCache <index>` supports four eviction policies each with different
 tradeoffs for accessing and storing items.
 
-* `Least Recently Stored` is the default. Every cache item records the time it
-  was stored in the cache. This policy adds an index to that field. On access,
-  no update is required. Keys are evicted starting with the oldest stored
-  keys. As :doc:`DiskCache <index>` was intended for large caches (gigabytes)
-  this policy usually works well enough in practice.
-* `Least Recently Used` is the most commonly used policy. An index is added to
-  the access time field stored in the cache database. On every access, the
+* ``"least-recently-stored"`` is the default. Every cache item records the time
+  it was stored in the cache. This policy adds an index to that field. On
+  access, no update is required. Keys are evicted starting with the oldest
+  stored keys. As :doc:`DiskCache <index>` was intended for large caches
+  (gigabytes) this policy usually works well enough in practice.
+* ``"least-recently-used"`` is the most commonly used policy. An index is added
+  to the access time field stored in the cache database. On every access, the
   field is updated. This makes every access into a read and write which slows
   accesses.
-* `Least Frequently Used` works well in some cases. An index is added to the
-  access count field stored in the cache database. On every access, the field
-  is incremented. Every access therefore requires writing the database which
-  slows accesses.
+* ``"least-frequently-used"`` works well in some cases. An index is added to
+  the access count field stored in the cache database. On every access, the
+  field is incremented. Every access therefore requires writing the database
+  which slows accesses.
+* ``"none"`` disables cache evictions. Caches will grow in size without
+  bound. Cache items will still be lazily removed if they expire. The
+  persistent data types, :class:`.Deque` and :class:`.Index`, use the
+  ``"none"`` eviction policy. For :ref:`lazy culling <tutorial-culling>` use
+  the :ref:`cull_limit <constants>` setting instead.
 
 All clients accessing the cache are expected to use the same eviction
 policy. The policy can be set during initialization using a keyword argument.
