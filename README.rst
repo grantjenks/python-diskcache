@@ -112,7 +112,7 @@ caches and `DjangoCache`_ integrates that with `Django`_::
   >>> help(DjangoCache)
 
 Built atop the caching data types, are `Deque`_ and `Index`_ which work as a
-cross-process, persistent replacement for Python's ``collections.deque`` and
+cross-process, persistent replacements for Python's ``collections.deque`` and
 ``dict``. These implement the sequence and mapping container base classes::
 
   >>> from diskcache import Deque, Index
