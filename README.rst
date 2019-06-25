@@ -149,6 +149,7 @@ tutorial, benchmarks, API, and development.
 * `DiskCache Cache Benchmarks`_
 * `DiskCache DjangoCache Benchmarks`_
 * `Case Study: Web Crawler`_
+* `Case Study: Landing Page Caching`_
 * `Talk: All Things Cached - SF Python 2017 Meetup`_
 * `DiskCache API Reference`_
 * `DiskCache Development`_
@@ -158,6 +159,7 @@ tutorial, benchmarks, API, and development.
 .. _`DiskCache DjangoCache Benchmarks`: http://www.grantjenks.com/docs/diskcache/djangocache-benchmarks.html
 .. _`Talk: All Things Cached - SF Python 2017 Meetup`: http://www.grantjenks.com/docs/diskcache/sf-python-2017-meetup-talk.html
 .. _`Case Study: Web Crawler`: http://www.grantjenks.com/docs/diskcache/case-study-web-crawler.html
+.. _`Case Study: Landing Page Caching`: http://www.grantjenks.com/docs/diskcache/case-study-landing-page-caching.html
 .. _`DiskCache API Reference`: http://www.grantjenks.com/docs/diskcache/api.html
 .. _`DiskCache Development`: http://www.grantjenks.com/docs/diskcache/development.html
 
