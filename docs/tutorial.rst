@@ -65,22 +65,22 @@ Cache
 
 The core of :doc:`DiskCache <index>` is :class:`diskcache.Cache` which
 represents a disk and file backed cache. As a Cache, it supports a familiar
-Python Mapping interface with additional cache and performance parameters.
+Python mapping interface with additional cache and performance parameters.
 
     >>> from diskcache import Cache
     >>> cache = Cache()
 
-Initialization requires a directory path reference. If the directory path does
-not exist, it will be created. Additional keyword parameters are discussed
-below. Cache objects are thread-safe and may be shared between threads. Two
-Cache objects may also reference the same directory from separate threads or
-processes. In this way, they are also process-safe and support cross-process
-communication.
+Initialization expects a directory path reference. If the directory path does
+not exist, it will be created. When not specified, a temporary directory is
+automatically created. Additional keyword parameters are discussed below. Cache
+objects are thread-safe and may be shared between threads. Two Cache objects
+may also reference the same directory from separate threads or processes. In
+this way, they are also process-safe and support cross-process communication.
 
 Cache objects open and maintain one or more file handles. But unlike files, all
 Cache operations are atomic and Cache objects support process-forking and may
 be serialized using Pickle. Each thread that accesses a cache should also call
-:meth:`close <diskcache.Cache.close>` on the cache. Cache objects can be used
+:meth:`close <.Cache.close>` on the cache. Cache objects can be used
 in a `with` statement to safeguard calling :meth:`close
 <diskcache.Cache.close>`.
 
@@ -89,8 +89,8 @@ in a `with` statement to safeguard calling :meth:`close
     ...     pass
 
 Closed Cache objects will automatically re-open when accessed. But opening
-Cache objects is relatively slow, and since all operations are atomic, you can
-safely leave Cache objects open.
+Cache objects is relatively slow, and since all operations are atomic, may be
+safely left open.
 
     >>> cache.set('key', 'value')
     True
@@ -167,8 +167,7 @@ decrementing a missing key will raise a :exc:`KeyError`.
     KeyError: 'carol'
 
 Increment and decrement operations are atomic and assume the value may be
-stored in a SQLite column. Most builds that target machines with 64-bit pointer
-widths will support 64-bit signed integers.
+stored in a SQLite integer column. SQLite supports 64-bit signed integers.
 
 Like :meth:`delete <diskcache.Cache.delete>` and :meth:`get
 <diskcache.Cache.get>`, the method :meth:`pop <diskcache.Cache.pop>` can be
@@ -194,7 +193,7 @@ The :meth:`pop <diskcache.Cache.pop>` operation is atomic and using :meth:`incr
 statistics in long-running systems. Unlike :meth:`get <diskcache.Cache.get>`
 the `read` argument is not supported.
 
-Another four methods remove items from the cache.
+Another four methods remove items from the cache::
 
     >>> cache.clear()
     3
@@ -318,12 +317,19 @@ consistency. It can also fix inconsistencies and reclaim unused space. The
 return value is a list of warnings.
 
     >>> warnings = cache.check()
+
+Caches do not automatically remove the underlying directory where keys and
+values are stored. The cache is intended to be persistent and so must be
+deleted manually.
+
     >>> cache.close()
     >>> import shutil
     >>> try:
     ...     shutil.rmtree(cache.directory)
     ... except OSError:  # Windows wonkiness
     ...     pass
+
+To permanently delete the cache, recursively remove the cache's directory.
 
 .. _tutorial-fanoutcache:
 
