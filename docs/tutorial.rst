@@ -479,7 +479,7 @@ Deque
 <https://docs.python.org/3/library/collections.html#collections.deque>`_-compatible
 double-ended queue. Deques are a generalization of stacks and queues with fast
 access and editing at both front and back sides. :class:`Deque
-<diskcache.Deque>` objects inherit the benefits of the :class:`Cache
+<diskcache.Deque>` objects inherit the benefits of :class:`Cache
 <diskcache.Cache>` objects but never evict items.
 
     >>> from diskcache import Deque
@@ -512,7 +512,7 @@ Index
 <https://docs.python.org/3/library/collections.abc.html#collections-abstract-base-classes>`_
 and `ordered dictionary
 <https://docs.python.org/3/library/collections.html#collections.OrderedDict>`_
-interface. :class:`Index <diskcache.Index>` objects inherit the benefits of
+interface. :class:`Index <diskcache.Index>` objects inherit all the benefits of
 :class:`Cache <diskcache.Cache>` objects but never evict items.
 
     >>> from diskcache import Index
@@ -533,7 +533,9 @@ interface. :class:`Index <diskcache.Index>` objects inherit the benefits of
 :class:`Index <diskcache.Index>` objects provide an efficient and safe means of
 cross-thread and cross-process communication. :class:`Index <diskcache.Index>`
 objects are also useful in scenarios where contents should remain persistent or
-limitations prohibit holding all items in memory at the same time.
+limitations prohibit holding all items in memory at the same time. The index
+uses a fixed amout of memory regardless of the size or number of items stored
+inside it.
 
 .. _tutorial-recipes:
 
