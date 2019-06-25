@@ -348,17 +348,19 @@ transactions. Transactions are used for every operation that writes to the
 database. When the timeout expires, a :exc:`diskcache.Timeout` error is raised
 internally. This `timeout` parameter is also present on
 :class:`diskcache.Cache`. When a :exc:`Timeout <diskcache.Timeout>` error
-occurs in :class:`Cache <diskcache.Cache>` methods, the exception is raised to
-the caller. In contrast, :class:`FanoutCache <diskcache.FanoutCache>` catches
-timeout errors and aborts the operation. As a result, :meth:`set
+occurs in :class:`Cache <diskcache.Cache>` methods, the exception may be raised
+to the caller. In contrast, :class:`FanoutCache <diskcache.FanoutCache>`
+catches all timeout errors and aborts the operation. As a result, :meth:`set
 <diskcache.FanoutCache.set>` and :meth:`delete <diskcache.FanoutCache.delete>`
-methods may silently fail. Most methods that handle :exc:`Timeout
-<diskcache.Timeout>` exceptions also include a `retry` keyword parameter
-(default ``False``) to automatically repeat attempts that timeout. The Mapping
-interface operators: :meth:`cache[key] <diskcache.FanoutCache.__getitem__>`,
-:meth:`cache[key] = value <diskcache.FanoutCache.__setitem__>`, and :meth:`del
-cache[key] <diskcache.FanoutCache.__delitem__>` automatically retry operations
-when :exc:`Timeout <diskcache.Timeout>` errors occur. :class:`FanoutCache
+methods may silently fail.
+
+Most methods that handle :exc:`Timeout <diskcache.Timeout>` exceptions also
+include a `retry` keyword parameter (default ``False``) to automatically repeat
+attempts that timeout. The mapping interface operators: :meth:`cache[key]
+<diskcache.FanoutCache.__getitem__>`, :meth:`cache[key] = value
+<diskcache.FanoutCache.__setitem__>`, and :meth:`del cache[key]
+<diskcache.FanoutCache.__delitem__>` automatically retry operations when
+:exc:`Timeout <diskcache.Timeout>` errors occur. :class:`FanoutCache
 <diskcache.FanoutCache>` will never raise a :exc:`Timeout <diskcache.Timeout>`
 exception. The default `timeout` is 0.010 (10 milliseconds).
 
