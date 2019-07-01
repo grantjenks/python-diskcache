@@ -606,32 +606,60 @@ limitations prohibit holding all items in memory at the same time. The index
 uses a fixed amout of memory regardless of the size or number of items stored
 inside it.
 
-.. _tutorial-recipes:
-
-Recipes
--------
-
-.. todo::
-
-   Synchronization recipes.
-
-   Update docs for recipes.
-
 .. _tutorial-transactions:
 
 Transactions
 ------------
 
-.. todo::
+Transactions are implemented by the :class:`.Cache`, :class:`.Deque`, and
+:class:`.Index` data types and support consistency and improved
+performance. Use transactions to guarantee a group of operations occur
+atomically. For example, to calculate a running average, the total and count
+could be incremented together::
 
-   Demonstrate use of transactions on Cache, Index, and Deque objects.
+    >>> with cache.transact():
+    ...     total = cache.incr('total', 123.45)
+    ...     count = cache.incr('count')
+    >>> total
+    123.45
+    >>> count
+    1
 
-   Missing from FanoutCache and DjangoCache due to sharding. Request Cache,
-   Index, or Deque object.
+And to calculate the average, the values could be retrieved together:
 
-   Example, consistency: Averager
+    >>> with cache.transact():
+    ...     total = cache.get('total')
+    ...     count = cache.get('count')
+    >>> average = None if count == 0 else total / count
+    >>> average
+    123.45
 
-   Example, performance: get_many, set_many, delete_many
+Keep transactions as short as possible because within a transaction, no other
+writes may occur to the cache. Every write operation uses a transaction and
+transactions may be nested to improve performance. For example, a possible
+implementation to set many items within the cache::
+
+    >>> def set_many(cache, mapping):
+    ...     with cache.transact():
+    ...         for key, value in mapping.items():
+    ...             cache[key] = value
+
+By grouping all operations in a single transaction, performance may improve two
+to five times. But be careful, a large mapping will block other concurrent
+writers.
+
+Transactions are not implemented by :class:`.FanoutCache` and
+:class:`.DjangoCache` due to key sharding. Instead, a cache shard with
+transaction support may be requested.
+
+    >>> fanout_cache = FanoutCache()
+    >>> tutorial_cache = fanout_cache.cache('tutorial')
+    >>> username_queue = fanout_cache.deque('usernames')
+    >>> url_to_response = fanout_cache.index('responses')
+
+The cache shard exists in a subdirectory of the fanout-cache with the given
+name.
+
 .. _tutorial-recipes:
 
 Recipes
