@@ -48,6 +48,27 @@ Index
    :special-members:
    :exclude-members: __weakref__
 
+Recipes
+-------
+
+.. autoclass:: diskcache.Averager
+   :members:
+
+.. autoclass:: diskcache.Lock
+   :members:
+
+.. autoclass:: diskcache.RLock
+   :members:
+
+.. autoclass:: diskcache.BoundedSemaphore
+   :members:
+
+.. autodecorator:: diskcache.throttle
+
+.. autodecorator:: diskcache.barrier
+
+.. autodecorator:: diskcache.memoize_stampede
+
 .. _constants:
 
 Constants

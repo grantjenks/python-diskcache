@@ -630,8 +630,28 @@ Transactions
    Example, consistency: Averager
 
    Example, performance: get_many, set_many, delete_many
+.. _tutorial-recipes:
 
-   Update docs for Cache.transact, Deque.transact, Index.transact
+Recipes
+-------
+
+:doc:`DiskCache <index>` includes a few synchronization recipes for
+cross-thread and cross-process communication:
+
+* :class:`.Averager` -- maintains a running average like that shown above.
+* :class:`.Lock`, :class:`.RLock`, and :class:`.BoundedSemaphore` -- recipes
+  for synchronization around critical sections like those found in Python's
+  `threading`_ and `multiprocessing`_ modules.
+* :func:`throttle <.throttle>` -- function decorator to rate-limit calls to a
+  function.
+* :func:`barrier <.barrier>` -- function decorator to synchronize calls to a
+  function.
+* :func:`memoize_stampede <.memoize_stampede>` -- memoizing function decorator
+  with cache stampede protection. Read :doc:`case-study-landing-page-caching`
+  for a comparison of memoization strategies.
+
+.. _threading: https://docs.python.org/3/library/threading.html
+.. _multiprocessing: https://docs.python.org/3/library/multiprocessing.html
 
 .. _tutorial-settings:
 
