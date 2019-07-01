@@ -280,8 +280,8 @@ remove items until the cache volume is less than the size limit.
     True
 
 Some users may defer all culling to a cron-like process by setting the
-:ref:`cull_limit <tutorial-settings>` to zero and calling :meth:`cull
-<diskcache.Cache.cull>` to manually remove items. Like :meth:`evict
+:ref:`cull_limit <tutorial-settings>` to zero and manually calling :meth:`cull
+<diskcache.Cache.cull>` to remove items. Like :meth:`evict
 <diskcache.Cache.evict>` and :meth:`expire <diskcache.Cache.expire>`, calls to
 :meth:`cull <diskache.Cache.cull>` will work regardless of the :ref:`cull_limit
 <tutorial-settings>`.
