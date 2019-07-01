@@ -314,6 +314,36 @@ keys will be serialized which is likely to have a meaningless sorted order.
 If only the first or last item in insertion order is desired then
 :meth:`peekitem <.Cache.peekitem>` is more efficient than using iteration.
 
+Three additional methods use the sorted ordering of keys to maintain a
+queue-like data structure within the cache. The :meth:`push <.Cache.push>`,
+:meth:`pull <.Cache.pull>`, and :meth:`peek <.Cache.peek>` methods
+automatically assign the key within the cache.
+
+    >>> key = cache.push('first')
+    >>> print(key)
+    500000000000000
+    >>> cache[key]
+    'first'
+    >>> _ = cache.push('second')
+    >>> _ = cache.push('zeroth', side='front')
+    >>> _, value = cache.peek()
+    >>> value
+    'zeroth'
+    >>> key, value = cache.pull()
+    >>> print(key)
+    499999999999999
+    >>> value
+    'zeroth'
+
+The `side` parameter supports access to either the ``'front'`` or ``'back'`` of
+the cache. In addition, the `prefix` parameter can be used to maintain multiple
+queue-like data structures within a single cache. When prefix is ``None``,
+integer keys are used. Otherwise, string keys are used in the format
+“prefix-integer”. Integer starts at 500 trillion. Like :meth:`set <.Cache.set>`
+and :meth:`get <.Cache.get>`, methods :meth:`push <.Cache.push>`, :meth:`pull
+<.Cache.pull>`, and :meth:`peek <.Cache.peek>` support cache metadata like the
+expiration time and tag.
+
 Lastly, three methods support metadata about the cache. The first is
 :meth:`volume <diskcache.Cache.volume>` which returns the estimated total size
 in bytes of the cache directory on disk.
