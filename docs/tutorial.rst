@@ -545,8 +545,9 @@ Deque
 <https://docs.python.org/3/library/collections.html#collections.deque>`_-compatible
 double-ended queue. Deques are a generalization of stacks and queues with fast
 access and editing at both front and back sides. :class:`Deque
-<diskcache.Deque>` objects inherit the benefits of :class:`Cache
-<diskcache.Cache>` objects but never evict items.
+<diskcache.Deque>` objects use the :meth:`push <.Cache.push>`, :meth:`pull
+<.Cache.pull>`, and :meth:`peek <.Cache.peek>` methods of :class:`Cache
+<.Cache>` objects but never evict or expire items.
 
     >>> from diskcache import Deque
     >>> deque = Deque(range(5, 10))
@@ -579,7 +580,7 @@ Index
 and `ordered dictionary
 <https://docs.python.org/3/library/collections.html#collections.OrderedDict>`_
 interface. :class:`Index <diskcache.Index>` objects inherit all the benefits of
-:class:`Cache <diskcache.Cache>` objects but never evict items.
+:class:`Cache <diskcache.Cache>` objects but never evict or expire items.
 
     >>> from diskcache import Index
     >>> index = Index([('a', 1), ('b', 2), ('c', 3)])
