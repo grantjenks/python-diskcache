@@ -294,6 +294,26 @@ Some users may defer all culling to a cron-like process by setting the
 Each of these methods is designed to work concurrent to others. None of them
 block readers or writers in other threads or processes.
 
+Caches may be iterated by either insertion order or sorted order. The default
+ordering uses insertion order. To iterate by sorted order, use :meth:`iterkeys
+<.Cache.iterkeys>`. The sort order is determined by the database which makes it
+valid only for `str`, `bytes`, `int`, and `float` data types. Other types of
+keys will be serialized which is likely to have a meaningless sorted order.
+
+    >>> for key in 'cab':
+    ...     cache[key] = None
+    >>> list(cache)
+    ['c', 'a', 'b']
+    >>> list(cache.iterkeys())
+    ['a', 'b', 'c']
+    >>> cache.peekitem()
+    ('b', None)
+    >>> cache.peekitem(last=False)
+    ('c', None)
+
+If only the first or last item in insertion order is desired then
+:meth:`peekitem <.Cache.peekitem>` is more efficient than using iteration.
+
 Lastly, three methods support metadata about the cache. The first is
 :meth:`volume <diskcache.Cache.volume>` which returns the estimated total size
 in bytes of the cache directory on disk.
