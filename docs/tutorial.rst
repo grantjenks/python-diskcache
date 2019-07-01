@@ -131,6 +131,14 @@ The return value is a tuple containing the value, expire time (seconds from
 epoch), and tag. Because we passed ``read=True`` the value is returned as a
 file-like object.
 
+Use :meth:`touch <.Cache.touch>` to update the expiration time of an item in
+the cache.
+
+    >>> cache.touch('key', expire=None)
+    True
+    >>> cache.touch('does-not-exist', expire=1)
+    False
+
 Like :meth:`set <diskcache.Cache.set>`, the method :meth:`add
 <diskcache.Cache.add>` can be used to insert an item in the cache. The item is
 inserted only if the key is not already present.
