@@ -33,15 +33,17 @@ class Averager(object):
     total and count. The average can then be calculated at any time.
 
     >>> import diskcache
-    >>> cache = diskcache.Cache()
+    >>> cache = diskcache.FanoutCache()
     >>> ave = Averager(cache, 'latency')
     >>> ave.add(0.080)
     >>> ave.add(0.120)
     >>> ave.get()
     0.1
     >>> ave.add(0.160)
-    >>> ave.get()
+    >>> ave.pop()
     0.12
+    >>> print(ave.get())
+    None
 
     """
     def __init__(self, cache, key, expire=None, tag=None):
@@ -61,14 +63,14 @@ class Averager(object):
             )
 
     def get(self):
-        "Get current average."
+        "Get current average or return `None` if count equals zero."
         total, count = self._cache.get(self._key, default=(0.0, 0), retry=True)
-        return 0.0 if count == 0 else total / count
+        return None if count == 0 else total / count
 
     def pop(self):
-        "Return current average and reset average to 0.0."
+        "Return current average and delete key."
         total, count = self._cache.pop(self._key, default=(0.0, 0), retry=True)
-        return 0.0 if count == 0 else total / count
+        return None if count == 0 else total / count
 
 
 class Lock(object):
@@ -178,7 +180,7 @@ class BoundedSemaphore(object):
 
     >>> import diskcache
     >>> cache = diskcache.Cache()
-    >>> semaphore = BoundedSemaphore(cache, 'max-connections', value=2)
+    >>> semaphore = BoundedSemaphore(cache, 'max-cons', value=2)
     >>> semaphore.acquire()
     >>> semaphore.acquire()
     >>> semaphore.release()
@@ -242,7 +244,7 @@ def throttle(cache, count, seconds, name=None, expire=None, tag=None,
     >>> start = time.time()
     >>> while (time.time() - start) <= 2:
     ...     increment()
-    >>> count in (6, 7)  # 6 or 7 calls depending on processor load
+    >>> count in (6, 7)  # 6 or 7 calls depending on CPU load
     True
 
     """
@@ -329,7 +331,7 @@ def memoize_stampede(cache, expire, name=None, typed=False, tag=None, beta=1):
     probabilistically before expiration in a background thread of
     execution. Early probabilistic recomputation is based on research by
     Vattani, A.; Chierichetti, F.; Lowenstein, K. (2015), Optimal Probabilistic
-    Cache Stampede Prevention, VLDB, pp. 886?897, ISSN 2150-8097
+    Cache Stampede Prevention, VLDB, pp. 886-897, ISSN 2150-8097
 
     If name is set to None (default), the callable name will be determined
     automatically.
@@ -338,27 +340,27 @@ def memoize_stampede(cache, expire, name=None, typed=False, tag=None, beta=1):
     cached separately. For example, f(3) and f(3.0) will be treated as distinct
     calls with distinct results.
 
-    The original underlying function is accessible through the __wrapped__
+    The original underlying function is accessible through the `__wrapped__`
     attribute. This is useful for introspection, for bypassing the cache, or
     for rewrapping the function with a different cache.
 
     >>> from diskcache import Cache
     >>> cache = Cache()
     >>> @memoize_stampede(cache, expire=1)
-    ... def fibonacci(number):
+    ... def fib(number):
     ...     if number == 0:
     ...         return 0
     ...     elif number == 1:
     ...         return 1
     ...     else:
-    ...         return fibonacci(number - 1) + fibonacci(number - 2)
-    >>> print(fibonacci(100))
+    ...         return fib(number - 1) + fib(number - 2)
+    >>> print(fib(100))
     354224848179261915075
 
     An additional `__cache_key__` attribute can be used to generate the cache
     key used for the given arguments.
 
-    >>> key = fibonacci.__cache_key__(100)
+    >>> key = fib.__cache_key__(100)
     >>> del cache[key]
 
     Remember to call memoize when decorating a callable. If you forget, then a
