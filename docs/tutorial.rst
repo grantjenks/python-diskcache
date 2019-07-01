@@ -865,24 +865,37 @@ floats, equality matches Python's definition. But large integers and all other
 types will be converted to bytes using pickling and the bytes representation
 will define equality.
 
-:doc:`DiskCache <index>` uses SQLite to synchronize database access between
-threads and processes and as such inherits all SQLite caveats. Most notably
-SQLite is `not recommended`_ for use with Network File System (NFS) mounts. For
-this reason, :doc:`DiskCache <index>` currently `performs poorly`_ on `Python
-Anywhere`_. Users have also reported issues running inside of `Parallels`_
-shared folders.
+SQLite is used to synchronize database access between threads and processes and
+as such inherits all SQLite caveats. Most notably SQLite is `not recommended`_
+for use with Network File System (NFS) mounts. For this reason, :doc:`DiskCache
+<index>` currently `performs poorly`_ on `Python Anywhere`_. Users have also
+reported issues running inside of `Parallels`_ shared folders.
 
-:doc:`DiskCache <index>` uses transactions when writing data to disk using
-SQLite. When the disk or database is full, a :exc:`sqlite3.OperationalError`
-will be raised from any method that attempts to write data. Read operations
-will still succeed so long as they do not cause any write (as might occur if
-cache statistics are being recorded).
+When the disk or database is full, a :exc:`sqlite3.OperationalError` will be
+raised from any method that attempts to write data. Read operations will still
+succeed so long as they do not cause any write (as might occur if cache
+statistics are being recorded).
+
+Asynchronous support using Python's ``async`` and ``await`` keywords and
+`asyncio`_ module is blocked by a lack of support in the underlying SQLite
+module. But it is possible to run :doc:`DiskCache <index>` methods in a
+thread-pool executor asynchronously. For example::
+
+    >>> import asyncio
+    >>> async def set_async(key, val):
+    ...     loop = asyncio.get_running_loop()
+    ...     future = loop.run_in_executor(None, cache.set, key, val)
+    ...     result = await future
+    ...     return result
+    >>> asyncio.run(set_async('test-key', 'test-value'))
+    True
 
 .. _`hash protocol`: https://docs.python.org/library/functions.html#hash
 .. _`not recommended`: https://www.sqlite.org/faq.html#q5
 .. _`performs poorly`: https://www.pythonanywhere.com/forums/topic/1847/
 .. _`Python Anywhere`: https://www.pythonanywhere.com/
 .. _`Parallels`: https://www.parallels.com/
+.. _`asyncio`: https://docs.python.org/3/library/asyncio.html
 
 Implementation
 --------------
