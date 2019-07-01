@@ -569,7 +569,9 @@ access and editing at both front and back sides. :class:`Deque
 :class:`Deque <diskcache.Deque>` objects provide an efficient and safe means of
 cross-thread and cross-process communication. :class:`Deque <diskcache.Deque>`
 objects are also useful in scenarios where contents should remain persistent or
-limitations prohibit holding all items in memory at the same time.
+limitations prohibit holding all items in memory at the same time. The deque
+uses a fixed amout of memory regardless of the size or number of items stored
+inside it.
 
 Index
 -----
