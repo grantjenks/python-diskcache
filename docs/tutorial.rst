@@ -86,14 +86,13 @@ in a `with` statement to safeguard calling :meth:`close
 
     >>> cache.close()
     >>> with Cache(cache.directory) as reference:
-    ...     pass
+    ...     reference.set('key', 'value')
+    True
 
 Closed Cache objects will automatically re-open when accessed. But opening
 Cache objects is relatively slow, and since all operations are atomic, may be
 safely left open.
 
-    >>> cache.set('key', 'value')
-    True
     >>> cache.close()
     >>> cache.get('key')  # Automatically opens, but slower.
     'value'
