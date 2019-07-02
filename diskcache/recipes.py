@@ -321,10 +321,10 @@ def barrier(cache, lock_factory, name=None, expire=None, tag=None):
 def memoize_stampede(cache, expire, name=None, typed=False, tag=None, beta=1):
     """Memoizing cache decorator with cache stampede protection.
 
-    Cache stampedes are a type of cascading failure that can occur when
-    parallel computing systems using memoization come under heavy load. This
-    behaviour is sometimes also called dog-piling, cache miss storm, cache
-    choking, or the thundering herd problem.
+    Cache stampedes are a type of system overload that can occur when parallel
+    computing systems using memoization come under heavy load. This behaviour
+    is sometimes also called dog-piling, cache miss storm, cache choking, or
+    the thundering herd problem.
 
     The memoization decorator implements cache stampede protection through
     early recomputation. Early recomputation of function results will occur
