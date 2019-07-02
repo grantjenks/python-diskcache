@@ -881,14 +881,15 @@ Asynchronous support using Python's ``async`` and ``await`` keywords and
 module. But it is possible to run :doc:`DiskCache <index>` methods in a
 thread-pool executor asynchronously. For example::
 
-    >>> import asyncio
-    >>> async def set_async(key, val):
-    ...     loop = asyncio.get_running_loop()
-    ...     future = loop.run_in_executor(None, cache.set, key, val)
-    ...     result = await future
-    ...     return result
-    >>> asyncio.run(set_async('test-key', 'test-value'))
-    True
+    import asyncio
+
+    async def set_async(key, val):
+        loop = asyncio.get_running_loop()
+        future = loop.run_in_executor(None, cache.set, key, val)
+        result = await future
+        return result
+
+    asyncio.run(set_async('test-key', 'test-value'))
 
 .. _`hash protocol`: https://docs.python.org/library/functions.html#hash
 .. _`not recommended`: https://www.sqlite.org/faq.html#q5
