@@ -8,10 +8,13 @@ sometimes also called dog-piling, cache miss storm, cache choking, or the
 thundering herd problem. Let's look at how that applies to landing page
 caching.
 
-    >>> import time
-    >>> def generate_landing_page():
-    ...     time.sleep(0.2)  # Work really hard.
-    ...     # Return HTML response.
+.. code-block:: python
+
+   import time
+
+   def generate_landing_page():
+       time.sleep(0.2)  # Work really hard.
+       # Return HTML response.
 
 Imagine a website under heavy load with a function used to generate the landing
 page. There are five processes each with two threads for a total of ten
@@ -24,11 +27,16 @@ When we look at the number of concurrent workers and the latency with no
 caching at all, the graph looks as above. Notice each worker constantly
 regenerates the page with a consistently slow latency.
 
-    >>> import diskcache as dc
-    >>> cache = dc.Cache()
-    >>> @cache.memoize(expire=1)
-    ... def generate_landing_page():
-    ...     time.sleep(0.2)
+.. code-block:: python
+   :emphasize-lines: 5
+
+   import diskcache as dc
+
+   cache = dc.Cache()
+
+   @cache.memoize(expire=1)
+   def generate_landing_page():
+       time.sleep(0.2)
 
 Assume the result of generating the landing page can be memoized for one
 second. Memoization supports a traditional caching strategy. After each second,
@@ -43,13 +51,16 @@ the landing page requires significant resources then the spikes may be
 prohibitive.
 
 To reduce the number of concurrent workers, a barrier can be used to
-synchronize generating the landing page::
+synchronize generating the landing page.
 
-    >>> @cache.memoize(expire=0)
-    ... @dc.barrier(cache, dc.Lock)
-    ... @cache.memoize(expire=1)
-    ... def generate_landing_page():
-    ...     time.sleep(0.2)
+.. code-block:: python
+   :emphasize-lines: 1,2,3
+
+   @cache.memoize(expire=0)
+   @dc.barrier(cache, dc.Lock)
+   @cache.memoize(expire=1)
+   def generate_landing_page():
+       time.sleep(0.2)
 
 The double-checked locking uses two memoization decorators to optimistically
 look up the cached result before locking. With `expire` set to zero, the
@@ -69,9 +80,12 @@ recomputation would be a function of the number of workers, the expiration
 time, and the duration of computation. Fortunately, Vattani, et al. published
 the solution in "Optimal Probabilistic Cache Stampede Prevention" in 2015.
 
-    >>> @dc.memoize_stampede(cache, expire=1)
-    ... def generate_landing_page():
-    ...     time.sleep(0.2)
+.. code-block:: python
+   :emphasize-lines: 1
+
+   @dc.memoize_stampede(cache, expire=1)
+   def generate_landing_page():
+       time.sleep(0.2)
 
 Early probabilistic recomputation uses a random number generator to simulate a
 cache miss prior to expiration. The new result is then computed in a separate
@@ -86,9 +100,12 @@ cache. Behind the scenes, separate threads of execution are recomputing the
 result of workers and updating the cache. The concurrency graph shows a nearly
 constant stream of workers recomputing the function's result.
 
-    >>> @dc.memoize_stampede(cache, expire=1, beta=0.5)
-    ... def generate_landing_page():
-    ...     time.sleep(0.2)
+.. code-block:: python
+   :emphasize-lines: 1
+
+   @dc.memoize_stampede(cache, expire=1, beta=0.5)
+   def generate_landing_page():
+       time.sleep(0.2)
 
 Vattani described an additional parameter, :math:`\beta`, which could be used
 to tune the eagerness of recomputation. As the number and frequency of
@@ -102,9 +119,12 @@ Latency is now still its theoretical best while the worker load has decreased
 significantly. The likelihood of simulated cache misses is now half what it was
 before. The value was determined through experimentation.
 
-    >>> @dc.memoize_stampede(cache, expire=1, beta=0.3)
-    ... def generate_landing_page():
-    ...     time.sleep(0.2)
+.. code-block:: python
+   :emphasize-lines: 1
+
+   @dc.memoize_stampede(cache, expire=1, beta=0.3)
+   def generate_landing_page():
+       time.sleep(0.2)
 
 Lets see what happens when :math:`\beta` is set too low.
 
