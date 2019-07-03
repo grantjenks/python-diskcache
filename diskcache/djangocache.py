@@ -368,6 +368,10 @@ class DjangoCache(BaseCache):
         If name is set to None (default), the callable name will be determined
         automatically.
 
+        When timeout is set to zero, function results will not be set in the
+        cache. Cache lookups still occur, however. Read
+        :doc:`case-study-landing-page-caching` for example usage.
+
         If typed is set to True, function arguments of different types will be
         cached separately. For example, f(3) and f(3.0) will be treated as
         distinct calls with distinct results.
@@ -407,9 +411,10 @@ class DjangoCache(BaseCache):
 
                 if result is ENOVAL:
                     result = func(*args, **kwargs)
-                    self.set(
-                        key, result, timeout, version, tag=tag, retry=True,
-                    )
+                    if timeout is None or timeout > 0:
+                        self.set(
+                            key, result, timeout, version, tag=tag, retry=True,
+                        )
 
                 return result
 

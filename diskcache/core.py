@@ -737,9 +737,6 @@ class Cache(object):
         When `read` is `True`, `value` should be a file-like object opened
         for reading in binary mode.
 
-        If `expire` is less than or equal to zero then immediately returns
-        `False`.
-
         Raises :exc:`Timeout` error when database timeout occurs and `retry` is
         `False` (default).
 
@@ -754,9 +751,6 @@ class Cache(object):
         :raises Timeout: if database timeout occurs
 
         """
-        if expire is not None and expire <= 0:
-            return False
-
         now = time.time()
         db_key, raw = self._disk.put(key)
         expire_time = None if expire is None else now + expire
@@ -1779,6 +1773,10 @@ class Cache(object):
         If name is set to None (default), the callable name will be determined
         automatically.
 
+        When expire is set to zero, function results will not be set in the
+        cache. Cache lookups still occur, however. Read
+        :doc:`case-study-landing-page-caching` for example usage.
+
         If typed is set to True, function arguments of different types will be
         cached separately. For example, f(3) and f(3.0) will be treated as
         distinct calls with distinct results.
@@ -1843,7 +1841,8 @@ class Cache(object):
 
                 if result is ENOVAL:
                     result = func(*args, **kwargs)
-                    self.set(key, result, expire=expire, tag=tag, retry=True)
+                    if expire is None or expire > 0:
+                        self.set(key, result, expire, tag=tag, retry=True)
 
                 return result
 
