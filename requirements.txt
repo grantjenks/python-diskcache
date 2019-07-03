@@ -12,6 +12,7 @@ pytest-cov
 pytest-django
 pytest-env
 pytest-xdist
+rstcheck
 sphinx
 tox
 twine
