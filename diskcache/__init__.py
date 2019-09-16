@@ -6,7 +6,7 @@ The :doc:`tutorial` provides a helpful walkthrough of most methods.
 
 """
 
-from .core import Cache, Disk, EmptyDirWarning, UnknownFileWarning, Timeout
+from .core import Cache, Disk, EmptyDirWarning, JSONDisk, UnknownFileWarning, Timeout
 from .core import DEFAULT_SETTINGS, ENOVAL, EVICTION_POLICY, UNKNOWN
 from .fanout import FanoutCache
 from .persistent import Deque, Index
@@ -25,6 +25,7 @@ __all__ = [
     'EmptyDirWarning',
     'FanoutCache',
     'Index',
+    "JSONDisk",
     'Lock',
     'RLock',
     'Timeout',
