@@ -102,8 +102,8 @@ Get
 
 .. image:: _static/djangocache-get.png
 
-Under heavy load, :class:`DjangoCache <diskcache.DjangoCache>` gets are very
-low latency. At the 99th percentile they are on par with the Memcached cache
+Under heavy load, :class:`DjangoCache <diskcache.DjangoCache>` gets are low
+latency. At the 99th percentile they are on par with the Memcached cache
 backend.
 
 Set
@@ -157,7 +157,7 @@ Timings for memcached
     Total    791992                                                    68.825s
 ========= ========= ========= ========= ========= ========= ========= =========
 
-Memcached performance is low latency and very stable.
+Memcached performance is low latency and stable.
 
 ========= ========= ========= ========= ========= ========= ========= =========
 Timings for redis

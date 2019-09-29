@@ -20,7 +20,7 @@ Landscape
 Backends
 --------
 
-* Backends have very different designs and tradeoffs.
+* Backends have different designs and tradeoffs.
 
 
 Frameworks
@@ -165,7 +165,7 @@ SQLite
 * Use a context manager for isolation level management.
 * Pragmas tune the behavior and performance of SQLite.
 
-  * Default is very robust and slow.
+  * Default is robust and slow.
   * Use write-ahead-log so writers don't block readers.
   * Memory-map pages for fast lookups.
 

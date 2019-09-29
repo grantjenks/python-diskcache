@@ -75,7 +75,7 @@ the result and the other ten benefit. The maximum latency has increased however
 as three layers of caching and locking wrap the function.
 
 Ideally, the system would anticipate the pending expiration of the cached item
-and would recompute the result in a separate thread of execution.  Coordinating
+and would recompute the result in a separate thread of execution. Coordinating
 recomputation would be a function of the number of workers, the expiration
 time, and the duration of computation. Fortunately, Vattani, et al. published
 the solution in "Optimal Probabilistic Cache Stampede Prevention" in 2015.
@@ -135,7 +135,7 @@ real cache miss then causes the workers to synchronously recompute the landing
 page and cache the result. With no barrier in place, eleven workers cause a
 cache stampede. The eleven workers are composed of ten synchronous workers and
 one in a background thread. The best way to customize :math:`\beta` is through
-experimentation, otherwise the default is very reasonable.
+experimentation, otherwise the default is reasonable.
 
 :doc:`DiskCache <index>` provides data types and recipes for memoization and
 mitigation of cache stampedes. The decorators provided are composable for a

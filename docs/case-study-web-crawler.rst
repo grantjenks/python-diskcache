@@ -116,7 +116,7 @@ the crawl function and query it.
     >>> len(results)
     99
 
-As an added benefit, our code also now works in parallel. For free!
+As an added benefit, our code also now works in parallel.
 
     >>> results.clear()
     >>> from multiprocessing import Process

@@ -234,7 +234,7 @@ Integrations?    Django        None      None      None         None
 
 **Timings**
 
-These are very rough measurements. See `DiskCache Cache Benchmarks`_ for more
+These are rough measurements. See `DiskCache Cache Benchmarks`_ for more
 rigorous data.
 
 ================ ============= ========= ========= ============ ============
@@ -279,8 +279,8 @@ Pure-Python Databases
 .....................
 
 * `ZODB`_ supports an isomorphic interface for database operations which means
-  there's very little impact on your code to make objects persistent and
-  there's no database mapper that partially hides the datbase.
+  there's little impact on your code to make objects persistent and there's no
+  database mapper that partially hides the datbase.
 * `CodernityDB`_ is an open source, pure-Python, multi-platform, schema-less,
   NoSQL database and includes an HTTP server version, and a Python client
   library that aims to be 100% compatible with the embedded version.
@@ -332,7 +332,7 @@ SQL Databases
   PostgreSQL adapter for the Python programming language.
 * `Oracle DB`_ is a relational database management system (RDBMS) from the
   Oracle Corporation. Originally developed in 1977, Oracle DB is one of the
-  most trusted and widely-used enterprise relational database engines.
+  most trusted and widely used enterprise relational database engines.
 * `Microsoft SQL Server`_ is a relational database management system developed
   by Microsoft. As a database server, it stores and retrieves data as requested
   by other software applications.
@@ -398,7 +398,7 @@ License at
 
 Unless required by applicable law or agreed to in writing, software distributed
 under the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR
-CONDITIONS OF ANY KIND, either express or implied.  See the License for the
+CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 
 .. _`DiskCache`: http://www.grantjenks.com/docs/diskcache/

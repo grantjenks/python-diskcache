@@ -116,7 +116,7 @@ Timings for pylibmc.Client
     Total     98999                                                     2.669s
 ========= ========= ========= ========= ========= ========= ========= =========
 
-Memcached performance is low latency and very stable.
+Memcached performance is low latency and stable.
 
 ========= ========= ========= ========= ========= ========= ========= =========
 Timings for redis.StrictRedis
@@ -144,8 +144,8 @@ Get
 
 .. image:: _static/core-p8-get.png
 
-Under heavy load, :doc:`DiskCache <index>` gets are very low latency. At the
-90th percentile, they are less than half the latency of Memcached.
+Under heavy load, :doc:`DiskCache <index>` gets are low latency. At the 90th
+percentile, they are less than half the latency of Memcached.
 
 Set
 ...

@@ -53,8 +53,8 @@ or install it into your site-packages easily::
 :doc:`DiskCache <index>` is looking for a Debian package maintainer. If you can
 help, please open an issue in the `DiskCache Issue Tracker`_.
 
-:doc:`DiskCache <index>` is looking for a CentOS/RPM package maintainer.  If
-you can help, please open an issue in the `DiskCache Issue Tracker`_.
+:doc:`DiskCache <index>` is looking for a CentOS/RPM package maintainer. If you
+can help, please open an issue in the `DiskCache Issue Tracker`_.
 
 .. _`DiskCache Issue Tracker`: https://github.com/grantjenks/python-diskcache/issues/
 
@@ -778,11 +778,11 @@ tradeoffs for accessing and storing items.
   the access count field stored in the cache database. On every access, the
   field is incremented. Every access therefore requires writing the database
   which slows accesses.
-* ``"none"`` disables cache evictions. Caches will grow in size without
-  bound. Cache items will still be lazily removed if they expire. The
-  persistent data types, :class:`.Deque` and :class:`.Index`, use the
-  ``"none"`` eviction policy. For :ref:`lazy culling <tutorial-culling>` use
-  the :ref:`cull_limit <constants>` setting instead.
+* ``"none"`` disables cache evictions. Caches will grow without bound. Cache
+  items will still be lazily removed if they expire. The persistent data types,
+  :class:`.Deque` and :class:`.Index`, use the ``"none"`` eviction policy. For
+  :ref:`lazy culling <tutorial-culling>` use the :ref:`cull_limit <constants>`
+  setting instead.
 
 All clients accessing the cache are expected to use the same eviction
 policy. The policy can be set during initialization using a keyword argument.
