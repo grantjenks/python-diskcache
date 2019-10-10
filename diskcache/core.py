@@ -91,6 +91,7 @@ DEFAULT_SETTINGS = {
     u'sqlite_journal_mode': u'wal',
     u'sqlite_mmap_size': 2 ** 26,    # 64mb
     u'sqlite_synchronous': 1,        # NORMAL
+    u'sqlite_read_only': False,
     u'disk_min_file_size': 2 ** 15,  # 32kb
     u'disk_pickle_protocol': pickle.HIGHEST_PROTOCOL,
 }
@@ -479,14 +480,16 @@ class Cache(object):
         # Set cached attributes: updates settings and sets pragmas.
 
         for key, value in sets.items():
-            query = 'INSERT OR REPLACE INTO Settings VALUES (?, ?)'
-            sql(query, (key, value))
-            self.reset(key, value)
+            if not self.sqlite_read_only:
+                query = 'INSERT OR REPLACE INTO Settings VALUES (?, ?)'
+                sql(query, (key, value))
+            self.reset(key, value, update=not self.sqlite_read_only)
 
         for key, value in METADATA.items():
-            query = 'INSERT OR IGNORE INTO Settings VALUES (?, ?)'
-            sql(query, (key, value))
-            self.reset(key)
+            if not self.sqlite_read_only:
+                query = 'INSERT OR IGNORE INTO Settings VALUES (?, ?)'
+                sql(query, (key, value))
+            self.reset(key, update=not self.sqlite_read_only)
 
         (self._page_size,), = sql('PRAGMA page_size').fetchall()
 
@@ -555,10 +558,11 @@ class Cache(object):
 
         # Create tag index if requested.
 
-        if self.tag_index:  # pylint: disable=no-member
-            self.create_tag_index()
-        else:
-            self.drop_tag_index()
+        if not self.sqlite_read_only:
+            if self.tag_index:  # pylint: disable=no-member
+                self.create_tag_index()
+            else:
+                self.drop_tag_index()
 
         # Close and re-open database connection with given timeout.
 
@@ -706,8 +710,9 @@ class Cache(object):
                     begin = True
                     self._txn_id = tid
                     break
-                except sqlite3.OperationalError:
-                    if retry:
+                except sqlite3.OperationalError as e:
+                    # TODO: this is potentially an infinite loop anyway
+                    if retry and 'readonly' not in str(e):
                         continue
                     if filename is not None:
                         _disk_remove(filename)
