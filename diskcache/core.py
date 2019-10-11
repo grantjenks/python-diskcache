@@ -440,6 +440,8 @@ class Cache(object):
                         ' and could not be created' % self._directory
                     )
 
+        self.sqlite_read_only = settings.get('sqlite_read_only', False)
+
         sql = self._sql_retry
 
         # Setup Settings table.
@@ -604,11 +606,21 @@ class Cache(object):
         con = getattr(self._local, 'con', None)
 
         if con is None:
-            con = self._local.con = sqlite3.connect(
-                op.join(self._directory, DBNAME),
-                timeout=self._timeout,
-                isolation_level=None,
-            )
+            if self.sqlite_read_only:
+                p = op.join(self._directory, DBNAME)
+                uri = f'file:{p}?mode=ro'
+                con = self._local.con = sqlite3.connect(
+                    uri,
+                    uri=True,
+                    timeout=self._timeout,
+                    isolation_level=None,
+                )
+            else:
+                con = self._local.con = sqlite3.connect(
+                    op.join(self._directory, DBNAME),
+                    timeout=self._timeout,
+                    isolation_level=None,
+                )
 
             # Some SQLite pragmas work on a per-connection basis so
             # query the Settings table and reset the pragmas. The
