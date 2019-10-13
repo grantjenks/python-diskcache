@@ -87,6 +87,7 @@ DEFAULT_SETTINGS = {
     u'eviction_policy': u'least-recently-stored',
     u'size_limit': 2 ** 30,  # 1gb
     u'cull_limit': 10,
+    u'sqlite_query_only': 0,
     u'sqlite_auto_vacuum': 1,        # FULL
     u'sqlite_cache_size': 2 ** 13,   # 8,192 pages
     u'sqlite_journal_mode': u'wal',
@@ -410,6 +411,10 @@ class Timeout(Exception):
     "Database timeout expired."
 
 
+class ReadOnlyError(Exception):
+    "Cache mutation in read-only mode."
+
+
 class UnknownFileWarning(UserWarning):
     "Warning used by Cache.check for unknown files."
 
@@ -484,6 +489,14 @@ class Cache(object):
                         ' and could not be created' % self._directory
                     )
 
+        # The SQLite query_only pragma is a special case. Before the cache
+        # connection is opened, get the setting from keyword arguments.
+
+        self.sqlite_query_only = settings.get(
+            'sqlite_query_only',
+            DEFAULT_SETTINGS['sqlite_query_only'],
+        )
+
         sql = self._sql_retry
 
         # Setup Settings table.
@@ -524,14 +537,24 @@ class Cache(object):
         # Set cached attributes: updates settings and sets pragmas.
 
         for key, value in sets.items():
-            query = 'INSERT OR REPLACE INTO Settings VALUES (?, ?)'
-            sql(query, (key, value))
-            self.reset(key, value)
+            if self.sqlite_query_only:
+                query = 'SELECT value FROM Settings WHERE key = ?'
+                db_value, = sql(query, (key,)).fetchall()
+                assert value == db_value
+            else:
+                query = 'INSERT OR REPLACE INTO Settings VALUES (?, ?)'
+                sql(query, (key, value))
+            self.reset(key, value, update=(not self.sqlite_query_only))
 
         for key, value in METADATA.items():
-            query = 'INSERT OR IGNORE INTO Settings VALUES (?, ?)'
-            sql(query, (key, value))
-            self.reset(key)
+            if self.sqlite_query_only:
+                query = 'SELECT value FROM Settings WHERE key = ?'
+                db_value, = sql(query, (key,)).fetchall()
+                assert value == db_value
+            else:
+                query = 'INSERT OR IGNORE INTO Settings VALUES (?, ?)'
+                sql(query, (key, value))
+            self.reset(key, update=(not self.sqlite_query_only))
 
         (self._page_size,), = sql('PRAGMA page_size').fetchall()
 
@@ -666,6 +689,15 @@ class Cache(object):
                     if key.startswith('sqlite_'):
                         self.reset(key, value, update=False)
 
+            # The settings read from the database never contain
+            # sqlite_query_only. Manually force it here, if it has been passed
+            # as a parameter.
+
+            if self.sqlite_query_only:
+                # TODO: I don't think this'll work. The previous reset() will
+                # overwrite self.sqlite_query_only.
+                self.reset('sqlite_query_only', 1, update=False)
+
         return con
 
 
@@ -736,6 +768,9 @@ class Cache(object):
 
     @cl.contextmanager
     def _transact(self, retry=False, filename=None):
+        if self.sqlite_query_only:
+            raise ReadOnlyError
+
         sql = self._sql
         filenames = []
         _disk_remove = self._disk.remove
