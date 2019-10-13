@@ -442,6 +442,7 @@ class Cache(object):
                         ' and could not be created' % self._directory
                     )
 
+        # this must be processed now because it is used in Cache._con
         self.read_only = settings.get('read_only', False)
 
         sql = self._sql_retry
@@ -610,7 +611,7 @@ class Cache(object):
         if con is None:
             if self.read_only:
                 p = op.join(self._directory, DBNAME)
-                uri = f'file:{p}?mode=ro'
+                uri = 'file:%s?mode=ro' % p
                 con = self._local.con = sqlite3.connect(
                     uri,
                     uri=True,
