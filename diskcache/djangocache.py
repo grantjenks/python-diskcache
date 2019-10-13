@@ -411,7 +411,12 @@ class DjangoCache(BaseCache):
 
                 if result is ENOVAL:
                     result = func(*args, **kwargs)
-                    if timeout is None or timeout > 0:
+                    valid_timeout = (
+                        timeout is None
+                        or timeout == DEFAULT_TIMEOUT
+                        or timeout > 0
+                    )
+                    if valid_timeout:
                         self.set(
                             key, result, timeout, version, tag=tag, retry=True,
                         )
