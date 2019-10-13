@@ -572,8 +572,6 @@ class Cache(object):
         # Close and re-open database connection with given timeout.
 
         self.close()
-        # PRAGMAs are not reapplied to the next connect
-        # which means transient PRAGMAs as query_only are out of sync with member variables
         self._timeout = timeout
         self._sql  # pylint: disable=pointless-statement
 
@@ -632,11 +630,10 @@ class Cache(object):
                     if key.startswith('sqlite_'):
                         self.reset(key, value, update=False)
 
-            # must be done *after* the settings update
-            # as the value of this pragma from settings is always 0
+            # the settings read fro the DB never contain query_only
+            # so we manually force it here, if it has been passed as a parameter
             if self.open_in_query_only:
-                read_only_pragma = 'PRAGMA query_only = 1'
-                con.execute(read_only_pragma)
+                self.reset('sqlite_query_only', 1, update=False)
 
         return con
 
