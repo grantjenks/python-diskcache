@@ -1,6 +1,6 @@
 import diskcache
 
-a = diskcache.Cache('/tmp/abcde', sqlite_read_only=True)
+a = diskcache.Cache('/tmp/abcde', read_only=True)
 
 o = [1, 2, 3, 4]
 a['qq'] = o

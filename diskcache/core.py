@@ -86,12 +86,12 @@ DEFAULT_SETTINGS = {
     u'eviction_policy': u'least-recently-stored',
     u'size_limit': 2 ** 30,  # 1gb
     u'cull_limit': 10,
+    u'read_only': False,
     u'sqlite_auto_vacuum': 1,        # FULL
     u'sqlite_cache_size': 2 ** 13,   # 8,192 pages
     u'sqlite_journal_mode': u'wal',
     u'sqlite_mmap_size': 2 ** 26,    # 64mb
     u'sqlite_synchronous': 1,        # NORMAL
-    u'sqlite_read_only': False,
     u'disk_min_file_size': 2 ** 15,  # 32kb
     u'disk_pickle_protocol': pickle.HIGHEST_PROTOCOL,
 }
@@ -440,7 +440,7 @@ class Cache(object):
                         ' and could not be created' % self._directory
                     )
 
-        self.sqlite_read_only = settings.get('sqlite_read_only', False)
+        self.read_only = settings.get('read_only', False)
 
         sql = self._sql_retry
 
@@ -482,16 +482,16 @@ class Cache(object):
         # Set cached attributes: updates settings and sets pragmas.
 
         for key, value in sets.items():
-            if not self.sqlite_read_only:
+            if not self.read_only:
                 query = 'INSERT OR REPLACE INTO Settings VALUES (?, ?)'
                 sql(query, (key, value))
-            self.reset(key, value, update=not self.sqlite_read_only)
+            self.reset(key, value, update=not self.read_only)
 
         for key, value in METADATA.items():
-            if not self.sqlite_read_only:
+            if not self.read_only:
                 query = 'INSERT OR IGNORE INTO Settings VALUES (?, ?)'
                 sql(query, (key, value))
-            self.reset(key, update=not self.sqlite_read_only)
+            self.reset(key, update=not self.read_only)
 
         (self._page_size,), = sql('PRAGMA page_size').fetchall()
 
@@ -560,7 +560,7 @@ class Cache(object):
 
         # Create tag index if requested.
 
-        if not self.sqlite_read_only:
+        if not self.read_only:
             if self.tag_index:  # pylint: disable=no-member
                 self.create_tag_index()
             else:
@@ -606,7 +606,7 @@ class Cache(object):
         con = getattr(self._local, 'con', None)
 
         if con is None:
-            if self.sqlite_read_only:
+            if self.read_only:
                 p = op.join(self._directory, DBNAME)
                 uri = f'file:{p}?mode=ro'
                 con = self._local.con = sqlite3.connect(
