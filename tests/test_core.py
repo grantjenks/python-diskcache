@@ -7,7 +7,6 @@ import errno
 import functools as ft
 import hashlib
 import io
-import json
 import mock
 import os
 import os.path as op
@@ -22,7 +21,6 @@ import threading
 import time
 import unittest
 import warnings
-import zlib
 
 try:
     import cPickle as pickle
@@ -94,35 +92,8 @@ def test_disk_valueerror():
             pass
 
 
-class JSONDisk(diskcache.Disk):
-    def __init__(self, directory, compress_level=1, **kwargs):
-        self.compress_level = compress_level
-        super(JSONDisk, self).__init__(directory, **kwargs)
-
-    def put(self, key):
-        json_bytes = json.dumps(key).encode('utf-8')
-        data = zlib.compress(json_bytes, self.compress_level)
-        return super(JSONDisk, self).put(data)
-
-    def get(self, key, raw):
-        data = super(JSONDisk, self).get(key, raw)
-        return json.loads(zlib.decompress(data).decode('utf-8'))
-
-    def store(self, value, read, key=dc.UNKNOWN):
-        if not read:
-            json_bytes = json.dumps(value).encode('utf-8')
-            value = zlib.compress(json_bytes, self.compress_level)
-        return super(JSONDisk, self).store(value, read, key=key)
-
-    def fetch(self, mode, filename, value, read):
-        data = super(JSONDisk, self).fetch(mode, filename, value, read)
-        if not read:
-            data = json.loads(zlib.decompress(data).decode('utf-8'))
-        return data
-
-
 def test_custom_disk():
-    with dc.Cache(disk=JSONDisk, disk_compress_level=6) as cache:
+    with dc.Cache(disk=dc.JSONDisk, disk_compress_level=6) as cache:
         values = [None, True, 0, 1.23, {}, [None] * 10000]
 
         for value in values:
