@@ -88,7 +88,7 @@ DEFAULT_SETTINGS = {
     u'eviction_policy': u'least-recently-stored',
     u'size_limit': 2 ** 30,  # 1gb
     u'cull_limit': 10,
-    u'read_only': False,
+    u'sqlite_query_only': False,
     u'sqlite_auto_vacuum': 1,        # FULL
     u'sqlite_cache_size': 2 ** 13,   # 8,192 pages
     u'sqlite_journal_mode': u'wal',
@@ -443,7 +443,7 @@ class Cache(object):
                     )
 
         # this must be processed now because it is used in Cache._con
-        self.read_only = settings.get('read_only', False)
+        self.open_in_query_only = settings.get('sqlite_query_only', False)
 
         sql = self._sql_retry
 
@@ -485,16 +485,16 @@ class Cache(object):
         # Set cached attributes: updates settings and sets pragmas.
 
         for key, value in sets.items():
-            if not self.read_only:
+            if not self.sqlite_query_only:
                 query = 'INSERT OR REPLACE INTO Settings VALUES (?, ?)'
                 sql(query, (key, value))
-            self.reset(key, value, update=not self.read_only)
+            self.reset(key, value, update=not self.sqlite_query_only)
 
         for key, value in METADATA.items():
-            if not self.read_only:
+            if not self.sqlite_query_only:
                 query = 'INSERT OR IGNORE INTO Settings VALUES (?, ?)'
                 sql(query, (key, value))
-            self.reset(key, update=not self.read_only)
+            self.reset(key, update=not self.sqlite_query_only)
 
         (self._page_size,), = sql('PRAGMA page_size').fetchall()
 
@@ -563,7 +563,7 @@ class Cache(object):
 
         # Create tag index if requested.
 
-        if not self.read_only:
+        if not self.sqlite_query_only:
             if self.tag_index:  # pylint: disable=no-member
                 self.create_tag_index()
             else:
@@ -572,6 +572,8 @@ class Cache(object):
         # Close and re-open database connection with given timeout.
 
         self.close()
+        # PRAGMAs are not reapplied to the next connect
+        # which means transient PRAGMAs as query_only are out of sync
         self._timeout = timeout
         self._sql  # pylint: disable=pointless-statement
 
@@ -609,21 +611,11 @@ class Cache(object):
         con = getattr(self._local, 'con', None)
 
         if con is None:
-            if self.read_only:
-                p = op.join(self._directory, DBNAME)
-                uri = 'file:%s?mode=ro' % p
-                con = self._local.con = sqlite3.connect(
-                    uri,
-                    uri=True,
-                    timeout=self._timeout,
-                    isolation_level=None,
-                )
-            else:
-                con = self._local.con = sqlite3.connect(
-                    op.join(self._directory, DBNAME),
-                    timeout=self._timeout,
-                    isolation_level=None,
-                )
+            con = self._local.con = sqlite3.connect(
+                op.join(self._directory, DBNAME),
+                timeout=self._timeout,
+                isolation_level=None,
+            )
 
             # Some SQLite pragmas work on a per-connection basis so
             # query the Settings table and reset the pragmas. The
@@ -639,6 +631,12 @@ class Cache(object):
                 for key, value in settings:
                     if key.startswith('sqlite_'):
                         self.reset(key, value, update=False)
+
+            # must be done *after* the settings update
+            # as the value of this pragma from settings is always 0
+            if self.open_in_query_only:
+                read_only_pragma = 'PRAGMA query_only = 1'
+                con.execute(read_only_pragma)
 
         return con
 
