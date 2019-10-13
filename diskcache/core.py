@@ -573,7 +573,7 @@ class Cache(object):
 
         self.close()
         # PRAGMAs are not reapplied to the next connect
-        # which means transient PRAGMAs as query_only are out of sync
+        # which means transient PRAGMAs as query_only are out of sync with member variables
         self._timeout = timeout
         self._sql  # pylint: disable=pointless-statement
 
