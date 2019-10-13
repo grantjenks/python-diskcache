@@ -25,7 +25,7 @@ __all__ = [
     'EmptyDirWarning',
     'FanoutCache',
     'Index',
-    "JSONDisk",
+    'JSONDisk',
     'Lock',
     'RLock',
     'Timeout',

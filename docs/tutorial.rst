@@ -813,8 +813,8 @@ database while values are sometimes stored separately in files.
 To customize serialization, you may pass in a :class:`Disk <diskcache.Disk>`
 subclass to initialize the cache. All clients accessing the cache are expected
 to use the same serialization. The default implementation uses Pickle and the
-example below uses compressed JSON,
-available for convenience as :class:`Disk <diskcache.JSONDisk>`.
+example below uses compressed JSON, available for convenience as
+:class:`JSONDisk <diskcache.JSONDisk>`.
 
 .. code-block:: python
 

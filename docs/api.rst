@@ -116,6 +116,16 @@ Read the :ref:`Disk tutorial <tutorial-disk>` for details.
    :special-members:
    :exclude-members: __weakref__
 
+JSONDisk
+--------
+
+Read the :ref:`Disk tutorial <tutorial-disk>` for details.
+
+.. autoclass:: diskcache.JSONDisk
+   :members:
+   :special-members:
+   :exclude-members: __weakref__
+
 Timeout
 -------
 
