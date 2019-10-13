@@ -80,6 +80,8 @@ MODE_BINARY = 2
 MODE_TEXT = 3
 MODE_PICKLE = 4
 
+# settings starting with sqlite_ are used as PRAGMAs in sqlite
+# use with care
 DEFAULT_SETTINGS = {
     u'statistics': 0,  # False
     u'tag_index': 0,   # False
