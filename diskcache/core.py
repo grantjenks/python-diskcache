@@ -2081,9 +2081,10 @@ class Cache(object):
         :raises Timeout: if database timeout occurs
 
         """
-        sql = self._sql
-        sql('CREATE INDEX IF NOT EXISTS Cache_tag_rowid ON Cache(tag, rowid)')
-        self.reset('tag_index', 1)
+        if self.tag_index == 0:
+            sql = self._sql
+            sql('CREATE INDEX IF NOT EXISTS Cache_tag_rowid ON Cache(tag, rowid)')
+            self.reset('tag_index', 1)
 
 
     def drop_tag_index(self):
@@ -2092,9 +2093,10 @@ class Cache(object):
         :raises Timeout: if database timeout occurs
 
         """
-        sql = self._sql
-        sql('DROP INDEX IF EXISTS Cache_tag_rowid')
-        self.reset('tag_index', 0)
+        if self.tag_index == 1:
+            sql = self._sql
+            sql('DROP INDEX IF EXISTS Cache_tag_rowid')
+            self.reset('tag_index', 0)
 
 
     def evict(self, tag, retry=False):
