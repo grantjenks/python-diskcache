@@ -105,7 +105,7 @@ METADATA = {
 }
 
 # TODO: these cannot be verified for a read_only database
-UNVERIFIABLE_FIELDS = ['sqlite_query_only', 'count']
+UNVERIFIABLE_SETTINGS = ['sqlite_query_only']
 
 EVICTION_POLICY = {
     'none': {
@@ -544,7 +544,7 @@ class Cache(object):
                 query = 'SELECT value FROM Settings WHERE key = ?'
                 db_value = sql(query, (key,)).fetchall()
                 assert len(db_value) == 1
-                if key not in UNVERIFIABLE_FIELDS:
+                if key not in UNVERIFIABLE_SETTINGS:
                     assert value == db_value[0][0]
             else:
                 query = 'INSERT OR REPLACE INTO Settings VALUES (?, ?)'
@@ -552,13 +552,7 @@ class Cache(object):
             self.reset(key, value, update=(not self.sqlite_query_only))
 
         for key, value in METADATA.items():
-            if self.sqlite_query_only:
-                query = 'SELECT value FROM Settings WHERE key = ?'
-                db_value = sql(query, (key,)).fetchall()
-                assert len(db_value) == 1
-                if key not in UNVERIFIABLE_FIELDS:
-                    assert value == db_value[0][0]
-            else:
+            if not self.sqlite_query_only:
                 query = 'INSERT OR IGNORE INTO Settings VALUES (?, ?)'
                 sql(query, (key, value))
             self.reset(key, update=(not self.sqlite_query_only))
