@@ -5,6 +5,7 @@ import mock
 import pickle
 import pytest
 import shutil
+import tempfile
 
 import diskcache as dc
 from diskcache.core import ENOVAL
@@ -25,28 +26,28 @@ def deque():
 
 
 def test_init():
-    directory = '/tmp/diskcache/deque'
-    sequence = list('abcde')
-    deque = dc.Deque(sequence, None)
+    with tempfile.TemporaryDirectory() as directory:
+        sequence = list('abcde')
+        deque = dc.Deque(sequence, None)
 
-    assert deque == sequence
+        assert deque == sequence
 
-    rmdir(deque.directory)
-    del deque
+        rmdir(deque.directory)
+        del deque
 
-    rmdir(directory)
-    deque = dc.Deque(sequence, directory)
+        rmdir(directory)
+        deque = dc.Deque(sequence, directory)
 
-    assert deque.directory == directory
-    assert deque == sequence
+        assert deque.directory == directory
+        assert deque == sequence
 
-    other = dc.Deque(directory=directory)
+        other = dc.Deque(directory=directory)
 
-    assert other == deque
+        assert other == deque
 
-    del deque
-    del other
-    rmdir(directory)
+        del deque
+        del other
+        rmdir(directory)
 
 
 def test_getsetdel(deque):
@@ -155,9 +156,9 @@ def test_indexerror(deque):
 
 
 def test_repr():
-    directory = '/tmp/diskcache/deque'
-    deque = dc.Deque(directory=directory)
-    assert repr(deque) == 'Deque(directory=%r)' % directory
+    with tempfile.TemporaryDirectory() as directory:
+        deque = dc.Deque(directory=directory)
+        assert repr(deque) == 'Deque(directory=%r)' % directory
 
 
 def test_count(deque):

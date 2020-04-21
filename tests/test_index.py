@@ -6,6 +6,7 @@ import pickle
 import pytest
 import shutil
 import sys
+import tempfile
 
 import diskcache as dc
 
@@ -25,37 +26,37 @@ def index():
 
 
 def test_init():
-    directory = '/tmp/diskcache/index'
-    mapping = {'a': 5, 'b': 4, 'c': 3, 'd': 2, 'e': 1}
-    index = dc.Index(None, mapping)
+    with tempfile.TemporaryDirectory() as directory:
+        mapping = {'a': 5, 'b': 4, 'c': 3, 'd': 2, 'e': 1}
+        index = dc.Index(None, mapping)
 
-    assert index == mapping
+        assert index == mapping
 
-    rmdir(index.directory)
-    del index
+        rmdir(index.directory)
+        del index
 
-    rmdir(directory)
-    index = dc.Index(directory, mapping)
+        rmdir(directory)
+        index = dc.Index(directory, mapping)
 
-    assert index.directory == directory
-    assert index == mapping
+        assert index.directory == directory
+        assert index == mapping
 
-    other = dc.Index(directory)
+        other = dc.Index(directory)
 
-    assert other == index
+        assert other == index
 
-    del index
-    del other
-    rmdir(directory)
-    index = dc.Index(directory, mapping.items())
+        del index
+        del other
+        rmdir(directory)
+        index = dc.Index(directory, mapping.items())
 
-    assert index == mapping
+        assert index == mapping
 
-    del index
-    rmdir(directory)
-    index = dc.Index(directory, a=5, b=4, c=3, d=2, e=1)
+        del index
+        rmdir(directory)
+        index = dc.Index(directory, a=5, b=4, c=3, d=2, e=1)
 
-    assert index == mapping
+        assert index == mapping
 
 
 def test_getsetdel(index):
