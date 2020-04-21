@@ -7,7 +7,6 @@ import errno
 import functools as ft
 import hashlib
 import io
-import mock
 import os
 import os.path as op
 import pytest
@@ -26,6 +25,11 @@ try:
     import cPickle as pickle
 except:
     import pickle
+
+try:
+    from unittest import mock
+except:
+    import mock
 
 import diskcache
 import diskcache as dc

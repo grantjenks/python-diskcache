@@ -7,7 +7,6 @@ import errno
 import functools as ft
 import hashlib
 import io
-import mock
 import os
 import os.path as op
 import pytest
@@ -20,6 +19,11 @@ import tempfile
 import threading
 import time
 import warnings
+
+try:
+    from unittest import mock
+except:
+    import mock
 
 try:
     import cPickle as pickle
