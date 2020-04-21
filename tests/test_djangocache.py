@@ -18,6 +18,11 @@ import time
 import unittest
 import warnings
 
+try:
+    from unittest import mock
+except:
+    import mock
+
 from django.conf import settings
 from django.core import management, signals
 from django.core.cache import (
@@ -37,15 +42,14 @@ from django.template.context_processors import csrf
 from django.template.response import TemplateResponse
 from django.test import (
     RequestFactory, SimpleTestCase, TestCase, TransactionTestCase,
-    ignore_warnings, mock, override_settings,
+    override_settings,
 )
 from django.test.signals import setting_changed
-from django.utils import six, timezone, translation
+from django.utils import timezone, translation
 from django.utils.cache import (
     get_cache_key, learn_cache_key, patch_cache_control,
     patch_response_headers, patch_vary_headers,
 )
-from django.utils.deprecation import RemovedInDjango21Warning
 from django.utils.encoding import force_text
 from django.views.decorators.cache import cache_page
 

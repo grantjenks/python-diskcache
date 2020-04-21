@@ -1,5 +1,5 @@
 coverage
-django==1.11.*
+django
 django_redis
 doc8
 gj
