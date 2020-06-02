@@ -442,7 +442,7 @@ class Deque(Sequence):
 
 
     def peekleft(self):
-        """Peek at value at back of deque.
+        """Peek at value at front of deque.
 
         Faster than indexing deque at 0.
 
