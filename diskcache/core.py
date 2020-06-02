@@ -680,6 +680,8 @@ class Cache(object):
             # Settings table may not exist so catch and ignore the
             # OperationalError that may occur.
 
+            sqlite_query_only = self.sqlite_query_only
+
             try:
                 select = 'SELECT key, value FROM Settings'
                 settings = con.execute(select).fetchall()
@@ -690,13 +692,10 @@ class Cache(object):
                     if key.startswith('sqlite_'):
                         self.reset(key, value, update=False)
 
-            # The settings read from the database never contain
-            # sqlite_query_only. Manually force it here, if it has been passed
-            # as a parameter.
-
-            if self.sqlite_query_only:
-                # TODO: I don't think this'll work. The previous reset() will
-                # overwrite self.sqlite_query_only.
+            # The settings read from the database always contain sqlite_query_only=0.
+            # So the above loop will have overwritten self.sqlite_query_only
+            # Here we restore it to the value we had before
+            if sqlite_query_only:
                 self.reset('sqlite_query_only', 1, update=False)
 
         return con
