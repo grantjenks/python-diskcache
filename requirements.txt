@@ -3,7 +3,7 @@ django==2.2.*
 django_redis
 doc8
 gj
-mock
+mock;python_version<"3.3"
 nose
 pylibmc
 pylint
