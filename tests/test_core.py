@@ -1,7 +1,5 @@
 "Test diskcache.core.Cache."
 
-from __future__ import print_function
-
 import collections as co
 import errno
 import functools as ft
@@ -9,6 +7,7 @@ import hashlib
 import io
 import os
 import os.path as op
+import pickle
 import pytest
 import random
 import shutil
@@ -21,15 +20,7 @@ import time
 import unittest
 import warnings
 
-try:
-    import cPickle as pickle
-except:
-    import pickle
-
-try:
-    from unittest import mock
-except:
-    import mock
+from unittest import mock
 
 import diskcache
 import diskcache as dc

@@ -6,10 +6,7 @@ import pytest
 import shutil
 import sys
 
-try:
-    from unittest import mock
-except:
-    import mock
+from unittest import mock
 
 import diskcache as dc
 

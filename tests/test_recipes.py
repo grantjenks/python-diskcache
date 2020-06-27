@@ -6,10 +6,7 @@ import shutil
 import threading
 import time
 
-try:
-    from unittest import mock
-except:
-    import mock
+from unittest import mock
 
 
 @pytest.fixture
