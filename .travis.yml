@@ -14,8 +14,6 @@ matrix:
     - python: 3.8
       dist: xenial
       env: TOXENV=py38
-    - python: pypy
-      env: TOXENV=pypy
     - python: 3.8
       dist: xenial
       env: TOXENV=pylint
