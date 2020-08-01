@@ -105,6 +105,10 @@ class Lock(object):
         "Release lock by deleting key."
         self._cache.delete(self._key, retry=True)
 
+    def locked(self):
+        "Return true if the lock is acquired."
+        return self._key in self._cache
+
     def __enter__(self):
         self.acquire()
 
