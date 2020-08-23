@@ -1,7 +1,5 @@
 "Test diskcache.fanout.FanoutCache."
 
-from __future__ import print_function
-
 import collections as co
 import errno
 import functools as ft
@@ -27,9 +25,6 @@ import diskcache as dc
 
 warnings.simplefilter('error')
 warnings.simplefilter('ignore', category=dc.EmptyDirWarning)
-
-if sys.hexversion < 0x03000000:
-    range = xrange
 
 
 @pytest.fixture

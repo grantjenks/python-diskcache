@@ -22,13 +22,9 @@ import warnings
 
 from unittest import mock
 
-import diskcache
 import diskcache as dc
 
 pytestmark = pytest.mark.filterwarnings('ignore', category=dc.EmptyDirWarning)
-
-if sys.hexversion < 0x03000000:
-    range = xrange
 
 @pytest.fixture
 def cache():
@@ -100,7 +96,7 @@ def test_custom_disk():
     shutil.rmtree(cache.directory, ignore_errors=True)
 
 
-class SHA256FilenameDisk(diskcache.Disk):
+class SHA256FilenameDisk(dc.Disk):
     def filename(self, key=dc.UNKNOWN, value=dc.UNKNOWN):
         filename = hashlib.sha256(key).hexdigest()[:32]
         full_path = op.join(self._directory, filename)

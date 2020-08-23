@@ -1,28 +1,17 @@
 "Stress test diskcache.core.Cache."
 
-from __future__ import print_function
-
 import collections as co
 from diskcache import FanoutCache, UnknownFileWarning, EmptyDirWarning
 import multiprocessing as mp
 import os
+import pickle
+import queue
 import random
 import shutil
 import sys
 import threading
 import time
 import warnings
-
-try:
-    import Queue
-except ImportError:
-    import queue as Queue
-
-if sys.hexversion < 0x03000000:
-    range = xrange
-    import cPickle as pickle
-else:
-    import pickle
 
 from .utils import display
 
@@ -155,7 +144,7 @@ def dispatch(num, eviction_policy, processes, threads):
     with open('input-%s.pkl' % num, 'rb') as reader:
         process_queue = pickle.load(reader)
 
-    thread_queues = [Queue.Queue() for _ in range(threads)]
+    thread_queues = [queue.Queue() for _ in range(threads)]
     subthreads = [
         threading.Thread(
             target=worker, args=(thread_queue, eviction_policy, processes, threads)

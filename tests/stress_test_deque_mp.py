@@ -1,7 +1,5 @@
 """Stress test diskcache.persistent.Deque."""
 
-from __future__ import print_function
-
 import functools as ft
 import itertools as it
 import multiprocessing as mp

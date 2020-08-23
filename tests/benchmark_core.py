@@ -6,22 +6,15 @@ $ python tests/benchmark_core.py -p 8 > tests/timings_core_p8.txt
 
 """
 
-from __future__ import print_function
-
 import collections as co
 import multiprocessing as mp
 import os
+import pickle
 import random
 import shutil
 import sys
 import time
 import warnings
-
-if sys.hexversion < 0x03000000:
-    range = xrange
-    import cPickle as pickle
-else:
-    import pickle
 
 from utils import display
 
