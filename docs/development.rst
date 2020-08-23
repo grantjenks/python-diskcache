@@ -67,12 +67,10 @@ Testing
 
 :doc:`DiskCache <index>` currently tests against five versions of Python:
 
-* CPython 2.7
-* CPython 3.4
 * CPython 3.5
 * CPython 3.6
 * CPython 3.7
-* PyPy2
+* CPython 3.8
 
 Testing uses `tox <https://pypi.python.org/pypi/tox>`_. If you don't want to
 install all the development requirements, then, after downloading, you can
