@@ -197,8 +197,9 @@ class Deque(Sequence):
         :raises IndexError: if index out of range
 
         """
-        set_value = lambda key: self._cache.__setitem__(key, value)
-        self._index(index, set_value)
+        def _set_value(key):
+            return self._cache.__setitem__(key, value)
+        self._index(index, _set_value)
 
 
     def __delitem__(self, index):

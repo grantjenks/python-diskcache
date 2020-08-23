@@ -5,7 +5,6 @@ import itertools as it
 import operator
 import os.path as op
 import sqlite3
-import sys
 import tempfile
 import time
 
@@ -290,7 +289,7 @@ class FanoutCache(object):
         return key in shard
 
 
-    def pop(self, key, default=None, expire_time=False, tag=False, retry=False):
+    def pop(self, key, default=None, expire_time=False, tag=False, retry=False):  # noqa: E501
         """Remove corresponding item for `key` from cache and return value.
 
         If `key` is missing, return `default`.

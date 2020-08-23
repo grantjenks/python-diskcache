@@ -6,7 +6,6 @@ import functools
 import math
 import os
 import random
-import sys
 import threading
 import time
 
@@ -82,7 +81,11 @@ class Lock(object):
         "Acquire lock using spin-lock algorithm."
         while True:
             added = self._cache.add(
-                self._key, None, expire=self._expire, tag=self._tag, retry=True,
+                self._key,
+                None,
+                expire=self._expire,
+                tag=self._tag,
+                retry=True,
             )
             if added:
                 break

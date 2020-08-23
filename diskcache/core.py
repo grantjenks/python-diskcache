@@ -14,22 +14,24 @@ import pickle
 import pickletools
 import sqlite3
 import struct
-import sys
 import tempfile
 import threading
 import time
 import warnings
 import zlib
 
+
 def full_name(func):
     "Return full name of `func` by adding the module and function name."
     return func.__module__ + '.' + func.__qualname__
+
 
 try:
     WindowsError
 except NameError:
     class WindowsError(Exception):
         "Windows error place-holder on platforms without support."
+
 
 class Constant(tuple):
     "Pretty display of immutable constant."
@@ -38,6 +40,7 @@ class Constant(tuple):
 
     def __repr__(self):
         return '%s' % self[0]
+
 
 DBNAME = 'cache.db'
 ENOVAL = Constant('ENOVAL')
@@ -133,7 +136,7 @@ class Disk(object):
         if type_disk_key is sqlite3.Binary:
             return zlib.adler32(disk_key) & mask
         elif type_disk_key is str:
-            return zlib.adler32(disk_key.encode('utf-8')) & mask  # pylint: disable=no-member
+            return zlib.adler32(disk_key.encode('utf-8')) & mask  # noqa
         elif type_disk_key is int:
             return disk_key % mask
         else:
@@ -1056,7 +1059,9 @@ class Cache(object):
                     raise KeyError(key)
 
                 value = default + delta
-                columns = (None, None) + self._disk.store(value, False, key=key)
+                columns = (
+                    (None, None) + self._disk.store(value, False, key=key)
+                )
                 self._row_insert(db_key, raw, now, columns)
                 self._cull(now, sql, cleanup)
                 return value
@@ -1068,7 +1073,9 @@ class Cache(object):
                     raise KeyError(key)
 
                 value = default + delta
-                columns = (None, None) + self._disk.store(value, False, key=key)
+                columns = (
+                    (None, None) + self._disk.store(value, False, key=key)
+                )
                 self._row_update(rowid, now, columns)
                 self._cull(now, sql, cleanup)
                 cleanup(filename)
@@ -1184,7 +1191,7 @@ class Cache(object):
                     return default
 
                 (rowid, db_expire_time, db_tag,
-                     mode, filename, db_value), = rows
+                     mode, filename, db_value), = rows  # noqa: E127
 
                 try:
                     value = self._disk.fetch(mode, filename, db_value, read)
@@ -1269,7 +1276,7 @@ class Cache(object):
         return bool(rows)
 
 
-    def pop(self, key, default=None, expire_time=False, tag=False, retry=False):
+    def pop(self, key, default=None, expire_time=False, tag=False, retry=False):  # noqa: E501
         """Remove corresponding item for `key` from cache and return value.
 
         If `key` is missing, return `default`.
@@ -2341,7 +2348,8 @@ class Cache(object):
 
     def __enter__(self):
         # Create connection in thread.
-        connection = self._con  # pylint: disable=unused-variable
+        # pylint: disable=unused-variable
+        connection = self._con  # noqa
         return self
 
 
