@@ -10,6 +10,7 @@ import io
 import json
 import os
 import os.path as op
+import pickle
 import pickletools
 import sqlite3
 import struct
@@ -20,42 +21,9 @@ import time
 import warnings
 import zlib
 
-############################################################################
-# BEGIN Python 2/3 Shims
-############################################################################
-
-if sys.hexversion < 0x03000000:
-    import cPickle as pickle  # pylint: disable=import-error
-    # ISSUE #25 Fix for http://bugs.python.org/issue10211
-    from cStringIO import StringIO as BytesIO  # pylint: disable=import-error
-    from thread import get_ident  # pylint: disable=import-error,no-name-in-module
-    TextType = unicode  # pylint: disable=invalid-name,undefined-variable
-    BytesType = str
-    INT_TYPES = int, long  # pylint: disable=undefined-variable
-    range = xrange  # pylint: disable=redefined-builtin,invalid-name,undefined-variable
-    io_open = io.open  # pylint: disable=invalid-name
-else:
-    import pickle
-    from io import BytesIO  # pylint: disable=ungrouped-imports
-    from threading import get_ident
-    TextType = str
-    BytesType = bytes
-    INT_TYPES = (int,)
-    io_open = open  # pylint: disable=invalid-name
-
 def full_name(func):
     "Return full name of `func` by adding the module and function name."
-    try:
-        # The __qualname__ attribute is only available in Python 3.3 and later.
-        # GrantJ 2019-03-29 Remove after support for Python 2 is dropped.
-        name = func.__qualname__
-    except AttributeError:
-        name = func.__name__
-    return func.__module__ + '.' + name
-
-############################################################################
-# END Python 2/3 Shims
-############################################################################
+    return func.__module__ + '.' + func.__qualname__
 
 try:
     WindowsError
@@ -164,9 +132,9 @@ class Disk(object):
 
         if type_disk_key is sqlite3.Binary:
             return zlib.adler32(disk_key) & mask
-        elif type_disk_key is TextType:
+        elif type_disk_key is str:
             return zlib.adler32(disk_key.encode('utf-8')) & mask  # pylint: disable=no-member
-        elif type_disk_key in INT_TYPES:
+        elif type_disk_key is int:
             return disk_key % mask
         else:
             assert type_disk_key is float
@@ -183,10 +151,10 @@ class Disk(object):
         # pylint: disable=unidiomatic-typecheck
         type_key = type(key)
 
-        if type_key is BytesType:
+        if type_key is bytes:
             return sqlite3.Binary(key), True
-        elif ((type_key is TextType)
-                or (type_key in INT_TYPES
+        elif ((type_key is str)
+                or (type_key is int
                     and -9223372036854775808 <= key <= 9223372036854775807)
                 or (type_key is float)):
             return key, True
@@ -206,9 +174,9 @@ class Disk(object):
         """
         # pylint: disable=no-self-use,unidiomatic-typecheck
         if raw:
-            return BytesType(key) if type(key) is sqlite3.Binary else key
+            return bytes(key) if type(key) is sqlite3.Binary else key
         else:
-            return pickle.load(BytesIO(key))
+            return pickle.load(io.BytesIO(key))
 
 
     def store(self, value, read, key=UNKNOWN):
@@ -225,12 +193,12 @@ class Disk(object):
         type_value = type(value)
         min_file_size = self.min_file_size
 
-        if ((type_value is TextType and len(value) < min_file_size)
-                or (type_value in INT_TYPES
+        if ((type_value is str and len(value) < min_file_size)
+                or (type_value is int
                     and -9223372036854775808 <= value <= 9223372036854775807)
                 or (type_value is float)):
             return 0, MODE_RAW, None, value
-        elif type_value is BytesType:
+        elif type_value is bytes:
             if len(value) < min_file_size:
                 return 0, MODE_RAW, None, sqlite3.Binary(value)
             else:
@@ -240,10 +208,10 @@ class Disk(object):
                     writer.write(value)
 
                 return len(value), MODE_BINARY, filename, None
-        elif type_value is TextType:
+        elif type_value is str:
             filename, full_path = self.filename(key, value)
 
-            with io_open(full_path, 'w', encoding='UTF-8') as writer:
+            with open(full_path, 'w', encoding='UTF-8') as writer:
                 writer.write(value)
 
             size = op.getsize(full_path)
@@ -286,7 +254,7 @@ class Disk(object):
         """
         # pylint: disable=no-self-use,unidiomatic-typecheck
         if mode == MODE_RAW:
-            return BytesType(value) if type(value) is sqlite3.Binary else value
+            return bytes(value) if type(value) is sqlite3.Binary else value
         elif mode == MODE_BINARY:
             if read:
                 return open(op.join(self._directory, filename), 'rb')
@@ -295,14 +263,14 @@ class Disk(object):
                     return reader.read()
         elif mode == MODE_TEXT:
             full_path = op.join(self._directory, filename)
-            with io_open(full_path, 'r', encoding='UTF-8') as reader:
+            with open(full_path, 'r', encoding='UTF-8') as reader:
                 return reader.read()
         elif mode == MODE_PICKLE:
             if value is None:
                 with open(op.join(self._directory, filename), 'rb') as reader:
                     return pickle.load(reader)
             else:
-                return pickle.load(BytesIO(value))
+                return pickle.load(io.BytesIO(value))
 
 
     def filename(self, key=UNKNOWN, value=UNKNOWN):
@@ -738,7 +706,7 @@ class Cache(object):
         sql = self._sql
         filenames = []
         _disk_remove = self._disk.remove
-        tid = get_ident()
+        tid = threading.get_ident()
         txn_id = self._txn_id
 
         if tid == txn_id:

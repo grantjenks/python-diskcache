@@ -6,29 +6,12 @@ import operator as op
 import sys
 
 from collections import OrderedDict
+from collections.abc import MutableMapping, Sequence
+from collections.abc import KeysView, ValuesView, ItemsView
 from contextlib import contextmanager
 from shutil import rmtree
 
-from .core import BytesType, Cache, ENOVAL, TextType
-
-############################################################################
-# BEGIN Python 2/3 Shims
-############################################################################
-
-try:
-    from collections.abc import MutableMapping, Sequence
-    from collections.abc import KeysView, ValuesView, ItemsView
-except ImportError:
-    from collections import MutableMapping, Sequence
-    from collections import KeysView, ValuesView, ItemsView
-
-if sys.hexversion < 0x03000000:
-    from itertools import izip as zip  # pylint: disable=redefined-builtin,no-name-in-module,ungrouped-imports
-    range = xrange  # pylint: disable=redefined-builtin,invalid-name,undefined-variable
-
-############################################################################
-# END Python 2/3 Shims
-############################################################################
+from .core import Cache, ENOVAL
 
 
 def _make_compare(seq_op, doc):
@@ -699,7 +682,7 @@ class Index(MutableMapping):
         4
 
         """
-        if args and isinstance(args[0], (BytesType, TextType)):
+        if args and isinstance(args[0], (bytes, str)):
             directory = args[0]
             args = args[1:]
         else:

@@ -12,19 +12,6 @@ import time
 
 from .core import ENOVAL, args_to_key, full_name
 
-############################################################################
-# BEGIN Python 2/3 Shims
-############################################################################
-
-if sys.hexversion < 0x03000000:
-    from thread import get_ident  # pylint: disable=import-error
-else:
-    from threading import get_ident
-
-############################################################################
-# END Python 2/3 Shims
-############################################################################
-
 
 class Averager(object):
     """Recipe for calculating a running average.
@@ -139,7 +126,7 @@ class RLock(object):
     def acquire(self):
         "Acquire lock by incrementing count using spin-lock algorithm."
         pid = os.getpid()
-        tid = get_ident()
+        tid = threading.get_ident()
         pid_tid = '{}-{}'.format(pid, tid)
 
         while True:
@@ -156,7 +143,7 @@ class RLock(object):
     def release(self):
         "Release lock by decrementing count."
         pid = os.getpid()
-        tid = get_ident()
+        tid = threading.get_ident()
         pid_tid = '{}-{}'.format(pid, tid)
 
         with self._cache.transact(retry=True):
