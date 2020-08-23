@@ -685,8 +685,3 @@ def test_custom_filename_disk():
             assert content == str(count) * int(1e5)
 
     shutil.rmtree(cache.directory, ignore_errors=True)
-
-
-if __name__ == '__main__':
-    import nose
-    nose.runmodule()

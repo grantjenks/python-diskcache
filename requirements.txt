@@ -3,7 +3,6 @@ django==2.2.*
 django_redis
 doc8
 gj
-nose
 pylibmc
 pylint
 pytest

@@ -1464,8 +1464,3 @@ def test_memoize(cache):
 
     assert hits2 == (hits1 + count)
     assert misses2 == misses1
-
-
-if __name__ == '__main__':
-    import nose
-    nose.runmodule()
