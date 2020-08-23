@@ -892,6 +892,12 @@ thread-pool executor asynchronously. For example::
 
     asyncio.run(set_async('test-key', 'test-value'))
 
+The cache :meth:`volume <diskcache.Cache.volume>` is based on the size of the
+database that stores metadata and the size of the values stored in files. It
+does not account the size of directories themselves or other filesystem
+metadata. If directory count or size is a concern then consider implementing an
+alternative :class:`Disk <diskcache.Disk>`.
+
 .. _`hash protocol`: https://docs.python.org/library/functions.html#hash
 .. _`not recommended`: https://www.sqlite.org/faq.html#q5
 .. _`performs poorly`: https://www.pythonanywhere.com/forums/topic/1847/
