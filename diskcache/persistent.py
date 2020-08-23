@@ -3,7 +3,6 @@
 """
 
 import operator as op
-import sys
 
 from collections import OrderedDict
 from collections.abc import MutableMapping, Sequence
