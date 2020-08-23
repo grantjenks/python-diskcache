@@ -1031,196 +1031,49 @@ class Index(MutableMapping):
         return len(self._cache)
 
 
-    if sys.hexversion < 0x03000000:
-        def keys(self):
-            """List of index keys.
+    def keys(self):
+        """Set-like object providing a view of index keys.
 
-            >>> index = Index()
-            >>> index.update([('a', 1), ('b', 2), ('c', 3)])
-            >>> index.keys()
-            ['a', 'b', 'c']
+        >>> index = Index()
+        >>> index.update({'a': 1, 'b': 2, 'c': 3})
+        >>> keys_view = index.keys()
+        >>> 'b' in keys_view
+        True
 
-            :return: list of keys
+        :return: keys view
 
-            """
-            return list(self._cache)
-
-
-        def values(self):
-            """List of index values.
-
-            >>> index = Index()
-            >>> index.update([('a', 1), ('b', 2), ('c', 3)])
-            >>> index.values()
-            [1, 2, 3]
-
-            :return: list of values
-
-            """
-            return list(self.itervalues())
+        """
+        return KeysView(self)
 
 
-        def items(self):
-            """List of index items.
+    def values(self):
+        """Set-like object providing a view of index values.
 
-            >>> index = Index()
-            >>> index.update([('a', 1), ('b', 2), ('c', 3)])
-            >>> index.items()
-            [('a', 1), ('b', 2), ('c', 3)]
+        >>> index = Index()
+        >>> index.update({'a': 1, 'b': 2, 'c': 3})
+        >>> values_view = index.values()
+        >>> 2 in values_view
+        True
 
-            :return: list of items
+        :return: values view
 
-            """
-            return list(self.iteritems())
-
-
-        def iterkeys(self):
-            """Iterator of index keys.
-
-            >>> index = Index()
-            >>> index.update([('a', 1), ('b', 2), ('c', 3)])
-            >>> list(index.iterkeys())
-            ['a', 'b', 'c']
-
-            :return: iterator of keys
-
-            """
-            return iter(self._cache)
+        """
+        return ValuesView(self)
 
 
-        def itervalues(self):
-            """Iterator of index values.
+    def items(self):
+        """Set-like object providing a view of index items.
 
-            >>> index = Index()
-            >>> index.update([('a', 1), ('b', 2), ('c', 3)])
-            >>> list(index.itervalues())
-            [1, 2, 3]
+        >>> index = Index()
+        >>> index.update({'a': 1, 'b': 2, 'c': 3})
+        >>> items_view = index.items()
+        >>> ('b', 2) in items_view
+        True
 
-            :return: iterator of values
+        :return: items view
 
-            """
-            _cache = self._cache
-
-            for key in _cache:
-                while True:
-                    try:
-                        yield _cache[key]
-                    except KeyError:
-                        pass
-                    break
-
-
-        def iteritems(self):
-            """Iterator of index items.
-
-            >>> index = Index()
-            >>> index.update([('a', 1), ('b', 2), ('c', 3)])
-            >>> list(index.iteritems())
-            [('a', 1), ('b', 2), ('c', 3)]
-
-            :return: iterator of items
-
-            """
-            _cache = self._cache
-
-            for key in _cache:
-                while True:
-                    try:
-                        yield key, _cache[key]
-                    except KeyError:
-                        pass
-                    break
-
-
-        def viewkeys(self):
-            """Set-like object providing a view of index keys.
-
-            >>> index = Index()
-            >>> index.update({'a': 1, 'b': 2, 'c': 3})
-            >>> keys_view = index.viewkeys()
-            >>> 'b' in keys_view
-            True
-
-            :return: keys view
-
-            """
-            return KeysView(self)
-
-
-        def viewvalues(self):
-            """Set-like object providing a view of index values.
-
-            >>> index = Index()
-            >>> index.update({'a': 1, 'b': 2, 'c': 3})
-            >>> values_view = index.viewvalues()
-            >>> 2 in values_view
-            True
-
-            :return: values view
-
-            """
-            return ValuesView(self)
-
-
-        def viewitems(self):
-            """Set-like object providing a view of index items.
-
-            >>> index = Index()
-            >>> index.update({'a': 1, 'b': 2, 'c': 3})
-            >>> items_view = index.viewitems()
-            >>> ('b', 2) in items_view
-            True
-
-            :return: items view
-
-            """
-            return ItemsView(self)
-
-
-    else:
-        def keys(self):
-            """Set-like object providing a view of index keys.
-
-            >>> index = Index()
-            >>> index.update({'a': 1, 'b': 2, 'c': 3})
-            >>> keys_view = index.keys()
-            >>> 'b' in keys_view
-            True
-
-            :return: keys view
-
-            """
-            return KeysView(self)
-
-
-        def values(self):
-            """Set-like object providing a view of index values.
-
-            >>> index = Index()
-            >>> index.update({'a': 1, 'b': 2, 'c': 3})
-            >>> values_view = index.values()
-            >>> 2 in values_view
-            True
-
-            :return: values view
-
-            """
-            return ValuesView(self)
-
-
-        def items(self):
-            """Set-like object providing a view of index items.
-
-            >>> index = Index()
-            >>> index.update({'a': 1, 'b': 2, 'c': 3})
-            >>> items_view = index.items()
-            >>> ('b', 2) in items_view
-            True
-
-            :return: items view
-
-            """
-            return ItemsView(self)
+        """
+        return ItemsView(self)
 
 
     __hash__ = None
