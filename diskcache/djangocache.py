@@ -22,7 +22,7 @@ class DjangoCache(BaseCache):
         :param dict params: cache parameters
 
         """
-        super(DjangoCache, self).__init__(params)
+        super().__init__(params)
         shards = params.get('SHARDS', 8)
         timeout = params.get('DATABASE_TIMEOUT', 0.010)
         options = params.get('OPTIONS', {})
@@ -228,7 +228,7 @@ class DjangoCache(BaseCache):
         try:
             return self._cache.incr(key, delta, default, retry)
         except KeyError:
-            raise ValueError("Key '%s' not found" % key)
+            raise ValueError("Key '%s' not found" % key) from None
 
 
     def decr(self, key, delta=1, version=None, default=None, retry=True):

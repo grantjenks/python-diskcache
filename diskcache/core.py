@@ -180,7 +180,7 @@ class Disk(object):
         :return: (database key, raw boolean) pair
 
         """
-        # pylint: disable=bad-continuation,unidiomatic-typecheck
+        # pylint: disable=unidiomatic-typecheck
         type_key = type(key)
 
         if type_key is BytesType:
@@ -378,17 +378,17 @@ class JSONDisk(Disk):
 
         """
         self.compress_level = compress_level
-        super(JSONDisk, self).__init__(directory, **kwargs)
+        super().__init__(directory, **kwargs)
 
 
     def put(self, key):
         json_bytes = json.dumps(key).encode('utf-8')
         data = zlib.compress(json_bytes, self.compress_level)
-        return super(JSONDisk, self).put(data)
+        return super().put(data)
 
 
     def get(self, key, raw):
-        data = super(JSONDisk, self).get(key, raw)
+        data = super().get(key, raw)
         return json.loads(zlib.decompress(data).decode('utf-8'))
 
 
@@ -396,11 +396,11 @@ class JSONDisk(Disk):
         if not read:
             json_bytes = json.dumps(value).encode('utf-8')
             value = zlib.compress(json_bytes, self.compress_level)
-        return super(JSONDisk, self).store(value, read, key=key)
+        return super().store(value, read, key=key)
 
 
     def fetch(self, mode, filename, value, read):
-        data = super(JSONDisk, self).fetch(mode, filename, value, read)
+        data = super().fetch(mode, filename, value, read)
         if not read:
             data = json.loads(zlib.decompress(data).decode('utf-8'))
         return data
@@ -448,7 +448,6 @@ def args_to_key(base, args, kwargs, typed):
 
 class Cache(object):
     "Disk and file backed cache."
-    # pylint: disable=bad-continuation
     def __init__(self, directory=None, timeout=60, disk=Disk, **settings):
         """Initialize cache instance.
 
@@ -461,7 +460,7 @@ class Cache(object):
         try:
             assert issubclass(disk, Disk)
         except (TypeError, AssertionError):
-            raise ValueError('disk must subclass diskcache.Disk')
+            raise ValueError('disk must subclass diskcache.Disk') from None
 
         if directory is None:
             directory = tempfile.mkdtemp(prefix='diskcache-')
@@ -482,7 +481,7 @@ class Cache(object):
                         error.errno,
                         'Cache directory "%s" does not exist'
                         ' and could not be created' % self._directory
-                    )
+                    ) from None
 
         sql = self._sql_retry
 
@@ -756,7 +755,7 @@ class Cache(object):
                         continue
                     if filename is not None:
                         _disk_remove(filename)
-                    raise Timeout
+                    raise Timeout from None
 
         try:
             yield sql, filenames.append
@@ -1609,8 +1608,7 @@ class Cache(object):
                 if error.errno == errno.ENOENT:
                     # Key was deleted before we could retrieve result.
                     continue
-                else:
-                    raise
+                raise
             finally:
                 if name is not None:
                     self._disk.remove(name)
@@ -1719,8 +1717,7 @@ class Cache(object):
                 if error.errno == errno.ENOENT:
                     # Key was deleted before we could retrieve result.
                     continue
-                else:
-                    raise
+                raise
             finally:
                 if name is not None:
                     self._disk.remove(name)
@@ -1794,8 +1791,7 @@ class Cache(object):
                 if error.errno == errno.ENOENT:
                     # Key was deleted before we could retrieve result.
                     continue
-                else:
-                    raise
+                raise
             break
 
         if expire_time and tag:
@@ -2162,7 +2158,7 @@ class Cache(object):
                     for filename, in rows:
                         cleanup(filename)
         except Timeout:
-            raise Timeout(count)
+            raise Timeout(count) from None
 
         return count
 
@@ -2215,7 +2211,7 @@ class Cache(object):
                         cleanup(row[-1])
 
         except Timeout:
-            raise Timeout(count)
+            raise Timeout(count) from None
 
         return count
 

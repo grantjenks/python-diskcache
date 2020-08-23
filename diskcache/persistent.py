@@ -915,7 +915,7 @@ class Index(MutableMapping):
         :raises KeyError: if index is empty
 
         """
-        # pylint: disable=arguments-differ
+        # pylint: disable=arguments-differ,unbalanced-tuple-unpacking
         _cache = self._cache
 
         with _cache.transact(retry=True):
