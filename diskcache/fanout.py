@@ -651,3 +651,40 @@ class FanoutCache(object):
 
 
 FanoutCache.memoize = Cache.memoize
+
+
+class FanoutMixin:
+    @property
+    def directory(self):
+        """Cache directory."""
+        return self._cache.directory
+
+
+    def cache(self, name):
+        """Return Cache with given `name` in subdirectory.
+
+        :param str name: subdirectory name for Cache
+        :return: Cache with given name
+
+        """
+        return self._cache.cache(name)
+
+
+    def deque(self, name):
+        """Return Deque with given `name` in subdirectory.
+
+        :param str name: subdirectory name for Deque
+        :return: Deque with given name
+
+        """
+        return self._cache.deque(name)
+
+
+    def index(self, name):
+        """Return Index with given `name` in subdirectory.
+
+        :param str name: subdirectory name for Index
+        :return: Index with given name
+
+        """
+        return self._cache.index(name)

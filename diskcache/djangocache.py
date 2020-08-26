@@ -10,10 +10,10 @@ except ImportError:
     DEFAULT_TIMEOUT = 300
 
 from .core import ENOVAL, args_to_key, full_name
-from .fanout import FanoutCache
+from .fanout import FanoutCache, FanoutMixin
 
 
-class DjangoCache(BaseCache):
+class DjangoCache(BaseCache, FanoutMixin):
     "Django-compatible disk and file backed cache."
     def __init__(self, directory, params):
         """Initialize DjangoCache instance.
@@ -27,42 +27,6 @@ class DjangoCache(BaseCache):
         timeout = params.get('DATABASE_TIMEOUT', 0.010)
         options = params.get('OPTIONS', {})
         self._cache = FanoutCache(directory, shards, timeout, **options)
-
-
-    @property
-    def directory(self):
-        """Cache directory."""
-        return self._cache.directory
-
-
-    def cache(self, name):
-        """Return Cache with given `name` in subdirectory.
-
-        :param str name: subdirectory name for Cache
-        :return: Cache with given name
-
-        """
-        return self._cache.cache(name)
-
-
-    def deque(self, name):
-        """Return Deque with given `name` in subdirectory.
-
-        :param str name: subdirectory name for Deque
-        :return: Deque with given name
-
-        """
-        return self._cache.deque(name)
-
-
-    def index(self, name):
-        """Return Index with given `name` in subdirectory.
-
-        :param str name: subdirectory name for Index
-        :return: Index with given name
-
-        """
-        return self._cache.index(name)
 
 
     def add(self, key, value, timeout=DEFAULT_TIMEOUT, version=None,
