@@ -31,6 +31,7 @@ setup(
     packages=['diskcache'],
     tests_require=['tox'],
     cmdclass={'test': Tox},
+    python_requires='>=3',
     install_requires=[],
     classifiers=(
         'Development Status :: 5 - Production/Stable',
