@@ -1,4 +1,4 @@
-DiskCache: Disk Backed Cache
+DiskCache--> Disk Backed Cache
 ============================
 
 `DiskCache`_ is an Apache2 licensed disk and file backed cache library, written
