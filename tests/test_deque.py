@@ -4,6 +4,7 @@ import functools as ft
 import pickle
 import pytest
 import shutil
+import tempfile
 
 from unittest import mock
 
@@ -26,7 +27,7 @@ def deque():
 
 
 def test_init():
-    directory = '/tmp/diskcache/deque'
+    directory = tempfile.mkdtemp()
     sequence = list('abcde')
     deque = dc.Deque(sequence, None)
 
@@ -156,7 +157,7 @@ def test_indexerror(deque):
 
 
 def test_repr():
-    directory = '/tmp/diskcache/deque'
+    directory = tempfile.mkdtemp()
     deque = dc.Deque(directory=directory)
     assert repr(deque) == 'Deque(directory=%r)' % directory
 
