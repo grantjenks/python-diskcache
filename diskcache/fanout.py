@@ -61,7 +61,7 @@ class FanoutCache(object):
     def __getattr__(self, name):
         safe_names = {'timeout', 'disk'}
         valid_name = name in DEFAULT_SETTINGS or name in safe_names
-        assert valid_name, f'cannot access {name} in cache shard'
+        assert valid_name, 'cannot access {} in cache shard'.format(name)
         return getattr(self._shards[0], name)
 
 
