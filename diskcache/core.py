@@ -207,14 +207,14 @@ class Disk(object):
             else:
                 filename, full_path = self.filename(key, value)
 
-                with open(full_path, 'wb') as writer:
+                with open(full_path, 'xb') as writer:
                     writer.write(value)
 
                 return len(value), MODE_BINARY, filename, None
         elif type_value is str:
             filename, full_path = self.filename(key, value)
 
-            with open(full_path, 'w', encoding='UTF-8') as writer:
+            with open(full_path, 'x', encoding='UTF-8') as writer:
                 writer.write(value)
 
             size = op.getsize(full_path)
@@ -224,7 +224,7 @@ class Disk(object):
             reader = ft.partial(value.read, 2 ** 22)
             filename, full_path = self.filename(key, value)
 
-            with open(full_path, 'wb') as writer:
+            with open(full_path, 'xb') as writer:
                 for chunk in iter(reader, b''):
                     size += len(chunk)
                     writer.write(chunk)
@@ -238,7 +238,7 @@ class Disk(object):
             else:
                 filename, full_path = self.filename(key, value)
 
-                with open(full_path, 'wb') as writer:
+                with open(full_path, 'xb') as writer:
                     writer.write(result)
 
                 return len(result), MODE_PICKLE, filename, None
