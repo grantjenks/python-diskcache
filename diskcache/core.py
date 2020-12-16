@@ -271,7 +271,14 @@ class Disk(object):
         elif mode == MODE_PICKLE:
             if value is None:
                 with open(op.join(self._directory, filename), 'rb') as reader:
-                    return pickle.load(reader)
+                    try:
+                        return pickle.load(reader)
+                    except EOFError as error:
+                        raise IOError(
+                            errno.ENOENT,
+                            'File cannot be read by pickle',
+                            op.join(self._directory, filename)
+                        ) from error
             else:
                 return pickle.load(io.BytesIO(value))
 
