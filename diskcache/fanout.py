@@ -36,6 +36,7 @@ class FanoutCache(object):
 
         self._count = shards
         self._directory = directory
+        self._disk = disk
         self._shards = tuple(
             Cache(
                 directory=op.join(directory, '%03d' % num),
@@ -622,7 +623,7 @@ class FanoutCache(object):
         except KeyError:
             parts = name.split('/')
             directory = op.join(self._directory, 'cache', *parts)
-            temp = Cache(directory=directory)
+            temp = Cache(directory=directory, disk=self._disk)
             _caches[name] = temp
             return temp
 
