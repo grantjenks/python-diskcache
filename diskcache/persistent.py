@@ -81,8 +81,7 @@ class Deque(Sequence):
 
         """
         self._cache = Cache(directory, eviction_policy='none')
-        with self.transact():
-            self.extend(iterable)
+        self.extend(iterable)
 
 
     @classmethod
