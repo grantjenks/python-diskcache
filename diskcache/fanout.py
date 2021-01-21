@@ -652,9 +652,10 @@ class FanoutCache(object):
         except KeyError:
             parts = name.split('/')
             directory = op.join(self._directory, 'deque', *parts)
-            temp = Deque(directory=directory)
-            _deques[name] = temp
-            return temp
+            cache = Cache(directory=directory, disk=self._disk)
+            deque = Deque.fromcache(cache)
+            _deques[name] = deque
+            return deque
 
 
     def index(self, name):
@@ -684,9 +685,10 @@ class FanoutCache(object):
         except KeyError:
             parts = name.split('/')
             directory = op.join(self._directory, 'index', *parts)
-            temp = Index(directory)
-            _indexes[name] = temp
-            return temp
+            cache = Cache(directory=directory, disk=self._disk)
+            index = Index.fromcache(cache)
+            _indexes[name] = index
+            return index
 
 
 FanoutCache.memoize = Cache.memoize
