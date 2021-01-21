@@ -169,6 +169,64 @@ class RLock(object):
         self.release()
 
 
+class FairLock(object):
+    """Recipe for cross-process and cross-thread fair lock.
+
+    Based on the "Ticket Lock" algorithm:
+    https://en.wikipedia.org/wiki/Ticket_lock
+
+    """
+    def __init__(self, cache, prefix, expire=None, tag=None):
+        self._cache = cache
+        self._tickets_key = prefix + 'tickets'
+        self._serving_key = prefix + 'serving'
+        self._expire = expire
+        self._tag = tag
+
+    def setup(self):
+        self._cache.add(
+            self._tickets_key, 0,
+            expire=self._expire, tag=self._tag, retry=True,
+        )
+        self._cache.add(
+            self._serving_key, 1,
+            expire=self._expire, tag=self._tag, retry=True,
+        )
+
+    def acquire(self):
+        while True:
+            ticket = self._cache.incr(
+                self._tickets_key,
+                expire=self._expire, tag=self._tag, retry=True,
+            )
+            while True:
+                serving = self._cache.get(self._serving_key, retry=True)
+                if serving is None:
+                    self._cache.add(
+                        self._serving_key, ticket,
+                        expire=self._expire, tag=self._tag, retry=True,
+                    )
+                    # TODO: How do we know the tickets key has not expired?
+                    # If the tickets key has expired, is it possible that
+                    # another acquire() method has the same ticket?
+                    # Maybe a transaction is necessary to set both keys?
+                    # If both keys are set then what if another thread has
+                    # acquired the lock already?
+                elif serving < ticket:
+                    time.sleep(0.001)
+                elif serving == ticket:
+                    return
+                else:
+                    assert serving > ticket
+                    # We got skipped! Take a new ticket.
+                    break
+
+    def release(self):
+        self._cache.incr(
+            self._serving_key, expire=self._expire, tag=self._tag, retry=True,
+        )
+
+
 class BoundedSemaphore(object):
     """Recipe for cross-process and cross-thread bounded semaphore.
 
