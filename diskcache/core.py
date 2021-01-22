@@ -109,7 +109,7 @@ EVICTION_POLICY = {
 }
 
 
-class Disk(object):
+class Disk:
     "Cache key and value serialization for SQLite database and files."
 
     def __init__(self, directory, min_file_size=0, pickle_protocol=0):
@@ -418,7 +418,7 @@ def args_to_key(base, args, kwargs, typed):
     return key
 
 
-class Cache(object):
+class Cache:
     "Disk and file backed cache."
 
     def __init__(self, directory=None, timeout=60, disk=Disk, **settings):
@@ -2138,7 +2138,7 @@ class Cache(object):
         select_policy = EVICTION_POLICY[self.eviction_policy]['cull']
 
         if select_policy is None:
-            return
+            return 0
 
         select_filename = select_policy.format(fields='filename', now=now)
 

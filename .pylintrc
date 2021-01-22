@@ -5,6 +5,9 @@
 # run arbitrary code.
 extension-pkg-whitelist=
 
+# Specify a score threshold to be exceeded before program exits with error.
+fail-under=10.0
+
 # Add files or directories to the blacklist. They should be base names, not
 # paths.
 ignore=CVS
@@ -26,15 +29,12 @@ jobs=1
 # complex, nested conditions.
 limit-inference-results=100
 
-# List of plugins (as comma separated values of python modules names) to load,
+# List of plugins (as comma separated values of python module names) to load,
 # usually to register additional checkers.
 load-plugins=
 
 # Pickle collected data for later comparisons.
 persistent=yes
-
-# Specify a configuration file.
-#rcfile=
 
 # When enabled, pylint would attempt to guess common misconfiguration and emit
 # user-friendly hints instead of false-positive error messages.
@@ -139,12 +139,10 @@ disable=print-statement,
         deprecated-sys-function,
         exception-escape,
         comprehension-escape,
-        no-else-return,
         no-member,
-        useless-object-inheritance,
+        no-else-return,
+        duplicate-code,
         inconsistent-return-statements,
-        ungrouped-imports,
-        not-callable,
 
 # Enable the message, report, category or checker with the given id(s). You can
 # either give multiple identifier separated by comma (,) or put this option
@@ -155,11 +153,11 @@ enable=c-extension-no-member
 
 [REPORTS]
 
-# Python expression which should return a note less than 10 (10 is the highest
-# note). You have access to the variables errors warning, statement which
-# respectively contain the number of errors / warnings messages and the total
-# number of statements analyzed. This is used by the global evaluation report
-# (RP0004).
+# Python expression which should return a score less than or equal to 10. You
+# have access to the variables 'error', 'warning', 'refactor', and 'convention'
+# which contain the number of messages in each category, as well as 'statement'
+# which is the total number of statements analyzed. This score is used by the
+# global evaluation report (RP0004).
 evaluation=10.0 - ((float(5 * error + warning + refactor + convention) / statement) * 10)
 
 # Template used to display messages. This is a python new-style format string
@@ -181,7 +179,7 @@ score=yes
 [REFACTORING]
 
 # Maximum number of nested blocks for function / method body
-max-nested-blocks=6
+max-nested-blocks=5
 
 # Complete name of functions that never returns. When checking for
 # inconsistent-return-statements if a never returning function is called then
@@ -192,8 +190,8 @@ never-returning-functions=sys.exit
 
 [LOGGING]
 
-# Format style used to check logging format string. `old` means using %
-# formatting, while `new` is for `{}` formatting.
+# The type of string formatting that logging methods do. `old` means using %
+# formatting, `new` is for `{}` formatting.
 logging-format-style=old
 
 # Logging modules to check that the string format arguments are in logging
@@ -206,18 +204,18 @@ logging-modules=logging
 # Limits count of emitted suggestions for spelling mistakes.
 max-spelling-suggestions=4
 
-# Spelling dictionary name. Available dictionaries: none. To make it working
-# install python-enchant package..
+# Spelling dictionary name. Available dictionaries: none. To make it work,
+# install the python-enchant package.
 spelling-dict=
 
 # List of comma separated words that should not be checked.
 spelling-ignore-words=
 
-# A path to a file that contains private dictionary; one word per line.
+# A path to a file that contains the private dictionary; one word per line.
 spelling-private-dict-file=
 
-# Tells whether to store unknown words to indicated private dictionary in
-# --spelling-private-dict-file option instead of raising a message.
+# Tells whether to store unknown words to the private dictionary (see the
+# --spelling-private-dict-file option) instead of raising a message.
 spelling-store-unknown-words=no
 
 
@@ -227,6 +225,9 @@ spelling-store-unknown-words=no
 notes=FIXME,
       XXX,
       TODO
+
+# Regular expression of note tags to take in consideration.
+#notes-rgx=
 
 
 [TYPECHECK]
@@ -264,7 +265,7 @@ ignored-classes=optparse.Values,thread._local,_thread._local
 
 # List of module names for which member attributes should not be checked
 # (useful for modules/projects where namespaces are manipulated during runtime
-# and thus existing member attributes cannot be deduced by static analysis. It
+# and thus existing member attributes cannot be deduced by static analysis). It
 # supports qualified module names, as well as Unix pattern matching.
 ignored-modules=
 
@@ -279,6 +280,9 @@ missing-member-hint-distance=1
 # The total number of similar names that should be taken in consideration when
 # showing a hint for a missing member.
 missing-member-max-choices=1
+
+# List of decorators that change the signature of a decorated function.
+signature-mutators=
 
 
 [VARIABLES]
@@ -330,14 +334,7 @@ indent-string='    '
 max-line-length=100
 
 # Maximum number of lines in a module.
-max-module-lines=2500
-
-# List of optional constructs for which whitespace checking is disabled. `dict-
-# separator` is used to allow tabulation in dicts, etc.: {1  : 1,\n222: 2}.
-# `trailing-comma` allows a space between comma and closing bracket: (a, ).
-# `empty-line` allows space-only lines.
-no-space-check=trailing-comma,
-               dict-separator
+max-module-lines=3000
 
 # Allow the body of a class to be on the same line as the declaration if body
 # contains single statement.
@@ -357,10 +354,10 @@ ignore-comments=yes
 ignore-docstrings=yes
 
 # Ignore imports when computing similarities.
-ignore-imports=no
+ignore-imports=yes
 
 # Minimum lines number of a similarity.
-min-similarity-lines=9
+min-similarity-lines=4
 
 
 [BASIC]
@@ -386,6 +383,10 @@ bad-names=foo,
           toto,
           tutu,
           tata
+
+# Bad variable names regexes, separated by a comma. If names match any regex,
+# they will always be refused
+bad-names-rgxs=
 
 # Naming style matching correct class attribute names.
 class-attribute-naming-style=any
@@ -426,6 +427,10 @@ good-names=i,
            ex,
            Run,
            _
+
+# Good variable names regexes, separated by a comma. If names match any regex,
+# they will always be accepted
+good-names-rgxs=
 
 # Include a hint for the correct naming format with invalid-name.
 include-naming-hint=no
@@ -474,13 +479,20 @@ variable-naming-style=snake_case
 
 [STRING]
 
-# This flag controls whether the implicit-str-concat-in-sequence should
-# generate a warning on implicit string concatenation in sequences defined over
-# several lines.
+# This flag controls whether inconsistent-quotes generates a warning when the
+# character used as a quote delimiter is used inconsistently within a module.
+check-quote-consistency=no
+
+# This flag controls whether the implicit-str-concat should generate a warning
+# on implicit string concatenation in sequences defined over several lines.
 check-str-concat-over-line-jumps=no
 
 
 [IMPORTS]
+
+# List of modules that can be imported at any level, not just the top level
+# one.
+allow-any-import-level=
 
 # Allow wildcard imports from modules that define __all__.
 allow-wildcard-with-all=no
@@ -512,13 +524,17 @@ known-standard-library=
 # Force import order to recognize a module as part of a third party library.
 known-third-party=enchant
 
+# Couples of modules and preferred modules, separated by a comma.
+preferred-modules=
+
 
 [CLASSES]
 
 # List of method names used to declare (i.e. assign) instance attributes.
 defining-attr-methods=__init__,
                       __new__,
-                      setUp
+                      setUp,
+                      __post_init__
 
 # List of member names, which should be excluded from the protected access
 # warning.
@@ -543,7 +559,7 @@ max-args=8
 # Maximum number of attributes for a class (see R0902).
 max-attributes=8
 
-# Maximum number of boolean expressions in an if statement.
+# Maximum number of boolean expressions in an if statement (see R0916).
 max-bool-expr=5
 
 # Maximum number of branch for function / method body.

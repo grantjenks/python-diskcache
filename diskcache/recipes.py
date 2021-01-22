@@ -12,7 +12,7 @@ import time
 from .core import ENOVAL, args_to_key, full_name
 
 
-class Averager(object):
+class Averager:
     """Recipe for calculating a running average.
 
     Sometimes known as "online statistics," the running average maintains the
@@ -63,7 +63,7 @@ class Averager(object):
         return None if count == 0 else total / count
 
 
-class Lock(object):
+class Lock:
     """Recipe for cross-process and cross-thread lock.
 
     >>> import diskcache
@@ -111,7 +111,7 @@ class Lock(object):
         self.release()
 
 
-class RLock(object):
+class RLock:
     """Recipe for cross-process and cross-thread re-entrant lock.
 
     >>> import diskcache
@@ -179,7 +179,7 @@ class RLock(object):
         self.release()
 
 
-class BoundedSemaphore(object):
+class BoundedSemaphore:
     """Recipe for cross-process and cross-thread bounded semaphore.
 
     >>> import diskcache

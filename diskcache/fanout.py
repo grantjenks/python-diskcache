@@ -13,7 +13,7 @@ from .core import DEFAULT_SETTINGS, ENOVAL, Cache, Disk, Timeout
 from .persistent import Deque, Index
 
 
-class FanoutCache(object):
+class FanoutCache:
     "Cache that shards keys and values."
 
     def __init__(
