@@ -314,7 +314,6 @@ Object Relational Mappings (ORM)
 .. _`Django ORM`: https://docs.djangoproject.com/en/dev/topics/db/
 .. _`SQLAlchemy`: https://www.sqlalchemy.org/
 .. _`Peewee`: http://docs.peewee-orm.com/
-.. _`dataset`: https://dataset.readthedocs.io/
 .. _`SQLObject`: http://sqlobject.org/
 .. _`Pony ORM`: https://ponyorm.com/
 
