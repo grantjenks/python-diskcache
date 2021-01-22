@@ -539,10 +539,9 @@ def memoize_lease(cache, expire, lease, name=None, typed=False, tag=None):
         def wrapper(*args, **kwargs):
             "Wrapper for callable to cache arguments and return values."
             key = wrapper.__cache_key__(*args, **kwargs)
-            trio, expire_time = cache.get(
+            trio = cache.get(
                 key,
                 default=ENOVAL,
-                expire_time=True,
                 retry=True,
             )
 
