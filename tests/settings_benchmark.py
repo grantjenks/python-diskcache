@@ -1,9 +1,9 @@
-from .settings import *
+from .settings import *  # noqa
 
 CACHES = {
     'default': {
         'BACKEND': 'diskcache.DjangoCache',
-        'LOCATION': CACHE_DIR,
+        'LOCATION': CACHE_DIR,  # noqa
     },
     'memcached': {
         'BACKEND': 'django.core.cache.backends.memcached.PyLibMCCache',

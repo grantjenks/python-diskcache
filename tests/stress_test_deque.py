@@ -2,7 +2,6 @@
 
 import collections as co
 import functools as ft
-import itertools as it
 import random
 
 import diskcache as dc

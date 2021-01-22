@@ -1,6 +1,5 @@
 "Test diskcache.persistent.Deque."
 
-import functools as ft
 import pickle
 import shutil
 import tempfile
@@ -278,7 +277,3 @@ def test_rotate_indexerror_negative(deque):
 
     with mock.patch.object(deque, '_cache', cache):
         deque.rotate(-1)
-
-
-def test_repr(deque):
-    assert repr(deque).startswith('Deque(')

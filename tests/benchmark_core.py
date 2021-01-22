@@ -12,7 +12,6 @@ import os
 import pickle
 import random
 import shutil
-import sys
 import time
 import warnings
 
@@ -30,7 +29,7 @@ caches = []
 # Disk Cache Benchmarks
 ###############################################################################
 
-import diskcache
+import diskcache  # noqa
 
 caches.append(
     (
@@ -123,13 +122,13 @@ def worker(num, kind, args, kwargs):
             start = time.time()
             result = obj.set(key, value)
             end = time.time()
-            miss = result == False
+            miss = result is False
             action = 'set'
         else:
             start = time.time()
             result = obj.delete(key)
             end = time.time()
-            miss = result == False
+            miss = result is False
             action = 'delete'
 
         if count > WARMUP:
@@ -154,7 +153,7 @@ def dispatch():
 
         try:
             obj.close()
-        except:
+        except Exception:
             pass
 
         processes = [

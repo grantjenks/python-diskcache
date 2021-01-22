@@ -12,9 +12,7 @@ import os
 import pickle
 import random
 import shutil
-import sys
 import time
-import warnings
 
 from utils import display
 
@@ -59,13 +57,13 @@ def worker(num, name):
             start = time.time()
             result = obj.set(key, value)
             end = time.time()
-            miss = result == False
+            miss = result is False
             action = 'set'
         else:
             start = time.time()
             result = obj.delete(key)
             end = time.time()
-            miss = result == False
+            miss = result is False
             action = 'delete'
 
         if count > WARMUP:
@@ -91,14 +89,14 @@ def prepare(name):
 
     try:
         obj.close()
-    except:
+    except Exception:
         pass
 
 
 def dispatch():
     setup()
 
-    from django.core.cache import caches
+    from django.core.cache import caches  # noqa
 
     for name in ['locmem', 'memcached', 'redis', 'diskcache', 'filebased']:
         shutil.rmtree('tmp', ignore_errors=True)

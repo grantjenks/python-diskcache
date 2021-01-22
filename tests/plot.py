@@ -48,7 +48,7 @@ def parse_data(infile):
         if blocks.match(line):
             try:
                 name = title.match(lines[index + 1]).group(1)
-            except:
+            except Exception:
                 index += 1
                 continue
 

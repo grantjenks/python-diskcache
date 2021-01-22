@@ -7,7 +7,6 @@ import pickle
 import queue
 import random
 import shutil
-import sys
 import threading
 import time
 import warnings
@@ -196,7 +195,7 @@ def dispatch(num, eviction_policy, processes, threads):
     for thread_queue in thread_queues:
         thread_queue.put(None)
 
-    start = time.time()
+    # start = time.time()
 
     for thread in subthreads:
         thread.start()
@@ -204,7 +203,7 @@ def dispatch(num, eviction_policy, processes, threads):
     for thread in subthreads:
         thread.join()
 
-    stop = time.time()
+    # stop = time.time()
 
     timings = co.defaultdict(list)
 
@@ -396,7 +395,7 @@ if __name__ == '__main__':
     parser.add_argument(
         '-v',
         '--eviction-policy',
-        type=unicode,
+        type=str,
         default=u'least-recently-stored',
     )
 

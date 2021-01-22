@@ -1,13 +1,11 @@
 "Stress test diskcache.core.Cache."
 
-import collections as co
 import multiprocessing as mp
 import os
 import pickle
 import queue
 import random
 import shutil
-import sys
 import threading
 import time
 import warnings
@@ -388,7 +386,7 @@ if __name__ == '__main__':
     parser.add_argument(
         '-v',
         '--eviction-policy',
-        type=unicode,
+        type=str,
         default=u'least-recently-stored',
     )
 

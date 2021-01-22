@@ -18,7 +18,6 @@ def percentile(sequence, percent):
 
 def secs(value):
     units = ['s ', 'ms', 'us', 'ns']
-    pos = 0
 
     if value is None:
         return '  0.000ns'
@@ -58,24 +57,6 @@ def unmount_ramdisk(dev_path, path):
     run('umount', path)
     run('diskutil', 'eject', dev_path)
     run('rm', '-r', path)
-
-
-def retry(sql, query):
-    pause = 0.001
-    error = sqlite3.OperationalError
-
-    for _ in range(int(LIMITS[u'timeout'] / pause)):
-        try:
-            sql(query).fetchone()
-        except sqlite3.OperationalError as exc:
-            error = exc
-            time.sleep(pause)
-        else:
-            break
-    else:
-        raise error
-
-    del error
 
 
 def display(name, timings):

@@ -3,7 +3,6 @@
 import shutil
 import threading
 import time
-from unittest import mock
 
 import pytest
 

@@ -1,18 +1,13 @@
 "Test diskcache.fanout.FanoutCache."
 
 import collections as co
-import errno
-import functools as ft
 import hashlib
 import io
 import os
 import os.path as op
 import pickle
-import random
 import shutil
-import sqlite3
 import subprocess as sp
-import sys
 import tempfile
 import threading
 import time
@@ -67,7 +62,7 @@ def test_set_get_delete(cache):
 
     for value in range(100):
         assert cache.delete(value)
-    assert cache.delete(100) == False
+    assert cache.delete(100) is False
 
     cache.check()
 
@@ -353,7 +348,7 @@ def test_read(cache):
 
 def test_read_keyerror(cache):
     with pytest.raises(KeyError):
-        with cache.read(0) as reader:
+        with cache.read(0):
             pass
 
 

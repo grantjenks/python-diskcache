@@ -109,7 +109,7 @@ def run(statements):
             shard._sql(statement)
             if index == 0:
                 values.append(('BEGIN', ident))
-    except sqlite3.OperationalError as exc:
+    except sqlite3.OperationalError:
         values.append(('ERROR', ident))
 
 

@@ -1,22 +1,17 @@
 "Test diskcache.core.Cache."
 
-import collections as co
 import errno
-import functools as ft
 import hashlib
 import io
 import os
 import os.path as op
 import pickle
-import random
 import shutil
 import sqlite3
 import subprocess as sp
-import sys
 import tempfile
 import threading
 import time
-import unittest
 import warnings
 from unittest import mock
 
@@ -130,7 +125,7 @@ def test_init_makedirs():
     with pytest.raises(EnvironmentError):
         try:
             with mock.patch('os.makedirs', makedirs):
-                cache = dc.Cache(cache_dir)
+                dc.Cache(cache_dir)
         except EnvironmentError:
             shutil.rmtree(cache_dir, ignore_errors=True)
             raise
@@ -244,7 +239,7 @@ def test_read(cache):
 
 def test_read_keyerror(cache):
     with pytest.raises(KeyError):
-        with cache.read(0) as reader:
+        with cache.read(0):
             pass
 
 

@@ -1,6 +1,5 @@
 """Stress test diskcache.persistent.Deque."""
 
-import functools as ft
 import itertools as it
 import multiprocessing as mp
 import os

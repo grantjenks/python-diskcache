@@ -22,7 +22,7 @@ def make_timer(times):
         @ft.wraps(func)
         def wrapper(*args, **kwargs):
             start = time.time()
-            result = func(*args, **kwargs)
+            func(*args, **kwargs)
             pair = start, time.time()
             with lock:
                 times.append(pair)
