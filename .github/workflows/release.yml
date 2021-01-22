@@ -1,0 +1,38 @@
+name: release
+
+on:
+  push:
+    tags:
+      - v*
+
+jobs:
+
+  upload:
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v2
+
+    - name: Set up Python
+      uses: actions/setup-python@v2
+      with:
+        python-version: 3.9
+
+    - name: Install dependencies
+      run: |
+        pip install --upgrade pip
+        pip install -r requirements.txt
+
+    - name: Create source dist
+      run: python setup.py sdist
+
+    - name: Create wheel dist
+      run: python setup.py bdist_wheel
+
+    - name: Upload with twine
+      env:
+        TWINE_USERNAME: ${{ secrets.TWINE_USERNAME }}
+        TWINE_PASSWORD: ${{ secrets.TWINE_PASSWORD }}
+      run: |
+        ls -l dist/*
+        twine upload dist/*
