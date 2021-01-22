@@ -26,6 +26,7 @@ import diskcache as dc
 
 pytestmark = pytest.mark.filterwarnings('ignore', category=dc.EmptyDirWarning)
 
+
 @pytest.fixture
 def cache():
     with dc.Cache() as cache:
@@ -161,6 +162,7 @@ def test_close_error(cache):
     class LocalTest(object):
         def __init__(self):
             self._calls = 0
+
         def __getattr__(self, name):
             if self._calls:
                 raise AttributeError
@@ -302,6 +304,7 @@ def test_get(cache):
     assert cache.get(0, expire_time=True) == (0, None)
     assert cache.get(0, tag=True) == (0, u'number')
     assert cache.get(0, expire_time=True, tag=True) == (0, None, u'number')
+
 
 def test_get_expired_fast_path(cache):
     assert cache.set(0, 0, expire=0.001)
@@ -642,7 +645,7 @@ def test_check(cache):
         cache.check()
         cache.check(fix=True)
 
-    assert len(cache.check()) == 0 # Should display no warnings.
+    assert len(cache.check()) == 0  # Should display no warnings.
 
 
 def test_integrity_check(cache):
@@ -653,7 +656,7 @@ def test_integrity_check(cache):
 
     with io.open(op.join(cache.directory, 'cache.db'), 'r+b') as writer:
         writer.seek(52)
-        writer.write(b'\x00\x01') # Should be 0, change it.
+        writer.write(b'\x00\x01')  # Should be 0, change it.
 
     cache = dc.Cache(cache.directory)
 
@@ -1262,8 +1265,8 @@ def test_cull_timeout(cache):
 
 
 def test_key_roundtrip(cache):
-    key_part_0 = u"part0"
-    key_part_1 = u"part1"
+    key_part_0 = u'part0'
+    key_part_1 = u'part1'
     to_test = [
         (key_part_0, key_part_1),
         [key_part_0, key_part_1],
@@ -1281,6 +1284,7 @@ def test_key_roundtrip(cache):
 
 def test_constant():
     import diskcache.core
+
     assert repr(diskcache.core.ENOVAL) == 'ENOVAL'
 
 

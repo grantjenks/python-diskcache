@@ -93,12 +93,17 @@ def make_plot(data, action, save=False, show=False, limit=0.005):
     bars = []
 
     for pos, (name, color) in enumerate(zip(names, colors)):
-        bars.append(ax.bar(
-            [val + pos * width for val in index],
-            [parse_timing(data[name][action][tick], limit) for tick in ticks],
-            width,
-            color=color,
-        ))
+        bars.append(
+            ax.bar(
+                [val + pos * width for val in index],
+                [
+                    parse_timing(data[name][action][tick], limit)
+                    for tick in ticks
+                ],
+                width,
+                color=color,
+            )
+        )
 
     ax.set_ylabel('Time (microseconds)')
     ax.set_title('"%s" Time vs Percentile' % action)
@@ -106,12 +111,14 @@ def make_plot(data, action, save=False, show=False, limit=0.005):
     ax.set_xticklabels(ticks)
 
     box = ax.get_position()
-    ax.set_position([box.x0, box.y0 + box.height * 0.2, box.width, box.height * 0.8])
+    ax.set_position(
+        [box.x0, box.y0 + box.height * 0.2, box.width, box.height * 0.8]
+    )
     ax.legend(
         [bar[0] for bar in bars],
         names,
         loc='lower center',
-        bbox_to_anchor=(0.5, -0.25)
+        bbox_to_anchor=(0.5, -0.25),
     )
 
     if show:

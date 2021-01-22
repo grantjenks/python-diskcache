@@ -8,6 +8,7 @@ import diskcache as dc
 
 def main():
     import argparse
+
     parser = argparse.ArgumentParser()
     parser.add_argument('--cache-dir', default='/tmp/test')
     parser.add_argument('--iterations', type=int, default=100)
@@ -31,7 +32,7 @@ def main():
             delays.append(diff)
 
     # Discard warmup delays, first two iterations.
-    del delays[:(len(values) * 2)]
+    del delays[: (len(values) * 2)]
 
     # Convert seconds to microseconds.
     delays = sorted(delay * 1e6 for delay in delays)

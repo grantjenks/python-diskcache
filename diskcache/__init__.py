@@ -7,7 +7,12 @@ The :doc:`tutorial` provides a helpful walkthrough of most methods.
 """
 
 from .core import (
-    Cache, Disk, EmptyDirWarning, JSONDisk, UnknownFileWarning, Timeout
+    Cache,
+    Disk,
+    EmptyDirWarning,
+    JSONDisk,
+    UnknownFileWarning,
+    Timeout,
 )
 from .core import DEFAULT_SETTINGS, ENOVAL, EVICTION_POLICY, UNKNOWN
 from .fanout import FanoutCache
@@ -40,6 +45,7 @@ __all__ = [
 
 try:
     from .djangocache import DjangoCache  # noqa
+
     __all__.append('DjangoCache')
 except Exception:  # pylint: disable=broad-except
     # Django not installed or not setup so ignore.

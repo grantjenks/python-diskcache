@@ -15,6 +15,7 @@ from .fanout import FanoutCache
 
 class DjangoCache(BaseCache):
     "Django-compatible disk and file backed cache."
+
     def __init__(self, directory, params):
         """Initialize DjangoCache instance.
 
@@ -28,12 +29,10 @@ class DjangoCache(BaseCache):
         options = params.get('OPTIONS', {})
         self._cache = FanoutCache(directory, shards, timeout, **options)
 
-
     @property
     def directory(self):
         """Cache directory."""
         return self._cache.directory
-
 
     def cache(self, name):
         """Return Cache with given `name` in subdirectory.
@@ -44,7 +43,6 @@ class DjangoCache(BaseCache):
         """
         return self._cache.cache(name)
 
-
     def deque(self, name):
         """Return Deque with given `name` in subdirectory.
 
@@ -53,7 +51,6 @@ class DjangoCache(BaseCache):
 
         """
         return self._cache.deque(name)
-
 
     def index(self, name):
         """Return Index with given `name` in subdirectory.
@@ -64,9 +61,16 @@ class DjangoCache(BaseCache):
         """
         return self._cache.index(name)
 
-
-    def add(self, key, value, timeout=DEFAULT_TIMEOUT, version=None,
-            read=False, tag=None, retry=True):
+    def add(
+        self,
+        key,
+        value,
+        timeout=DEFAULT_TIMEOUT,
+        version=None,
+        read=False,
+        tag=None,
+        retry=True,
+    ):
         """Set a value in the cache if the key does not already exist. If
         timeout is given, that timeout will be used for the key; otherwise the
         default cache timeout will be used.
@@ -89,9 +93,16 @@ class DjangoCache(BaseCache):
         timeout = self.get_backend_timeout(timeout=timeout)
         return self._cache.add(key, value, timeout, read, tag, retry)
 
-
-    def get(self, key, default=None, version=None, read=False,
-            expire_time=False, tag=False, retry=False):
+    def get(
+        self,
+        key,
+        default=None,
+        version=None,
+        read=False,
+        expire_time=False,
+        tag=False,
+        retry=False,
+    ):
         """Fetch a given key from the cache. If the key does not exist, return
         default, which itself defaults to None.
 
@@ -111,7 +122,6 @@ class DjangoCache(BaseCache):
         key = self.make_key(key, version=version)
         return self._cache.get(key, default, read, expire_time, tag, retry)
 
-
     def read(self, key, version=None):
         """Return file handle corresponding to `key` from Cache.
 
@@ -124,9 +134,16 @@ class DjangoCache(BaseCache):
         key = self.make_key(key, version=version)
         return self._cache.read(key)
 
-
-    def set(self, key, value, timeout=DEFAULT_TIMEOUT, version=None,
-            read=False, tag=None, retry=True):
+    def set(
+        self,
+        key,
+        value,
+        timeout=DEFAULT_TIMEOUT,
+        version=None,
+        read=False,
+        tag=None,
+        retry=True,
+    ):
         """Set a value in the cache. If timeout is given, that timeout will be
         used for the key; otherwise the default cache timeout will be used.
 
@@ -146,7 +163,6 @@ class DjangoCache(BaseCache):
         timeout = self.get_backend_timeout(timeout=timeout)
         return self._cache.set(key, value, timeout, read, tag, retry)
 
-
     def touch(self, key, timeout=DEFAULT_TIMEOUT, version=None, retry=True):
         """Touch a key in the cache. If timeout is given, that timeout will be
         used for the key; otherwise the default cache timeout will be used.
@@ -164,9 +180,15 @@ class DjangoCache(BaseCache):
         timeout = self.get_backend_timeout(timeout=timeout)
         return self._cache.touch(key, timeout, retry)
 
-
-    def pop(self, key, default=None, version=None, expire_time=False,
-            tag=False, retry=True):
+    def pop(
+        self,
+        key,
+        default=None,
+        version=None,
+        expire_time=False,
+        tag=False,
+        retry=True,
+    ):
         """Remove corresponding item for `key` from cache and return value.
 
         If `key` is missing, return `default`.
@@ -186,7 +208,6 @@ class DjangoCache(BaseCache):
         key = self.make_key(key, version=version)
         return self._cache.pop(key, default, expire_time, tag, retry)
 
-
     def delete(self, key, version=None, retry=True):
         """Delete a key from the cache, failing silently.
 
@@ -199,7 +220,6 @@ class DjangoCache(BaseCache):
         # pylint: disable=arguments-differ
         key = self.make_key(key, version=version)
         self._cache.delete(key, retry)
-
 
     def incr(self, key, delta=1, version=None, default=None, retry=True):
         """Increment value by delta for item with key.
@@ -230,7 +250,6 @@ class DjangoCache(BaseCache):
         except KeyError:
             raise ValueError("Key '%s' not found" % key) from None
 
-
     def decr(self, key, delta=1, version=None, default=None, retry=True):
         """Decrement value by delta for item with key.
 
@@ -259,7 +278,6 @@ class DjangoCache(BaseCache):
         # pylint: disable=arguments-differ
         return self.incr(key, -delta, version, default, retry)
 
-
     def has_key(self, key, version=None):
         """Returns True if the key is in the cache and has not expired.
 
@@ -271,7 +289,6 @@ class DjangoCache(BaseCache):
         key = self.make_key(key, version=version)
         return key in self._cache
 
-
     def expire(self):
         """Remove expired items from cache.
 
@@ -279,7 +296,6 @@ class DjangoCache(BaseCache):
 
         """
         return self._cache.expire()
-
 
     def stats(self, enable=True, reset=False):
         """Return cache statistics hits and misses.
@@ -291,7 +307,6 @@ class DjangoCache(BaseCache):
         """
         return self._cache.stats(enable=enable, reset=reset)
 
-
     def create_tag_index(self):
         """Create tag index on cache database.
 
@@ -302,7 +317,6 @@ class DjangoCache(BaseCache):
         """
         self._cache.create_tag_index()
 
-
     def drop_tag_index(self):
         """Drop tag index on cache database.
 
@@ -310,7 +324,6 @@ class DjangoCache(BaseCache):
 
         """
         self._cache.drop_tag_index()
-
 
     def evict(self, tag):
         """Remove items with matching `tag` from cache.
@@ -321,7 +334,6 @@ class DjangoCache(BaseCache):
         """
         return self._cache.evict(tag)
 
-
     def cull(self):
         """Cull items from cache until volume is less than size limit.
 
@@ -330,17 +342,14 @@ class DjangoCache(BaseCache):
         """
         return self._cache.cull()
 
-
     def clear(self):
         "Remove *all* values from the cache at once."
         return self._cache.clear()
-
 
     def close(self, **kwargs):
         "Close the cache connection."
         # pylint: disable=unused-argument
         self._cache.close()
-
 
     def get_backend_timeout(self, timeout=DEFAULT_TIMEOUT):
         """Return seconds to expiration.
@@ -356,9 +365,14 @@ class DjangoCache(BaseCache):
             timeout = -1
         return None if timeout is None else timeout
 
-
-    def memoize(self, name=None, timeout=DEFAULT_TIMEOUT, version=None,
-                typed=False, tag=None):
+    def memoize(
+        self,
+        name=None,
+        timeout=DEFAULT_TIMEOUT,
+        version=None,
+        typed=False,
+        tag=None,
+    ):
         """Memoizing cache decorator.
 
         Decorator to wrap callable with memoizing function using cache.
@@ -418,7 +432,12 @@ class DjangoCache(BaseCache):
                     )
                     if valid_timeout:
                         self.set(
-                            key, result, timeout, version, tag=tag, retry=True,
+                            key,
+                            result,
+                            timeout,
+                            version,
+                            tag=tag,
+                            retry=True,
                         )
 
                 return result

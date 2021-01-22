@@ -14,7 +14,7 @@ CACHES = {
         'LOCATION': 'redis://127.0.0.1:6379/1',
         'OPTIONS': {
             'CLIENT_CLASS': 'django_redis.client.DefaultClient',
-        }
+        },
     },
     'filebased': {
         'BACKEND': 'django.core.cache.backends.filebased.FileBasedCache',
@@ -22,7 +22,7 @@ CACHES = {
         'OPTIONS': {
             'CULL_FREQUENCY': 10,
             'MAX_ENTRIES': 1000,
-        }
+        },
     },
     'locmem': {
         'BACKEND': 'django.core.cache.backends.locmem.LocMemCache',
@@ -30,7 +30,7 @@ CACHES = {
         'OPTIONS': {
             'CULL_FREQUENCY': 10,
             'MAX_ENTRIES': 1000,
-        }
+        },
     },
     'diskcache': {
         'BACKEND': 'diskcache.DjangoCache',

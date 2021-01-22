@@ -96,16 +96,19 @@ def display(name, timings):
         len_total += len(values)
         sum_total += sum(values)
 
-        print(template % (
-            action,
-            len(values),
-            len(timings.get(action + '-miss', [])),
-            secs(percentile(values, 0.5)),
-            secs(percentile(values, 0.9)),
-            secs(percentile(values, 0.99)),
-            secs(percentile(values, 1.0)),
-            secs(sum(values)),
-        ))
+        print(
+            template
+            % (
+                action,
+                len(values),
+                len(timings.get(action + '-miss', [])),
+                secs(percentile(values, 0.5)),
+                secs(percentile(values, 0.9)),
+                secs(percentile(values, 0.99)),
+                secs(percentile(values, 1.0)),
+                secs(sum(values)),
+            )
+        )
 
     totals = ('Total', len_total, '', '', '', '', '', secs(sum_total))
     print(template % totals)

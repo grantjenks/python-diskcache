@@ -33,13 +33,17 @@ def make_keys():
 
     def make_unicode():
         word_size = random.randint(1, 26)
-        word = u''.join(random.sample(u'abcdefghijklmnopqrstuvwxyz', word_size))
+        word = u''.join(
+            random.sample(u'abcdefghijklmnopqrstuvwxyz', word_size)
+        )
         size = random.randint(1, int(200 / 13))
         return word * size
 
     def make_bytes():
         word_size = random.randint(1, 26)
-        word = u''.join(random.sample(u'abcdefghijklmnopqrstuvwxyz', word_size)).encode('utf-8')
+        word = u''.join(
+            random.sample(u'abcdefghijklmnopqrstuvwxyz', word_size)
+        ).encode('utf-8')
         size = random.randint(1, int(200 / 13))
         return word * size
 
@@ -49,7 +53,14 @@ def make_keys():
     def make_object():
         return (make_float(),) * random.randint(1, 20)
 
-    funcs = [make_int, make_long, make_unicode, make_bytes, make_float, make_object]
+    funcs = [
+        make_int,
+        make_long,
+        make_unicode,
+        make_bytes,
+        make_float,
+        make_object,
+    ]
 
     while True:
         func = random.choice(funcs)
@@ -66,13 +77,17 @@ def make_vals():
 
     def make_unicode():
         word_size = random.randint(1, 26)
-        word = u''.join(random.sample(u'abcdefghijklmnopqrstuvwxyz', word_size))
+        word = u''.join(
+            random.sample(u'abcdefghijklmnopqrstuvwxyz', word_size)
+        )
         size = random.randint(1, int(2 ** 16 / 13))
         return word * size
 
     def make_bytes():
         word_size = random.randint(1, 26)
-        word = u''.join(random.sample(u'abcdefghijklmnopqrstuvwxyz', word_size)).encode('utf-8')
+        word = u''.join(
+            random.sample(u'abcdefghijklmnopqrstuvwxyz', word_size)
+        ).encode('utf-8')
         size = random.randint(1, int(2 ** 16 / 13))
         return word * size
 
@@ -82,7 +97,14 @@ def make_vals():
     def make_object():
         return [make_float()] * random.randint(1, int(2e3))
 
-    funcs = [make_int, make_long, make_unicode, make_bytes, make_float, make_object]
+    funcs = [
+        make_int,
+        make_long,
+        make_unicode,
+        make_bytes,
+        make_float,
+        make_object,
+    ]
 
     while True:
         func = random.choice(funcs)
@@ -134,7 +156,12 @@ def worker(queue, eviction_policy, processes, threads):
 
         stop = time.time()
 
-        if action == 'get' and processes == 1 and threads == 1 and EXPIRE is None:
+        if (
+            action == 'get'
+            and processes == 1
+            and threads == 1
+            and EXPIRE is None
+        ):
             assert result == value
 
         if index > WARMUP:
@@ -155,8 +182,10 @@ def dispatch(num, eviction_policy, processes, threads):
     thread_queues = [queue.Queue() for _ in range(threads)]
     subthreads = [
         threading.Thread(
-            target=worker, args=(thread_queue, eviction_policy, processes, threads)
-        ) for thread_queue in thread_queues
+            target=worker,
+            args=(thread_queue, eviction_policy, processes, threads),
+        )
+        for thread_queue in thread_queues
     ]
 
     for index, triplet in enumerate(process_queue):
@@ -201,9 +230,13 @@ def percentile(sequence, percent):
     return values[pos]
 
 
-def stress_test(create=True, delete=True,
-                eviction_policy=u'least-recently-stored',
-                processes=1, threads=1):
+def stress_test(
+    create=True,
+    delete=True,
+    eviction_policy=u'least-recently-stored',
+    processes=1,
+    threads=1,
+):
     shutil.rmtree('tmp', ignore_errors=True)
 
     if processes == 1:
@@ -285,51 +318,84 @@ if __name__ == '__main__':
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
     )
     parser.add_argument(
-        '-n', '--operations', type=float, default=OPERATIONS,
+        '-n',
+        '--operations',
+        type=float,
+        default=OPERATIONS,
         help='Number of operations to perform',
     )
     parser.add_argument(
-        '-g', '--get-average', type=float, default=GET_AVERAGE,
+        '-g',
+        '--get-average',
+        type=float,
+        default=GET_AVERAGE,
         help='Expected value of exponential variate used for GET count',
     )
     parser.add_argument(
-        '-k', '--key-count', type=float, default=KEY_COUNT,
-        help='Number of unique keys'
+        '-k',
+        '--key-count',
+        type=float,
+        default=KEY_COUNT,
+        help='Number of unique keys',
     )
     parser.add_argument(
-        '-d', '--del-chance', type=float, default=DEL_CHANCE,
+        '-d',
+        '--del-chance',
+        type=float,
+        default=DEL_CHANCE,
         help='Likelihood of a key deletion',
     )
     parser.add_argument(
-        '-w', '--warmup', type=float, default=WARMUP,
+        '-w',
+        '--warmup',
+        type=float,
+        default=WARMUP,
         help='Number of warmup operations before timings',
     )
     parser.add_argument(
-        '-e', '--expire', type=float, default=EXPIRE,
+        '-e',
+        '--expire',
+        type=float,
+        default=EXPIRE,
         help='Number of seconds before key expires',
     )
     parser.add_argument(
-        '-t', '--threads', type=int, default=1,
+        '-t',
+        '--threads',
+        type=int,
+        default=1,
         help='Number of threads to start in each process',
     )
     parser.add_argument(
-        '-p', '--processes', type=int, default=1,
+        '-p',
+        '--processes',
+        type=int,
+        default=1,
         help='Number of processes to start',
     )
     parser.add_argument(
-        '-s', '--seed', type=int, default=0,
+        '-s',
+        '--seed',
+        type=int,
+        default=0,
         help='Random seed',
     )
     parser.add_argument(
-        '--no-create', action='store_false', dest='create',
+        '--no-create',
+        action='store_false',
+        dest='create',
         help='Do not create operations data',
     )
     parser.add_argument(
-        '--no-delete', action='store_false', dest='delete',
+        '--no-delete',
+        action='store_false',
+        dest='delete',
         help='Do not delete operations data',
     )
     parser.add_argument(
-        '-v', '--eviction-policy', type=unicode,
+        '-v',
+        '--eviction-policy',
+        type=unicode,
         default=u'least-recently-stored',
     )
 

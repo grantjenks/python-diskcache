@@ -32,19 +32,30 @@ caches = []
 
 import diskcache
 
-caches.append(('diskcache.Cache', diskcache.Cache, ('tmp',), {},))
-caches.append((
-    'diskcache.FanoutCache(shards=4, timeout=1.0)',
-    diskcache.FanoutCache,
-    ('tmp',),
-    {'shards': 4, 'timeout': 1.0}
-))
-caches.append((
-    'diskcache.FanoutCache(shards=8, timeout=0.010)',
-    diskcache.FanoutCache,
-    ('tmp',),
-    {'shards': 8, 'timeout': 0.010}
-))
+caches.append(
+    (
+        'diskcache.Cache',
+        diskcache.Cache,
+        ('tmp',),
+        {},
+    )
+)
+caches.append(
+    (
+        'diskcache.FanoutCache(shards=4, timeout=1.0)',
+        diskcache.FanoutCache,
+        ('tmp',),
+        {'shards': 4, 'timeout': 1.0},
+    )
+)
+caches.append(
+    (
+        'diskcache.FanoutCache(shards=8, timeout=0.010)',
+        diskcache.FanoutCache,
+        ('tmp',),
+        {'shards': 8, 'timeout': 0.010},
+    )
+)
 
 
 ###############################################################################
@@ -54,12 +65,17 @@ caches.append((
 try:
     import pylibmc
 
-    caches.append((
-        'pylibmc.Client',
-        pylibmc.Client,
-        (['127.0.0.1'],),
-        {'binary': True, 'behaviors': {'tcp_nodelay': True, 'ketama': True}},
-    ))
+    caches.append(
+        (
+            'pylibmc.Client',
+            pylibmc.Client,
+            (['127.0.0.1'],),
+            {
+                'binary': True,
+                'behaviors': {'tcp_nodelay': True, 'ketama': True},
+            },
+        )
+    )
 except ImportError:
     warnings.warn('skipping pylibmc')
 
@@ -71,12 +87,14 @@ except ImportError:
 try:
     import redis
 
-    caches.append((
-        'redis.StrictRedis',
-        redis.StrictRedis,
-        (),
-        {'host': 'localhost', 'port': 6379, 'db': 0},
-    ))
+    caches.append(
+        (
+            'redis.StrictRedis',
+            redis.StrictRedis,
+            (),
+            {'host': 'localhost', 'port': 6379, 'db': 0},
+        )
+    )
 except ImportError:
     warnings.warn('skipping redis')
 
@@ -84,7 +102,7 @@ except ImportError:
 def worker(num, kind, args, kwargs):
     random.seed(num)
 
-    time.sleep(0.01) # Let other processes start.
+    time.sleep(0.01)  # Let other processes start.
 
     obj = kind(*args, **kwargs)
 
@@ -173,19 +191,31 @@ if __name__ == '__main__':
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
     )
     parser.add_argument(
-        '-p', '--processes', type=int, default=PROCS,
+        '-p',
+        '--processes',
+        type=int,
+        default=PROCS,
         help='Number of processes to start',
     )
     parser.add_argument(
-        '-n', '--operations', type=float, default=OPS,
+        '-n',
+        '--operations',
+        type=float,
+        default=OPS,
         help='Number of operations to perform',
     )
     parser.add_argument(
-        '-r', '--range', type=int, default=RANGE,
+        '-r',
+        '--range',
+        type=int,
+        default=RANGE,
         help='Range of keys',
     )
     parser.add_argument(
-        '-w', '--warmup', type=float, default=WARMUP,
+        '-w',
+        '--warmup',
+        type=float,
+        default=WARMUP,
         help='Number of warmup operations before timings',
     )
 

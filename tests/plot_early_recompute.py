@@ -16,6 +16,7 @@ def make_timer(times):
 
     """
     lock = threading.Lock()
+
     def timer(func):
         @ft.wraps(func)
         def wrapper(*args, **kwargs):
@@ -24,7 +25,9 @@ def make_timer(times):
             pair = start, time.time()
             with lock:
                 times.append(pair)
+
         return wrapper
+
     return timer
 
 
@@ -33,9 +36,11 @@ def make_worker(times, delay=0.2):
     `delay` seconds.
 
     """
+
     @make_timer(times)
     def worker():
         time.sleep(delay)
+
     return worker
 
 
@@ -44,11 +49,13 @@ def make_repeater(func, total=10, delay=0.01):
     repeatedly until `total` seconds have elapsed.
 
     """
+
     def repeat(num):
         start = time.time()
         while time.time() - start < total:
             func()
             time.sleep(delay)
+
     return repeat
 
 
@@ -62,6 +69,7 @@ def frange(start, stop, step=1e-3):
 def plot(option, filename, cache_times, worker_times):
     "Plot concurrent workers and latency."
     import matplotlib.pyplot as plt
+
     fig, (workers, latency) = plt.subplots(2, sharex=True)
 
     fig.suptitle(option)

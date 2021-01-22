@@ -27,6 +27,7 @@ WARMUP = int(1e3)
 def setup():
     os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'tests.settings_benchmark')
     import django
+
     django.setup()
 
 
@@ -41,7 +42,7 @@ def worker(num, name):
 
     timings = co.defaultdict(list)
 
-    time.sleep(0.01) # Let other processes start.
+    time.sleep(0.01)  # Let other processes start.
 
     for count in range(OPS):
         key = str(random.randrange(RANGE)).encode('utf-8')
@@ -140,19 +141,31 @@ if __name__ == '__main__':
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
     )
     parser.add_argument(
-        '-p', '--processes', type=int, default=PROCS,
+        '-p',
+        '--processes',
+        type=int,
+        default=PROCS,
         help='Number of processes to start',
     )
     parser.add_argument(
-        '-n', '--operations', type=float, default=OPS,
+        '-n',
+        '--operations',
+        type=float,
+        default=OPS,
         help='Number of operations to perform',
     )
     parser.add_argument(
-        '-r', '--range', type=int, default=RANGE,
+        '-r',
+        '--range',
+        type=int,
+        default=RANGE,
         help='Range of keys',
     )
     parser.add_argument(
-        '-w', '--warmup', type=float, default=WARMUP,
+        '-w',
+        '--warmup',
+        type=float,
+        default=WARMUP,
         help='Number of warmup operations before timings',
     )
 

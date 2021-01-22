@@ -26,11 +26,9 @@ for count in [10 ** exp for exp in range(6)]:
     for value in range(count):
         with open(op.join('tmp', '%s.tmp' % value), 'wb') as writer:
             pass
-        
+
     delta = timeit.timeit(
-        stmt="glob.glob1('tmp', '*.tmp')",
-        setup='import glob',
-        number=100
+        stmt="glob.glob1('tmp', '*.tmp')", setup='import glob', number=100
     )
 
     print(template % (count, secs(delta)))

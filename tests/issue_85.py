@@ -26,6 +26,7 @@ def init_django():
     os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'tests.settings')
     django.setup()
     from django.core.cache import cache
+
     shard = cache._cache._shards[0]
 
 
