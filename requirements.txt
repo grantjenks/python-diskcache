@@ -1,8 +1,12 @@
+-e .
+blue
 coverage
 django==2.2.*
 django_redis
 doc8
-gj
+flake8
+ipython
+pickleDB
 pylibmc
 pylint
 pytest
@@ -12,6 +16,7 @@ pytest-env
 pytest-xdist
 rstcheck
 sphinx
+sqlitedict
 tox
 twine
 wheel
