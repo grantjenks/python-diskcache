@@ -99,7 +99,7 @@ You can access documentation in the interpreter with Python's built-in help
 function::
 
   >>> import diskcache
-  >>> help(diskcache)
+  >>> help(diskcache)                             # doctest: +SKIP
 
 The core of `DiskCache`_ is three data types intended for caching. `Cache`_
 objects manage a SQLite database and filesystem directory to store key and
@@ -107,26 +107,26 @@ value pairs. `FanoutCache`_ provides a sharding layer to utilize multiple
 caches and `DjangoCache`_ integrates that with `Django`_::
 
   >>> from diskcache import Cache, FanoutCache, DjangoCache
-  >>> help(Cache)
-  >>> help(FanoutCache)
-  >>> help(DjangoCache)
+  >>> help(Cache)                                 # doctest: +SKIP
+  >>> help(FanoutCache)                           # doctest: +SKIP
+  >>> help(DjangoCache)                           # doctest: +SKIP
 
 Built atop the caching data types, are `Deque`_ and `Index`_ which work as a
 cross-process, persistent replacements for Python's ``collections.deque`` and
 ``dict``. These implement the sequence and mapping container base classes::
 
   >>> from diskcache import Deque, Index
-  >>> help(Deque)
-  >>> help(Index)
+  >>> help(Deque)                                 # doctest: +SKIP
+  >>> help(Index)                                 # doctest: +SKIP
 
 Finally, a number of `recipes`_ for cross-process synchronization are provided
 using an underlying cache. Features like memoization with cache stampede
 prevention, cross-process locking, and cross-process throttling are available::
 
   >>> from diskcache import memoize_stampede, Lock, throttle
-  >>> help(memoize_stampede)
-  >>> help(Lock)
-  >>> help(throttle)
+  >>> help(memoize_stampede)                      # doctest: +SKIP
+  >>> help(Lock)                                  # doctest: +SKIP
+  >>> help(throttle)                              # doctest: +SKIP
 
 Python's docstrings are a quick way to get started but not intended as a
 replacement for the `DiskCache Tutorial`_ and `DiskCache API Reference`_.
