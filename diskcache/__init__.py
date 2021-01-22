@@ -7,18 +7,28 @@ The :doc:`tutorial` provides a helpful walkthrough of most methods.
 """
 
 from .core import (
+    DEFAULT_SETTINGS,
+    ENOVAL,
+    EVICTION_POLICY,
+    UNKNOWN,
     Cache,
     Disk,
     EmptyDirWarning,
     JSONDisk,
-    UnknownFileWarning,
     Timeout,
+    UnknownFileWarning,
 )
-from .core import DEFAULT_SETTINGS, ENOVAL, EVICTION_POLICY, UNKNOWN
 from .fanout import FanoutCache
 from .persistent import Deque, Index
-from .recipes import Averager, BoundedSemaphore, Lock, RLock
-from .recipes import barrier, memoize_stampede, throttle
+from .recipes import (
+    Averager,
+    BoundedSemaphore,
+    Lock,
+    RLock,
+    barrier,
+    memoize_stampede,
+    throttle,
+)
 
 __all__ = [
     'Averager',

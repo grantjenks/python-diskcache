@@ -7,9 +7,10 @@ $ python tests/plot.py --show tests/timings_core_p1.txt
 
 import argparse
 import collections as co
-import matplotlib.pyplot as plt
 import re
 import sys
+
+import matplotlib.pyplot as plt
 
 
 def parse_timing(timing, limit):

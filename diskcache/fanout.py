@@ -9,7 +9,7 @@ import sqlite3
 import tempfile
 import time
 
-from .core import ENOVAL, DEFAULT_SETTINGS, Cache, Disk, Timeout
+from .core import DEFAULT_SETTINGS, ENOVAL, Cache, Disk, Timeout
 from .persistent import Deque, Index
 
 

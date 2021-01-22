@@ -1,12 +1,13 @@
 "Test diskcache.recipes."
 
-import diskcache as dc
-import pytest
 import shutil
 import threading
 import time
-
 from unittest import mock
+
+import pytest
+
+import diskcache as dc
 
 
 @pytest.fixture

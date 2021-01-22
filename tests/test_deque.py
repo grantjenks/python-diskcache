@@ -2,11 +2,11 @@
 
 import functools as ft
 import pickle
-import pytest
 import shutil
 import tempfile
-
 from unittest import mock
+
+import pytest
 
 import diskcache as dc
 from diskcache.core import ENOVAL

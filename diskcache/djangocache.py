@@ -1,6 +1,7 @@
 "Django-compatible disk and file backed cache."
 
 from functools import wraps
+
 from django.core.cache.backends.base import BaseCache
 
 try:

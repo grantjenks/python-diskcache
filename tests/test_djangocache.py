@@ -14,7 +14,6 @@ import threading
 import time
 import unittest
 import warnings
-
 from unittest import mock
 
 from django.conf import settings

@@ -1,7 +1,6 @@
 "Stress test diskcache.core.Cache."
 
 import collections as co
-from diskcache import FanoutCache, UnknownFileWarning, EmptyDirWarning
 import multiprocessing as mp
 import os
 import pickle
@@ -12,6 +11,8 @@ import sys
 import threading
 import time
 import warnings
+
+from diskcache import EmptyDirWarning, FanoutCache, UnknownFileWarning
 
 from .utils import display
 

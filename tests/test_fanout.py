@@ -8,7 +8,6 @@ import io
 import os
 import os.path as op
 import pickle
-import pytest
 import random
 import shutil
 import sqlite3
@@ -18,8 +17,9 @@ import tempfile
 import threading
 import time
 import warnings
-
 from unittest import mock
+
+import pytest
 
 import diskcache as dc
 

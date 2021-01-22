@@ -3,14 +3,18 @@
 """
 
 import operator as op
-
 from collections import OrderedDict
-from collections.abc import MutableMapping, Sequence
-from collections.abc import KeysView, ValuesView, ItemsView
+from collections.abc import (
+    ItemsView,
+    KeysView,
+    MutableMapping,
+    Sequence,
+    ValuesView,
+)
 from contextlib import contextmanager
 from shutil import rmtree
 
-from .core import Cache, ENOVAL
+from .core import ENOVAL, Cache
 
 
 def _make_compare(seq_op, doc):

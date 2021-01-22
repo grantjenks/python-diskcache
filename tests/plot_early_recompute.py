@@ -2,12 +2,13 @@
 
 """
 
-import diskcache as dc
 import functools as ft
 import multiprocessing.pool
 import shutil
 import threading
 import time
+
+import diskcache as dc
 
 
 def make_timer(times):
