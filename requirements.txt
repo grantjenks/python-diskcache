@@ -6,6 +6,7 @@ django_redis
 doc8
 flake8
 ipython
+jedi==0.17.*  # Remove after IPython bug fixed.
 pickleDB
 pylibmc
 pylint
