@@ -664,4 +664,4 @@ class FanoutCache(object):
             return index
 
 
-FanoutCache.memoize = Cache.memoize
+FanoutCache.memoize = Cache.memoize  # type: ignore

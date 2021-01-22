@@ -591,7 +591,7 @@ class Deque(Sequence):
                 else:
                     self.append(value)
 
-    __hash__ = None
+    __hash__ = None  # type: ignore
 
     @contextmanager
     def transact(self):
@@ -1033,7 +1033,7 @@ class Index(MutableMapping):
         """
         return ItemsView(self)
 
-    __hash__ = None
+    __hash__ = None  # type: ignore
 
     def __getstate__(self):
         return self.directory
