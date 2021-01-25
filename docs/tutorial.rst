@@ -863,8 +863,16 @@ protocol`_ is not used. Neither the `__hash__` nor `__eq__` methods are used
 for lookups. Instead lookups depend on the serialization method defined by
 :class:`Disk <diskcache.Disk>` objects. For strings, bytes, integers, and
 floats, equality matches Python's definition. But large integers and all other
-types will be converted to bytes using pickling and the bytes representation
+types will be converted to bytes and the bytes representation
 will define equality.
+
+The default Disk serialization uses pickling for both keys and values. Unfortunately,
+Pickling produces inconsistencies sometimes when applied to container data types
+like tuples. Two equal tuples may serialize to different bytes objects using pickle.
+The likelihood of differences is reduced by using pickletools.optimize but still
+Inconsistencies occur (cite issues). The inconsistent serialized pickle values is
+Particularly problematic when applied to the key in the cache. Consider using an
+Alternative Disk, like JSONDisk for consistent serialization of keys.
 
 SQLite is used to synchronize database access between threads and processes and
 as such inherits all SQLite caveats. Most notably SQLite is `not recommended`_
