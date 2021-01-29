@@ -75,7 +75,7 @@ class Deque(Sequence):
 
     """
 
-    def __init__(self, iterable=(), directory=None):
+    def __init__(self, iterable=(), directory=None, maxlen=None):
         """Initialize deque instance.
 
         If directory is None then temporary directory created. The directory
@@ -86,6 +86,7 @@ class Deque(Sequence):
 
         """
         self._cache = Cache(directory, eviction_policy='none')
+        self._maxlen = maxlen
         self.extend(iterable)
 
     @classmethod
@@ -310,7 +311,10 @@ class Deque(Sequence):
         :param value: value to add to back of deque
 
         """
-        self._cache.push(value, retry=True)
+        with self._cache.transact(retry=True):
+            self._cache.push(value, retry=True)
+            if len(self._cache) > self._maxlen:
+                self.popleft()
 
     def appendleft(self, value):
         """Add `value` to front of deque.
@@ -325,7 +329,10 @@ class Deque(Sequence):
         :param value: value to add to front of deque
 
         """
-        self._cache.push(value, side='front', retry=True)
+        with self._cache.transact(retry=True):
+            self._cache.push(value, side='front', retry=True)
+            if len(self._cache) > self._maxlen:
+                self.pop()
 
     def clear(self):
         """Remove all elements from deque.
