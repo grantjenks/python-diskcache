@@ -86,11 +86,11 @@ class Deque(Sequence):
 
         """
         self._cache = Cache(directory, eviction_policy='none')
-        self._maxlen = maxlen
+        self._maxlen = float('inf') if maxlen is None else maxlen
         self.extend(iterable)
 
     @classmethod
-    def fromcache(cls, cache, iterable=()):
+    def fromcache(cls, cache, iterable=(), maxlen=None):
         """Initialize deque using `cache`.
 
         >>> cache = Cache()
@@ -112,6 +112,7 @@ class Deque(Sequence):
         # pylint: disable=no-member,protected-access
         self = cls.__new__(cls)
         self._cache = cache
+        self._maxlen = float('inf') if maxlen is None else maxlen
         self.extend(iterable)
         return self
 
