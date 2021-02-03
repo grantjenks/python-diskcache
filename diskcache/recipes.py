@@ -466,3 +466,68 @@ def memoize_stampede(cache, expire, name=None, typed=False, tag=None, beta=1):
         return wrapper
 
     return decorator
+
+
+import asyncio
+import functools
+import types
+
+from diskcache import Cache
+
+
+class AsyncCache:
+    """Cache variant with support for async method calls."""
+
+    def __init__(self, loop=None, executor=None):
+        """Async inits don't exist in Python. Use initialize() instead."""
+        if loop is None:
+            loop = asyncio.get_event_loop()
+        self._async_run = functools.partial(loop.run_in_executor, executor)
+        self._cache = None
+
+    async def initialize(self, *args, **kwargs):
+        """Initialize the cache attribute."""
+        func = functools.partial(Cache, *args, **kwargs)
+        self._cache = await self._async_run(func)
+
+    # TODO: Add support for __aiter__, __anext__, __aenter__, and __aexit__
+
+
+def make_method(func):
+    """Make an async Cache method."""
+    @functools.wraps(func)
+    async def method(self, *args, **kwargs):
+        """Async Cache method."""
+        # `AsyncCache` wraps the `Cache` so pass `self._cache` as the first
+        # argument to be bound to `self` in `Cache` method calls.
+        call = functools.partial(func, self._cache, *args, **kwargs)
+        return await self._async_run(call)
+    return method
+
+
+# Iterate the attributes of the cache and make methods for `AsyncCache`.
+for name in dir(Cache):
+    if name.startswith('_'):
+        # Only support the public methods.
+        continue
+    attr = getattr(Cache, name)
+    if not isinstance(attr, types.FunctionType):
+        # TODO: How to handle properties?
+        continue
+    method = make_method(attr)
+    # Install the new async method on the `AsyncCache` class.
+    setattr(AsyncCache, name, method)
+
+
+###############################################################################
+
+
+async def main():
+    cache = AsyncCache()
+    await cache.initialize(directory='/tmp/diskcache/async')
+    await cache.set('key', 'value')
+    print(await cache.get('key'))
+
+
+if __name__ == '__main__':
+    asyncio.run(main())
