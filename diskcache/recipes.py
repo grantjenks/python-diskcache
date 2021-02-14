@@ -468,6 +468,8 @@ def memoize_stampede(cache, expire, name=None, typed=False, tag=None, beta=1):
     return decorator
 
 
+################################################################################
+
 import asyncio
 import functools
 import types
@@ -475,48 +477,63 @@ import types
 from diskcache import Cache
 
 
-class AsyncCache:
-    """Cache variant with support for async method calls."""
+class AsyncMeta(type):
+    def __new__(cls, name, bases, attrs):
+        base, = bases
 
-    def __init__(self, loop=None, executor=None):
-        """Async inits don't exist in Python. Use initialize() instead."""
-        if loop is None:
-            loop = asyncio.get_event_loop()
-        self._async_run = functools.partial(loop.run_in_executor, executor)
-        self._cache = None
+        def __init__(self, loop=None, executor=None):
+            """Initialize async variant.
 
-    async def initialize(self, *args, **kwargs):
-        """Initialize the cache attribute."""
-        func = functools.partial(Cache, *args, **kwargs)
-        self._cache = await self._async_run(func)
+            :param loop: asyncio event loop
+            :param executor: concurrent.futures executor
 
-    # TODO: Add support for __aiter__, __anext__, __aenter__, and __aexit__
+            """
+            if loop is None:
+                loop = asyncio.get_event_loop()
+            run = functools.partial(loop.run_in_executor, executor)
+            self._async_meta_run = run
+
+        assert '__init__' not in attrs
+        attrs['__init__'] = __init__
+
+        @functools.wraps(base.__init__)
+        async def initialize(self, *args, **kwargs):
+            """Async initializer for the base class."""
+            func = functools.partial(base.__init__, self, *args, **kwargs)
+            await self._async_meta_run(func)
+
+        initialize.__name__ = 'initialize'
+        assert 'initialize' not in attrs
+        attrs['initialize'] = initialize
+
+        # TODO: Add support for __aiter__, __anext__, __aenter__, and __aexit__
+
+        def make_method(func):
+            """Make an async wrapper method."""
+            @functools.wraps(func)
+            async def method(self, *args, **kwargs):
+                """Async wrapper method."""
+                call = functools.partial(func, self, *args, **kwargs)
+                return await self._async_meta_run(call)
+            return method
+
+        # Iterate the attributes of the thing and make async methods.
+
+        for name in dir(base):
+            if name.startswith('_'):
+                # Only support the "public" methods.
+                continue
+            attr = getattr(base, name)
+            if not isinstance(attr, types.FunctionType):
+                continue
+            method = make_method(attr)
+            attrs[name] = method
+
+        return super().__new__(cls, name, bases, attrs)
 
 
-def make_method(func):
-    """Make an async Cache method."""
-    @functools.wraps(func)
-    async def method(self, *args, **kwargs):
-        """Async Cache method."""
-        # `AsyncCache` wraps the `Cache` so pass `self._cache` as the first
-        # argument to be bound to `self` in `Cache` method calls.
-        call = functools.partial(func, self._cache, *args, **kwargs)
-        return await self._async_run(call)
-    return method
-
-
-# Iterate the attributes of the cache and make methods for `AsyncCache`.
-for name in dir(Cache):
-    if name.startswith('_'):
-        # Only support the public methods.
-        continue
-    attr = getattr(Cache, name)
-    if not isinstance(attr, types.FunctionType):
-        # TODO: How to handle properties?
-        continue
-    method = make_method(attr)
-    # Install the new async method on the `AsyncCache` class.
-    setattr(AsyncCache, name, method)
+class AsyncCache(Cache, metaclass=AsyncMeta):
+    pass
 
 
 ###############################################################################
