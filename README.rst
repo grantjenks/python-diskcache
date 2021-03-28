@@ -185,7 +185,7 @@ other projects are shown in the tables below.
   access. Keys are arbitrary strings, values arbitrary pickle-able objects.
 * `pickleDB`_ is a lightweight and simple key-value store. It is built upon
   Python's simplejson module and was inspired by Redis. It is licensed with the
-  BSD three-caluse license.
+  BSD three-clause license.
 
 .. _`dbm`: https://docs.python.org/3/library/dbm.html
 .. _`shelve`: https://docs.python.org/3/library/shelve.html
