@@ -1,5 +1,6 @@
 "Test diskcache.core.Cache."
 
+import asyncio
 import errno
 import hashlib
 import io
@@ -1454,6 +1455,50 @@ def test_memoize(cache):
 
     for value in range(count):
         assert fibrec(value) == fibiter(value)
+
+    hits2, misses2 = cache.stats()
+
+    assert hits2 == (hits1 + count)
+    assert misses2 == misses1
+
+
+def test_memoize(cache):
+    count = 1000
+
+    def fibiter(num):
+        alpha, beta = 0, 1
+
+        for _ in range(num):
+            alpha, beta = beta, alpha + beta
+
+        return alpha
+
+    @cache.memoize()
+    async def fibrec(num):
+        if num == 0:
+            return 0
+        elif num == 1:
+            return 1
+        else:
+            return await fibrec(num - 1) + await fibrec(num - 2)
+
+    loop = asyncio.get_event_loop()
+
+    cache.stats(enable=True)
+
+    for value in range(count):
+        coroutine = fibrec(value)
+        result = loop.run_until_complete(coroutine)
+
+        assert result == fibiter(value)
+
+    hits1, misses1 = cache.stats()
+
+    for value in range(count):
+        coroutine = fibrec(value)
+        result = loop.run_until_complete(coroutine)
+
+        assert result == fibiter(value)
 
     hits2, misses2 = cache.stats()
 
