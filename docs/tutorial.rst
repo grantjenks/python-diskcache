@@ -535,7 +535,7 @@ they are guaranteed to be stored in files. The full path is available on the
 file handle in the `name` attribute. Remember to also include the
 `Content-Type` header if known.
 
-.. _`Django documentation on caching`: https://docs.djangoproject.com/en/1.9/topics/cache/#the-low-level-cache-api
+.. _`Django documentation on caching`: https://docs.djangoproject.com/en/3.2/topics/cache/#the-low-level-cache-api
 
 Deque
 -----
