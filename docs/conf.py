@@ -59,7 +59,6 @@ html_theme_options = {
     'logo': 'gj-logo.png',
     'logo_name': True,
     'logo_text_align': 'center',
-    'travis_button': True,
     'analytics_id': 'UA-19364636-2',
     'show_powered_by': False,
     'show_related': True,
