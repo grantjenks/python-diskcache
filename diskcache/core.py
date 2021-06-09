@@ -261,7 +261,7 @@ class Disk:
         :return: corresponding Python value
 
         """
-        # pylint: disable=no-self-use,unidiomatic-typecheck
+        # pylint: disable=no-self-use,unidiomatic-typecheck,consider-using-with
         if mode == MODE_RAW:
             return bytes(value) if type(value) is sqlite3.Binary else value
         elif mode == MODE_BINARY:
