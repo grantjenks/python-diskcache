@@ -29,7 +29,12 @@ setup(
     long_description=readme,
     author='Grant Jenks',
     author_email='contact@grantjenks.com',
-    url='http://www.grantjenks.com/docs/diskcache/',
+    url='http://www.grantjenks.com/docs/diskcache/', 
+    project_urls = {
+        'Documentation':'http://www.grantjenks.com/docs/diskcache/',
+        'Source':'https://github.com/grantjenks/python-diskcache',
+        'Tracker':'https://github.com/grantjenks/python-diskcache/issues',
+        'Funding':'https://gumroad.com/l/diskcache',}
     license='Apache 2.0',
     packages=['diskcache'],
     tests_require=['tox'],
