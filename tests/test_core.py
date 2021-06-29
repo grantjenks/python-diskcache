@@ -1459,3 +1459,29 @@ def test_memoize(cache):
 
     assert hits2 == (hits1 + count)
     assert misses2 == misses1
+
+def test_memoize_ignored_args(cache):
+
+    @cache.memoize()
+    def fn_cached(arg1, arg2, arg3, arg4):
+        return True
+
+    @cache.memoize(ignored_args = [0], ignored_kwargs = ['arg4'])
+    def fn_cached_with_ignore(arg1, arg2, arg3, arg4):
+        return True
+
+     
+    cache.stats(enable=True)    
+    fn_cached(1, 2, arg3 = 3, arg4 = 4)
+    fn_cached(1, 2, arg3 = 3, arg4 = 4)
+    fn_cached(2, 2, arg3 = 3, arg4 = 5)
+    hits1, misses1 = cache.stats(reset = True)
+    assert hits1 == 1
+    assert misses1 == 2
+    
+    fn_cached_with_ignore(1, 2, arg3 = 3, arg4 = 4)
+    fn_cached_with_ignore(1, 2, arg3 = 3, arg4 = 4)
+    fn_cached_with_ignore(2, 2, arg3 = 3, arg4 = 5)
+    hits1, misses1 = cache.stats(reset = True)
+    assert hits1 == 2
+    assert misses1 == 1

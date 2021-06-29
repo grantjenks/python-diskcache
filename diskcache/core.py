@@ -390,7 +390,7 @@ class EmptyDirWarning(UserWarning):
     "Warning used by Cache.check for empty directories."
 
 
-def args_to_key(base, args, kwargs, typed):
+def args_to_key(base, args, kwargs, typed, ignored_args = None, ignored_kwargs = None):
     """Create cache key out of function arguments.
 
     :param tuple base: base of key
@@ -400,9 +400,13 @@ def args_to_key(base, args, kwargs, typed):
     :return: cache key tuple
 
     """
+    if args is not None and ignored_args is not None:
+        args = tuple(arg for i, arg in enumerate(args) if not i in ignored_args)
     key = base + args
 
     if kwargs:
+        if ignored_kwargs is not None:
+            kwargs = {k:v for (k, v) in kwargs.items() if not k in ignored_kwargs}
         key += (ENOVAL,)
         sorted_items = sorted(kwargs.items())
 
@@ -1809,7 +1813,7 @@ class Cache:
         else:
             return key, value
 
-    def memoize(self, name=None, typed=False, expire=None, tag=None):
+    def memoize(self, name=None, typed=False, expire=None, tag=None, ignored_args=None, ignored_kwargs=None):
         """Memoizing cache decorator.
 
         Decorator to wrap callable with memoizing function using cache.
@@ -1894,7 +1898,7 @@ class Cache:
 
             def __cache_key__(*args, **kwargs):
                 "Make key for cache given function arguments."
-                return args_to_key(base, args, kwargs, typed)
+                return args_to_key(base, args, kwargs, typed, ignored_args, ignored_kwargs)
 
             wrapper.__cache_key__ = __cache_key__
             return wrapper
