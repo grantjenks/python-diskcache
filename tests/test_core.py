@@ -1466,7 +1466,7 @@ def test_memoize_ignored_args(cache):
     def fn_cached(arg1, arg2, arg3, arg4):
         return True
 
-    @cache.memoize(ignored_args = [0], ignored_kwargs = ['arg4'])
+    @cache.memoize(ignored_arguments = [0, 'arg4'])
     def fn_cached_with_ignore(arg1, arg2, arg3, arg4):
         return True
 
