@@ -251,6 +251,7 @@ class Disk:
         :param value: database value
         :param bool read: when True, return an open file handle
         :return: corresponding Python value
+        :raises: IOError if the value cannot be read
 
         """
         # pylint: disable=no-self-use,unidiomatic-typecheck,consider-using-with
