@@ -187,6 +187,7 @@ class Disk:
         :return: (size, mode, filename, value) tuple for Cache table
 
         """
+        # TODO: Retry mkdirs!!!
         # pylint: disable=unidiomatic-typecheck
         type_value = type(value)
         min_file_size = self.min_file_size
@@ -317,6 +318,7 @@ class Disk:
         :param str filename: relative path to file
 
         """
+        # TODO: Delete dir if empty!!!
         full_path = op.join(self._directory, filename)
 
         try:
