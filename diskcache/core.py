@@ -26,14 +26,6 @@ def full_name(func):
     return func.__module__ + '.' + func.__qualname__
 
 
-try:
-    WindowsError
-except NameError:
-
-    class WindowsError(Exception):
-        "Windows error place-holder on platforms without support."
-
-
 class Constant(tuple):
     "Pretty display of immutable constant."
 
@@ -328,13 +320,10 @@ class Disk:
 
         try:
             os.remove(full_path)
-        except WindowsError:
+        except OSError:
+            # OSError may occur if two caches attempt to delete the same
+            # file at the same time.
             pass
-        except OSError as error:
-            if error.errno != errno.ENOENT:
-                # ENOENT may occur if two caches attempt to delete the same
-                # file at the same time.
-                raise
 
 
 class JSONDisk(Disk):
@@ -1201,13 +1190,10 @@ class Cache:
                 try:
                     value = self._disk.fetch(mode, filename, db_value, read)
                 except IOError as error:
-                    if error.errno == errno.ENOENT:
-                        # Key was deleted before we could retrieve result.
-                        if self.statistics:
-                            sql(cache_miss)
-                        return default
-                    else:
-                        raise
+                    # Key was deleted before we could retrieve result.
+                    if self.statistics:
+                        sql(cache_miss)
+                    return default
 
                 if self.statistics:
                     sql(cache_hit)
@@ -1324,11 +1310,8 @@ class Cache:
         try:
             value = self._disk.fetch(mode, filename, db_value, False)
         except IOError as error:
-            if error.errno == errno.ENOENT:
-                # Key was deleted before we could retrieve result.
-                return default
-            else:
-                raise
+            # Key was deleted before we could retrieve result.
+            return default
         finally:
             if filename is not None:
                 self._disk.remove(filename)
@@ -1595,10 +1578,8 @@ class Cache:
             try:
                 value = self._disk.fetch(mode, name, db_value, False)
             except IOError as error:
-                if error.errno == errno.ENOENT:
-                    # Key was deleted before we could retrieve result.
-                    continue
-                raise
+                # Key was deleted before we could retrieve result.
+                continue
             finally:
                 if name is not None:
                     self._disk.remove(name)
@@ -1711,10 +1692,8 @@ class Cache:
             try:
                 value = self._disk.fetch(mode, name, db_value, False)
             except IOError as error:
-                if error.errno == errno.ENOENT:
-                    # Key was deleted before we could retrieve result.
-                    continue
-                raise
+                # Key was deleted before we could retrieve result.
+                continue
             finally:
                 if name is not None:
                     self._disk.remove(name)
@@ -1794,10 +1773,8 @@ class Cache:
             try:
                 value = self._disk.fetch(mode, name, db_value, False)
             except IOError as error:
-                if error.errno == errno.ENOENT:
-                    # Key was deleted before we could retrieve result.
-                    continue
-                raise
+                # Key was deleted before we could retrieve result.
+                continue
             break
 
         if expire_time and tag:
