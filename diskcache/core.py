@@ -297,14 +297,6 @@ class Disk:
         hex_name = codecs.encode(os.urandom(16), 'hex').decode('utf-8')
         sub_dir = op.join(hex_name[:2], hex_name[2:4])
         name = hex_name[4:] + '.val'
-        directory = op.join(self._directory, sub_dir)
-
-        try:
-            os.makedirs(directory)
-        except OSError as error:
-            if error.errno != errno.EEXIST:
-                raise
-
         filename = op.join(sub_dir, name)
         full_path = op.join(self._directory, filename)
         return filename, full_path
