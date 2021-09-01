@@ -206,9 +206,26 @@ class Disk:
                 return 0, MODE_RAW, None, sqlite3.Binary(value)
             else:
                 filename, full_path = self.filename(key, value)
+                full_dir, _ = op.split(full_path)
 
-                with open(full_path, 'xb') as writer:
-                    writer.write(value)
+                for count in range(11):
+                    with cl.suppress(OSError):
+                        os.makedirs(full_dir)
+
+                    try:
+                        # Another cache may have deleted the directory before
+                        # the file could be opened.
+                        writer = open(full_path, 'xb')
+                    except OSError:
+                        if count == 10:
+                            # Give up after 10 tries to open the file.
+                            raise
+                        continue
+
+                    with writer:
+                        writer.write(value)
+
+                    break
 
                 return len(value), MODE_BINARY, filename, None
         elif type_value is str:
