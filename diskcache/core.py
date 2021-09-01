@@ -309,24 +309,26 @@ class Disk:
         full_path = op.join(self._directory, filename)
         return filename, full_path
 
-    def remove(self, filename):
-        """Remove a file given by `filename`.
+    def remove(self, file_path):
+        """Remove a file given by `file_path`.
 
-        This method is cross-thread and cross-process safe. If an "error no
-        entry" occurs, it is suppressed.
+        This method is cross-thread and cross-process safe. If an OSError
+        occurs, it is suppressed.
 
-        :param str filename: relative path to file
+        :param str file_path: relative path to file
 
         """
-        # TODO: Delete dir if empty!!!
-        full_path = op.join(self._directory, filename)
+        full_path = op.join(self._directory, file_path)
+        full_dir, _ = op.split(full_path)
 
-        try:
+        # Suppress OSError that may occur if two caches attempt to delete the
+        # same file or directory at the same time.
+
+        with cl.suppress(OSError):
             os.remove(full_path)
-        except OSError:
-            # OSError may occur if two caches attempt to delete the same
-            # file at the same time.
-            pass
+
+        with cl.suppress(OSError):
+            os.removedirs(full_dir)
 
 
 class JSONDisk(Disk):
