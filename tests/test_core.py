@@ -89,6 +89,9 @@ def test_custom_disk():
         for value in values:
             assert cache[value] == value
 
+        for key, value in zip(cache, values):
+            assert key == value
+
     shutil.rmtree(cache.directory, ignore_errors=True)
 
 
