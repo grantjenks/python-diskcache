@@ -1338,3 +1338,10 @@ def test_memoize(cache):
 
     assert hits2 == (hits1 + count)
     assert misses2 == misses1
+
+
+def test_memoize_kwargs(cache):
+    @cache.memoize(typed=True)
+    def foo(*args, **kwargs):
+        return args, kwargs
+    assert foo(1, 2, 3, a=4, b=5) == ((1, 2, 3), {'a': 4, 'b': 5})
