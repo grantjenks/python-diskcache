@@ -333,26 +333,6 @@ def test_get_expired_slow_path(cache):
     assert cache.get(0) is None
 
 
-def test_get_ioerror_slow_path(cache):
-    cache.reset('eviction_policy', 'least-recently-used')
-    cache.set(0, 0)
-
-    disk = mock.Mock()
-    put = mock.Mock()
-    fetch = mock.Mock()
-
-    disk.put = put
-    put.side_effect = [(0, True)]
-    disk.fetch = fetch
-    io_error = IOError()
-    io_error.errno = errno.EACCES
-    fetch.side_effect = io_error
-
-    with mock.patch.object(cache, '_disk', disk):
-        with pytest.raises(IOError):
-            cache.get(0)
-
-
 def test_pop(cache):
     assert cache.incr('alpha') == 1
     assert cache.pop('alpha') == 1
@@ -394,25 +374,6 @@ def test_pop_ioerror(cache):
 
     with mock.patch.object(cache, '_disk', disk):
         assert cache.pop(0) is None
-
-
-def test_pop_ioerror_eacces(cache):
-    assert cache.set(0, 0)
-
-    disk = mock.Mock()
-    put = mock.Mock()
-    fetch = mock.Mock()
-
-    disk.put = put
-    put.side_effect = [(0, True)]
-    disk.fetch = fetch
-    io_error = IOError()
-    io_error.errno = errno.EACCES
-    fetch.side_effect = io_error
-
-    with mock.patch.object(cache, '_disk', disk):
-        with pytest.raises(IOError):
-            cache.pop(0)
 
 
 def test_delete(cache):
@@ -589,29 +550,6 @@ def test_least_frequently_used(cache):
         assert cache[value] == million
 
     assert len(cache.check()) == 0
-
-
-def test_filename_error(cache):
-    func = mock.Mock(side_effect=OSError(errno.EACCES))
-
-    with mock.patch('os.makedirs', func):
-        with pytest.raises(OSError):
-            cache._disk.filename()
-
-
-def test_remove_error(cache):
-    func = mock.Mock(side_effect=OSError(errno.EACCES))
-
-    try:
-        with mock.patch('os.remove', func):
-            cache._disk.remove('ab/cd/efg.val')
-    except OSError:
-        pass
-    else:
-        if os.name == 'nt':
-            pass  # File delete errors ignored on Windows.
-        else:
-            raise Exception('test_remove_error failed')
 
 
 def test_check(cache):
@@ -1028,44 +966,6 @@ def test_peek_ioerror(cache):
         assert value == 0
 
 
-def test_pull_ioerror_eacces(cache):
-    assert cache.push(0) == 500000000000000
-
-    disk = mock.Mock()
-    put = mock.Mock()
-    fetch = mock.Mock()
-
-    disk.put = put
-    put.side_effect = [(0, True)]
-    disk.fetch = fetch
-    io_error = IOError()
-    io_error.errno = errno.EACCES
-    fetch.side_effect = io_error
-
-    with mock.patch.object(cache, '_disk', disk):
-        with pytest.raises(IOError):
-            cache.pull()
-
-
-def test_peek_ioerror_eacces(cache):
-    assert cache.push(0) == 500000000000000
-
-    disk = mock.Mock()
-    put = mock.Mock()
-    fetch = mock.Mock()
-
-    disk.put = put
-    put.side_effect = [(0, True)]
-    disk.fetch = fetch
-    io_error = IOError()
-    io_error.errno = errno.EACCES
-    fetch.side_effect = io_error
-
-    with mock.patch.object(cache, '_disk', disk):
-        with pytest.raises(IOError):
-            cache.peek()
-
-
 def test_peekitem_extras(cache):
     with pytest.raises(KeyError):
         cache.peekitem()
@@ -1115,27 +1015,6 @@ def test_peekitem_ioerror(cache):
     with mock.patch.object(cache, '_disk', disk):
         _, value = cache.peekitem()
         assert value == 2
-
-
-def test_peekitem_ioerror_eacces(cache):
-    assert cache.set('a', 0)
-    assert cache.set('b', 1)
-    assert cache.set('c', 2)
-
-    disk = mock.Mock()
-    put = mock.Mock()
-    fetch = mock.Mock()
-
-    disk.put = put
-    put.side_effect = [(0, True)]
-    disk.fetch = fetch
-    io_error = IOError()
-    io_error.errno = errno.EACCES
-    fetch.side_effect = io_error
-
-    with mock.patch.object(cache, '_disk', disk):
-        with pytest.raises(IOError):
-            cache.peekitem()
 
 
 def test_iterkeys(cache):
