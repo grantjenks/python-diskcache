@@ -55,8 +55,9 @@ def test_rlock(cache):
     def worker():
         state['num'] += 1
         with rlock:
-            state['num'] += 1
-            time.sleep(0.1)
+            with rlock:
+                state['num'] += 1
+                time.sleep(0.1)
 
     with rlock:
         thread = threading.Thread(target=worker)
