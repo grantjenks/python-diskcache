@@ -1361,3 +1361,11 @@ def test_cleanup_dirs(cache):
         del cache[i]
     del_count = len(os.listdir(cache.directory))
     assert start_count == del_count
+
+
+# TODO: Add tests for Disk._write
+# diskcache/core.py
+## Disk._write
+#  - 234->exit
+#  - 242-246
+#  - 255
