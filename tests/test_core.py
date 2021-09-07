@@ -1348,3 +1348,16 @@ def test_memoize_kwargs(cache):
     def foo(*args, **kwargs):
         return args, kwargs
     assert foo(1, 2, 3, a=4, b=5) == ((1, 2, 3), {'a': 4, 'b': 5})
+
+
+def test_cleanup_dirs(cache):
+    value = b'\0' * 2**20
+    start_count = len(os.listdir(cache.directory))
+    for i in range(10):
+        cache[i] = value
+    set_count = len(os.listdir(cache.directory))
+    assert set_count > start_count
+    for i in range(10):
+        del cache[i]
+    del_count = len(os.listdir(cache.directory))
+    assert start_count == del_count
