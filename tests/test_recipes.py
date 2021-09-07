@@ -28,6 +28,26 @@ def test_averager(cache):
     assert nums.pop() == 9.5
 
 
+def test_lock(cache):
+    state = {'num': 0}
+    lock = dc.Lock(cache, 'demo')
+
+    def worker():
+        state['num'] += 1
+        with lock:
+            assert lock.locked()
+            state['num'] += 1
+            time.sleep(0.1)
+
+    with lock:
+        thread = threading.Thread(target=worker)
+        thread.start()
+        time.sleep(0.1)
+        assert state['num'] == 1
+    thread.join()
+    assert state['num'] == 2
+
+
 def test_rlock(cache):
     state = {'num': 0}
     rlock = dc.RLock(cache, 'demo')
