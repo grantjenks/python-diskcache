@@ -187,7 +187,6 @@ class Disk:
         :return: (size, mode, filename, value) tuple for Cache table
 
         """
-        # TODO: Retry mkdirs!!!
         # pylint: disable=unidiomatic-typecheck
         type_value = type(value)
         min_file_size = self.min_file_size
@@ -206,46 +205,18 @@ class Disk:
                 return 0, MODE_RAW, None, sqlite3.Binary(value)
             else:
                 filename, full_path = self.filename(key, value)
-                full_dir, _ = op.split(full_path)
-
-                for count in range(11):
-                    with cl.suppress(OSError):
-                        os.makedirs(full_dir)
-
-                    try:
-                        # Another cache may have deleted the directory before
-                        # the file could be opened.
-                        writer = open(full_path, 'xb')
-                    except OSError:
-                        if count == 10:
-                            # Give up after 10 tries to open the file.
-                            raise
-                        continue
-
-                    with writer:
-                        writer.write(value)
-
-                    break
-
+                self._write(full_path, io.BytesIO(value), 'xb')
                 return len(value), MODE_BINARY, filename, None
         elif type_value is str:
             filename, full_path = self.filename(key, value)
-
-            with open(full_path, 'x', encoding='UTF-8') as writer:
-                writer.write(value)
-
+            self._write(full_path, io.StringIO(value), 'x', 'UTF-8')
             size = op.getsize(full_path)
             return size, MODE_TEXT, filename, None
         elif read:
-            size = 0
             reader = ft.partial(value.read, 2 ** 22)
             filename, full_path = self.filename(key, value)
-
-            with open(full_path, 'xb') as writer:
-                for chunk in iter(reader, b''):
-                    size += len(chunk)
-                    writer.write(chunk)
-
+            iterator = iter(reader, b'')
+            size = self._write(full_path, iterator, 'xb')
             return size, MODE_BINARY, filename, None
         else:
             result = pickle.dumps(value, protocol=self.pickle_protocol)
@@ -254,11 +225,34 @@ class Disk:
                 return 0, MODE_PICKLE, None, sqlite3.Binary(result)
             else:
                 filename, full_path = self.filename(key, value)
-
-                with open(full_path, 'xb') as writer:
-                    writer.write(result)
-
+                self._write(full_path, io.BytesIO(result), 'xb')
                 return len(result), MODE_PICKLE, filename, None
+
+    def _write(self, full_path, iterator, mode, encoding=None):
+        full_dir, _ = op.split(full_path)
+
+        for count in range(1, 11):
+            with cl.suppress(OSError):
+                os.makedirs(full_dir)
+
+            try:
+                # Another cache may have deleted the directory before
+                # the file could be opened.
+                writer = open(full_path, mode, encoding=encoding)
+            except OSError:
+                if count == 10:
+                    # Give up after 10 tries to open the file.
+                    raise
+                continue
+
+            with writer:
+                size = 0
+                for chunk in iterator:
+                    size += len(chunk)
+                    writer.write(chunk)
+                return size
+
+            break
 
     def fetch(self, mode, filename, value, read):
         """Convert fields `mode`, `filename`, and `value` from Cache table to
