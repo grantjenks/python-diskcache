@@ -373,6 +373,7 @@ class DjangoCache(BaseCache):
         version=None,
         typed=False,
         tag=None,
+        ignore=(),
     ):
         """Memoizing cache decorator.
 
@@ -407,6 +408,7 @@ class DjangoCache(BaseCache):
         :param int version: key version number (default None, cache parameter)
         :param bool typed: cache different types separately (default False)
         :param str tag: text to associate with arguments (default None)
+        :param set ignore: positional or keyword args to ignore (default ())
         :return: callable decorator
 
         """
@@ -445,7 +447,7 @@ class DjangoCache(BaseCache):
 
             def __cache_key__(*args, **kwargs):
                 """Make key for cache given function arguments."""
-                return args_to_key(base, args, kwargs, typed)
+                return args_to_key(base, args, kwargs, typed, ignore)
 
             wrapper.__cache_key__ = __cache_key__
             return wrapper
