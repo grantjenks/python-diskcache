@@ -1151,7 +1151,7 @@ class Index(MutableMapping):
         :return: callable decorator
 
         """
-        return self._cache.memoize(name, typed, ignore)
+        return self._cache.memoize(name, typed, ignore=ignore)
 
     @contextmanager
     def transact(self):
