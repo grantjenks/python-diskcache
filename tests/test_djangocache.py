@@ -100,7 +100,7 @@ class UnpicklableType(object):
 
 
 def custom_key_func(key, key_prefix, version):
-    "A customized cache key function"
+    """A customized cache key function"""
     return 'CUSTOM-' + '-'.join([key_prefix, str(version), key])
 
 
@@ -921,7 +921,7 @@ class PicklingSideEffect:
     )
 )
 class DiskCacheTests(BaseCacheTests, TestCase):
-    "Specific test cases for diskcache.DjangoCache."
+    """Specific test cases for diskcache.DjangoCache."""
 
     def setUp(self):
         super().setUp()

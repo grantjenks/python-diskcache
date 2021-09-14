@@ -1,4 +1,4 @@
-"Stress test diskcache.core.Cache."
+"""Stress test diskcache.core.Cache."""
 
 import collections as co
 import multiprocessing as mp
@@ -292,22 +292,22 @@ def stress_test(
 
 
 def stress_test_lru():
-    "Stress test least-recently-used eviction policy."
+    """Stress test least-recently-used eviction policy."""
     stress_test(eviction_policy=u'least-recently-used')
 
 
 def stress_test_lfu():
-    "Stress test least-frequently-used eviction policy."
+    """Stress test least-frequently-used eviction policy."""
     stress_test(eviction_policy=u'least-frequently-used')
 
 
 def stress_test_none():
-    "Stress test 'none' eviction policy."
+    """Stress test 'none' eviction policy."""
     stress_test(eviction_policy=u'none')
 
 
 def stress_test_mp():
-    "Stress test multiple threads and processes."
+    """Stress test multiple threads and processes."""
     stress_test(processes=4, threads=4)
 
 

@@ -1,4 +1,4 @@
-"Test diskcache.core.Cache."
+"""Test diskcache.core.Cache."""
 
 import errno
 import hashlib
@@ -1347,11 +1347,12 @@ def test_memoize_kwargs(cache):
     @cache.memoize(typed=True)
     def foo(*args, **kwargs):
         return args, kwargs
+
     assert foo(1, 2, 3, a=4, b=5) == ((1, 2, 3), {'a': 4, 'b': 5})
 
 
 def test_cleanup_dirs(cache):
-    value = b'\0' * 2**20
+    value = b'\0' * 2 ** 20
     start_count = len(os.listdir(cache.directory))
     for i in range(10):
         cache[i] = value
@@ -1367,4 +1368,4 @@ def test_disk_write_os_error(cache):
     func = mock.Mock(side_effect=[OSError] * 10)
     with mock.patch('diskcache.core.open', func):
         with pytest.raises(OSError):
-            cache[0] = '\0' * 2**20
+            cache[0] = '\0' * 2 ** 20
