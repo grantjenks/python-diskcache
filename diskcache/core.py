@@ -1795,7 +1795,9 @@ class Cache:
         else:
             return key, value
 
-    def memoize(self, name=None, typed=False, expire=None, tag=None, ignore=()):
+    def memoize(
+        self, name=None, typed=False, expire=None, tag=None, ignore=()
+    ):
         """Memoizing cache decorator.
 
         Decorator to wrap callable with memoizing function using cache.

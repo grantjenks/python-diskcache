@@ -1372,7 +1372,6 @@ def test_disk_write_os_error(cache):
 
 
 def test_memoize_ignore(cache):
-
     @cache.memoize(ignore={1, 'arg1'})
     def test(*args, **kwargs):
         return args, kwargs
