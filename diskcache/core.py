@@ -46,25 +46,25 @@ MODE_TEXT = 3
 MODE_PICKLE = 4
 
 DEFAULT_SETTINGS = {
-    u'statistics': 0,  # False
-    u'tag_index': 0,  # False
-    u'eviction_policy': u'least-recently-stored',
-    u'size_limit': 2 ** 30,  # 1gb
-    u'cull_limit': 10,
-    u'sqlite_auto_vacuum': 1,  # FULL
-    u'sqlite_cache_size': 2 ** 13,  # 8,192 pages
-    u'sqlite_journal_mode': u'wal',
-    u'sqlite_mmap_size': 2 ** 26,  # 64mb
-    u'sqlite_synchronous': 1,  # NORMAL
-    u'disk_min_file_size': 2 ** 15,  # 32kb
-    u'disk_pickle_protocol': pickle.HIGHEST_PROTOCOL,
+    'statistics': 0,  # False
+    'tag_index': 0,  # False
+    'eviction_policy': 'least-recently-stored',
+    'size_limit': 2 ** 30,  # 1gb
+    'cull_limit': 10,
+    'sqlite_auto_vacuum': 1,  # FULL
+    'sqlite_cache_size': 2 ** 13,  # 8,192 pages
+    'sqlite_journal_mode': 'wal',
+    'sqlite_mmap_size': 2 ** 26,  # 64mb
+    'sqlite_synchronous': 1,  # NORMAL
+    'disk_min_file_size': 2 ** 15,  # 32kb
+    'disk_pickle_protocol': pickle.HIGHEST_PROTOCOL,
 }
 
 METADATA = {
-    u'count': 0,
-    u'size': 0,
-    u'hits': 0,
-    u'misses': 0,
+    'count': 0,
+    'size': 0,
+    'hits': 0,
+    'misses': 0,
 }
 
 EVICTION_POLICY = {
@@ -1194,7 +1194,7 @@ class Cache:
 
                 try:
                     value = self._disk.fetch(mode, filename, db_value, read)
-                except IOError as error:
+                except IOError:
                     # Key was deleted before we could retrieve result.
                     if self.statistics:
                         sql(cache_miss)
@@ -1314,7 +1314,7 @@ class Cache:
 
         try:
             value = self._disk.fetch(mode, filename, db_value, False)
-        except IOError as error:
+        except IOError:
             # Key was deleted before we could retrieve result.
             return default
         finally:
@@ -1582,7 +1582,7 @@ class Cache:
 
             try:
                 value = self._disk.fetch(mode, name, db_value, False)
-            except IOError as error:
+            except IOError:
                 # Key was deleted before we could retrieve result.
                 continue
             finally:
@@ -1696,7 +1696,7 @@ class Cache:
 
             try:
                 value = self._disk.fetch(mode, name, db_value, False)
-            except IOError as error:
+            except IOError:
                 # Key was deleted before we could retrieve result.
                 continue
             finally:
@@ -1777,7 +1777,7 @@ class Cache:
 
             try:
                 value = self._disk.fetch(mode, name, db_value, False)
-            except IOError as error:
+            except IOError:
                 # Key was deleted before we could retrieve result.
                 continue
             break
@@ -1911,7 +1911,7 @@ class Cache:
 
             rows = sql('PRAGMA integrity_check').fetchall()
 
-            if len(rows) != 1 or rows[0][0] != u'ok':
+            if len(rows) != 1 or rows[0][0] != 'ok':
                 for (message,) in rows:
                     warnings.warn(message)
 
