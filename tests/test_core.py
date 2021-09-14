@@ -1363,9 +1363,8 @@ def test_cleanup_dirs(cache):
     assert start_count == del_count
 
 
-# TODO: Add tests for Disk._write
-# diskcache/core.py
-## Disk._write
-#  - 234->exit
-#  - 242-246
-#  - 255
+def test_disk_write_os_error(cache):
+    func = mock.Mock(side_effect=[OSError] * 10)
+    with mock.patch('diskcache.core.open', func):
+        with pytest.raises(OSError):
+            cache[0] = '\0' * 2**20
