@@ -252,8 +252,6 @@ class Disk:
                     writer.write(chunk)
                 return size
 
-            break
-
     def fetch(self, mode, filename, value, read):
         """Convert fields `mode`, `filename`, and `value` from Cache table to
         value.
