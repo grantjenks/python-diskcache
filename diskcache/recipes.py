@@ -337,7 +337,9 @@ def barrier(cache, lock_factory, name=None, expire=None, tag=None):
     return decorator
 
 
-def memoize_stampede(cache, expire, name=None, typed=False, tag=None, beta=1, ignore=()):
+def memoize_stampede(
+    cache, expire, name=None, typed=False, tag=None, beta=1, ignore=()
+):
     """Memoizing cache decorator with cache stampede protection.
 
     Cache stampedes are a type of system overload that can occur when parallel
