@@ -228,6 +228,7 @@ class Disk:
                 return len(result), MODE_PICKLE, filename, None
 
     def _write(self, full_path, iterator, mode, encoding=None):
+        # pylint: disable=no-self-use
         full_dir, _ = op.split(full_path)
 
         for count in range(1, 11):
