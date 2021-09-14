@@ -1369,3 +1369,16 @@ def test_disk_write_os_error(cache):
     with mock.patch('diskcache.core.open', func):
         with pytest.raises(OSError):
             cache[0] = '\0' * 2 ** 20
+
+
+def test_memoize_ignore(cache):
+
+    @cache.memoize(ignore={1, 'arg1'})
+    def test(*args, **kwargs):
+        return args, kwargs
+
+    cache.stats(enable=True)
+    assert test('a', 'b', 'c', arg0='d', arg1='e', arg2='f')
+    assert test('a', 'w', 'c', arg0='d', arg1='x', arg2='f')
+    assert test('a', 'y', 'c', arg0='d', arg1='z', arg2='f')
+    assert cache.stats() == (2, 1)

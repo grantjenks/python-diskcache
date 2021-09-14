@@ -337,7 +337,7 @@ def barrier(cache, lock_factory, name=None, expire=None, tag=None):
     return decorator
 
 
-def memoize_stampede(cache, expire, name=None, typed=False, tag=None, beta=1):
+def memoize_stampede(cache, expire, name=None, typed=False, tag=None, beta=1, ignore=()):
     """Memoizing cache decorator with cache stampede protection.
 
     Cache stampedes are a type of system overload that can occur when parallel
@@ -390,6 +390,7 @@ def memoize_stampede(cache, expire, name=None, typed=False, tag=None, beta=1):
     :param str name: name given for callable (default None, automatic)
     :param bool typed: cache different types separately (default False)
     :param str tag: text to associate with arguments (default None)
+    :param set ignore: positional or keyword args to ignore (default ())
     :return: callable decorator
 
     """
@@ -459,7 +460,7 @@ def memoize_stampede(cache, expire, name=None, typed=False, tag=None, beta=1):
 
         def __cache_key__(*args, **kwargs):
             """Make key for cache given function arguments."""
-            return args_to_key(base, args, kwargs, typed)
+            return args_to_key(base, args, kwargs, typed, ignore)
 
         wrapper.__cache_key__ = __cache_key__
         return wrapper

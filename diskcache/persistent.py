@@ -1096,7 +1096,7 @@ class Index(MutableMapping):
         """
         return not self == other
 
-    def memoize(self, name=None, typed=False):
+    def memoize(self, name=None, typed=False, ignore=()):
         """Memoizing cache decorator.
 
         Decorator to wrap callable with memoizing function using cache.
@@ -1147,10 +1147,11 @@ class Index(MutableMapping):
 
         :param str name: name given for callable (default None, automatic)
         :param bool typed: cache different types separately (default False)
+        :param set ignore: positional or keyword args to ignore (default ())
         :return: callable decorator
 
         """
-        return self._cache.memoize(name, typed)
+        return self._cache.memoize(name, typed, ignore)
 
     @contextmanager
     def transact(self):
