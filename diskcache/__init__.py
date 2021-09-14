@@ -57,7 +57,7 @@ try:
     from .djangocache import DjangoCache  # noqa
 
     __all__.append('DjangoCache')
-except Exception:  # pylint: disable=broad-except
+except Exception:  # pylint: disable=broad-except  # pragma: no cover
     # Django not installed or not setup so ignore.
     pass
 

@@ -6,7 +6,7 @@ from django.core.cache.backends.base import BaseCache
 
 try:
     from django.core.cache.backends.base import DEFAULT_TIMEOUT
-except ImportError:
+except ImportError:  # pragma: no cover
     # For older versions of Django simply use 300 seconds.
     DEFAULT_TIMEOUT = 300
 
