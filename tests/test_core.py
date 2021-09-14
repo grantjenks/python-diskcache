@@ -92,6 +92,8 @@ def test_custom_disk():
         for key, value in zip(cache, values):
             assert key == value
 
+        test_memoize_iter(cache)
+
     shutil.rmtree(cache.directory, ignore_errors=True)
 
 
@@ -1381,3 +1383,17 @@ def test_memoize_ignore(cache):
     assert test('a', 'w', 'c', arg0='d', arg1='x', arg2='f')
     assert test('a', 'y', 'c', arg0='d', arg1='z', arg2='f')
     assert cache.stats() == (2, 1)
+
+
+def test_memoize_iter(cache):
+    @cache.memoize()
+    def test(*args, **kwargs):
+        return sum(args) + sum(kwargs.values())
+
+    cache.clear()
+    assert test(1, 2, 3)
+    assert test(a=1, b=2, c=3)
+    assert test(-1, 0, 1, a=1, b=2, c=3)
+    assert len(cache) == 3
+    for key in cache:
+        assert cache[key] == 6

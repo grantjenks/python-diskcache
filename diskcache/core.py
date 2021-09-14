@@ -397,11 +397,10 @@ def args_to_key(base, args, kwargs, typed, ignore):
 
     """
     args = tuple(arg for index, arg in enumerate(args) if index not in ignore)
-    key = base + args
+    key = base + args + (None,)
 
     if kwargs:
         kwargs = {key: val for key, val in kwargs.items() if key not in ignore}
-        key += (ENOVAL,)
         sorted_items = sorted(kwargs.items())
 
         for item in sorted_items:
