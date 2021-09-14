@@ -32,7 +32,7 @@ def secs(value):
 
 
 def run(*args):
-    "Run command, print output, and return output."
+    """Run command, print output, and return output."""
     print('utils$', *args)
     result = sp.check_output(args)
     print(result)
@@ -40,7 +40,7 @@ def run(*args):
 
 
 def mount_ramdisk(size, path):
-    "Mount RAM disk at `path` with `size` in bytes."
+    """Mount RAM disk at `path` with `size` in bytes."""
     sectors = size / 512
 
     os.makedirs(path)
@@ -53,7 +53,7 @@ def mount_ramdisk(size, path):
 
 
 def unmount_ramdisk(dev_path, path):
-    "Unmount RAM disk with `dev_path` and `path`."
+    """Unmount RAM disk with `dev_path` and `path`."""
     run('umount', path)
     run('diskutil', 'eject', dev_path)
     run('rm', '-r', path)

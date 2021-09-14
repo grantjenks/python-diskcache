@@ -1,4 +1,4 @@
-"Test diskcache.persistent.Index."
+"""Test diskcache.persistent.Index."""
 
 import pickle
 import shutil

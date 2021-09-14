@@ -1,4 +1,4 @@
-"Test diskcache.recipes."
+"""Test diskcache.recipes."""
 
 import shutil
 import threading

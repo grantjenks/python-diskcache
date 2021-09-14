@@ -1,7 +1,6 @@
 """Benchmarking Key-Value Stores
 
 $ python -m IPython tests/benchmark_kv_store.py
-
 """
 
 from IPython import get_ipython

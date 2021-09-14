@@ -3,7 +3,6 @@ DiskCache API Reference
 =======================
 
 The :doc:`tutorial` provides a helpful walkthrough of most methods.
-
 """
 
 from .core import (

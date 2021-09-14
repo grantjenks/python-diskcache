@@ -1,5 +1,4 @@
 """Core disk and file backed cache API.
-
 """
 
 import codecs
@@ -22,12 +21,12 @@ import zlib
 
 
 def full_name(func):
-    "Return full name of `func` by adding the module and function name."
+    """Return full name of `func` by adding the module and function name."""
     return func.__module__ + '.' + func.__qualname__
 
 
 class Constant(tuple):
-    "Pretty display of immutable constant."
+    """Pretty display of immutable constant."""
 
     def __new__(cls, name):
         return tuple.__new__(cls, (name,))
@@ -102,7 +101,7 @@ EVICTION_POLICY = {
 
 
 class Disk:
-    "Cache key and value serialization for SQLite database and files."
+    """Cache key and value serialization for SQLite database and files."""
 
     def __init__(self, directory, min_file_size=0, pickle_protocol=0):
         """Initialize disk instance.
@@ -333,7 +332,7 @@ class Disk:
 
 
 class JSONDisk(Disk):
-    "Cache key and value using JSON serialization with zlib compression."
+    """Cache key and value using JSON serialization with zlib compression."""
 
     def __init__(self, directory, compress_level=1, **kwargs):
         """Initialize JSON disk instance.
@@ -374,15 +373,15 @@ class JSONDisk(Disk):
 
 
 class Timeout(Exception):
-    "Database timeout expired."
+    """Database timeout expired."""
 
 
 class UnknownFileWarning(UserWarning):
-    "Warning used by Cache.check for unknown files."
+    """Warning used by Cache.check for unknown files."""
 
 
 class EmptyDirWarning(UserWarning):
-    "Warning used by Cache.check for empty directories."
+    """Warning used by Cache.check for empty directories."""
 
 
 def args_to_key(base, args, kwargs, typed):
@@ -414,7 +413,7 @@ def args_to_key(base, args, kwargs, typed):
 
 
 class Cache:
-    "Disk and file backed cache."
+    """Disk and file backed cache."""
 
     def __init__(self, directory=None, timeout=60, disk=Disk, **settings):
         """Initialize cache instance.
@@ -1859,12 +1858,12 @@ class Cache:
             raise TypeError('name cannot be callable')
 
         def decorator(func):
-            "Decorator created by memoize() for callable `func`."
+            """Decorator created by memoize() for callable `func`."""
             base = (full_name(func),) if name is None else (name,)
 
             @ft.wraps(func)
             def wrapper(*args, **kwargs):
-                "Wrapper for callable to cache arguments and return values."
+                """Wrapper for callable to cache arguments and return values."""
                 key = wrapper.__cache_key__(*args, **kwargs)
                 result = self.get(key, default=ENOVAL, retry=True)
 
@@ -1876,7 +1875,7 @@ class Cache:
                 return result
 
             def __cache_key__(*args, **kwargs):
-                "Make key for cache given function arguments."
+                """Make key for cache given function arguments."""
                 return args_to_key(base, args, kwargs, typed)
 
             wrapper.__cache_key__ = __cache_key__
@@ -2291,13 +2290,13 @@ class Cache:
                 yield _disk_get(key, raw)
 
     def __iter__(self):
-        "Iterate keys in cache including expired items."
+        """Iterate keys in cache including expired items."""
         iterator = self._iter()
         next(iterator)
         return iterator
 
     def __reversed__(self):
-        "Reverse iterate keys in cache including expired items."
+        """Reverse iterate keys in cache including expired items."""
         iterator = self._iter(ascending=False)
         next(iterator)
         return iterator
@@ -2355,7 +2354,7 @@ class Cache:
         self.close()
 
     def __len__(self):
-        "Count of items in cache including expired items."
+        """Count of items in cache including expired items."""
         return self.reset('count')
 
     def __getstate__(self):

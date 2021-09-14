@@ -2,7 +2,6 @@
 
 $ export PYTHONPATH=`pwd`
 $ python tests/issue_85.py
-
 """
 
 import collections

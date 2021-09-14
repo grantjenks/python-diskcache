@@ -1,5 +1,4 @@
 """Benchmark for Issue #109
-
 """
 
 import time

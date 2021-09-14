@@ -1,5 +1,4 @@
 """Early Recomputation Measurements
-
 """
 
 import functools as ft
@@ -61,14 +60,14 @@ def make_repeater(func, total=10, delay=0.01):
 
 
 def frange(start, stop, step=1e-3):
-    "Generator for floating point values from `start` to `stop` by `step`."
+    """Generator for floating point values from `start` to `stop` by `step`."""
     while start < stop:
         yield start
         start += step
 
 
 def plot(option, filename, cache_times, worker_times):
-    "Plot concurrent workers and latency."
+    """Plot concurrent workers and latency."""
     import matplotlib.pyplot as plt
 
     fig, (workers, latency) = plt.subplots(2, sharex=True)

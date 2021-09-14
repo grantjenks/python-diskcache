@@ -1,4 +1,4 @@
-"Django-compatible disk and file backed cache."
+"""Django-compatible disk and file backed cache."""
 
 from functools import wraps
 
@@ -15,7 +15,7 @@ from .fanout import FanoutCache
 
 
 class DjangoCache(BaseCache):
-    "Django-compatible disk and file backed cache."
+    """Django-compatible disk and file backed cache."""
 
     def __init__(self, directory, params):
         """Initialize DjangoCache instance.
@@ -344,11 +344,11 @@ class DjangoCache(BaseCache):
         return self._cache.cull()
 
     def clear(self):
-        "Remove *all* values from the cache at once."
+        """Remove *all* values from the cache at once."""
         return self._cache.clear()
 
     def close(self, **kwargs):
-        "Close the cache connection."
+        """Close the cache connection."""
         # pylint: disable=unused-argument
         self._cache.close()
 
@@ -415,12 +415,12 @@ class DjangoCache(BaseCache):
             raise TypeError('name cannot be callable')
 
         def decorator(func):
-            "Decorator created by memoize() for callable `func`."
+            """Decorator created by memoize() for callable `func`."""
             base = (full_name(func),) if name is None else (name,)
 
             @wraps(func)
             def wrapper(*args, **kwargs):
-                "Wrapper for callable to cache arguments and return values."
+                """Wrapper for callable to cache arguments and return values."""
                 key = wrapper.__cache_key__(*args, **kwargs)
                 result = self.get(key, ENOVAL, version, retry=True)
 
@@ -444,7 +444,7 @@ class DjangoCache(BaseCache):
                 return result
 
             def __cache_key__(*args, **kwargs):
-                "Make key for cache given function arguments."
+                """Make key for cache given function arguments."""
                 return args_to_key(base, args, kwargs, typed)
 
             wrapper.__cache_key__ = __cache_key__

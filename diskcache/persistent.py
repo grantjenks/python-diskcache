@@ -1,5 +1,4 @@
 """Persistent Data Types
-
 """
 
 import operator as op
@@ -18,10 +17,10 @@ from .core import ENOVAL, Cache
 
 
 def _make_compare(seq_op, doc):
-    "Make compare method with Sequence semantics."
+    """Make compare method with Sequence semantics."""
 
     def compare(self, that):
-        "Compare method for deque and sequence."
+        """Compare method for deque and sequence."""
         if not isinstance(that, Sequence):
             return NotImplemented
 
@@ -117,12 +116,12 @@ class Deque(Sequence):
 
     @property
     def cache(self):
-        "Cache used by deque."
+        """Cache used by deque."""
         return self._cache
 
     @property
     def directory(self):
-        "Directory path where deque is stored."
+        """Directory path where deque is stored."""
         return self._cache.directory
 
     def _index(self, index, func):
@@ -699,12 +698,12 @@ class Index(MutableMapping):
 
     @property
     def cache(self):
-        "Cache used by index."
+        """Cache used by index."""
         return self._cache
 
     @property
     def directory(self):
-        "Directory path where items are stored."
+        """Directory path where items are stored."""
         return self._cache.directory
 
     def __getitem__(self, key):

@@ -1,4 +1,4 @@
-"Test diskcache.persistent.Deque."
+"""Test diskcache.persistent.Deque."""
 
 import pickle
 import shutil

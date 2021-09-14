@@ -2,7 +2,6 @@
 
 $ export PYTHONPATH=/Users/grantj/repos/python-diskcache
 $ python tests/plot.py --show tests/timings_core_p1.txt
-
 """
 
 import argparse
@@ -14,7 +13,7 @@ import matplotlib.pyplot as plt
 
 
 def parse_timing(timing, limit):
-    "Parse timing."
+    """Parse timing."""
     if timing.endswith('ms'):
         value = float(timing[:-2]) * 1e-3
     elif timing.endswith('us'):
@@ -26,12 +25,12 @@ def parse_timing(timing, limit):
 
 
 def parse_row(row, line):
-    "Parse row."
+    """Parse row."""
     return [val.strip() for val in row.match(line).groups()]
 
 
 def parse_data(infile):
-    "Parse data from `infile`."
+    """Parse data from `infile`."""
     blocks = re.compile(' '.join(['=' * 9] * 8))
     dashes = re.compile('^-{79}$')
     title = re.compile('^Timings for (.*)$')
@@ -83,7 +82,7 @@ def parse_data(infile):
 
 
 def make_plot(data, action, save=False, show=False, limit=0.005):
-    "Make plot."
+    """Make plot."""
     fig, ax = plt.subplots(figsize=(8, 10))
     colors = ['#ff7f00', '#377eb8', '#4daf4a', '#984ea3', '#e41a1c']
     width = 0.15

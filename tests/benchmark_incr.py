@@ -1,5 +1,4 @@
 """Benchmark cache.incr method.
-
 """
 
 import json
@@ -16,7 +15,7 @@ PROCS = 8
 
 
 def worker(num):
-    "Rapidly increment key and time operation."
+    """Rapidly increment key and time operation."""
     time.sleep(0.1)  # Let other workers start.
 
     cache = dc.Cache('tmp')
@@ -33,7 +32,7 @@ def worker(num):
 
 
 def main():
-    "Run workers and print percentile results."
+    """Run workers and print percentile results."""
     shutil.rmtree('tmp', ignore_errors=True)
 
     processes = [

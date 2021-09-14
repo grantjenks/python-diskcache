@@ -1,4 +1,4 @@
-"Fanout cache automatically shards keys and values."
+"""Fanout cache automatically shards keys and values."""
 
 import contextlib as cl
 import functools
@@ -14,7 +14,7 @@ from .persistent import Deque, Index
 
 
 class FanoutCache:
-    "Cache that shards keys and values."
+    """Cache that shards keys and values."""
 
     def __init__(
         self, directory=None, shards=8, timeout=0.010, disk=Disk, **settings
@@ -512,7 +512,7 @@ class FanoutCache:
         return sum(shard.volume() for shard in self._shards)
 
     def close(self):
-        "Close database connection."
+        """Close database connection."""
         for shard in self._shards:
             shard.close()
         self._caches.clear()
@@ -532,17 +532,17 @@ class FanoutCache:
         self.__init__(*state)
 
     def __iter__(self):
-        "Iterate keys in cache including expired items."
+        """Iterate keys in cache including expired items."""
         iterators = (iter(shard) for shard in self._shards)
         return it.chain.from_iterable(iterators)
 
     def __reversed__(self):
-        "Reverse iterate keys in cache including expired items."
+        """Reverse iterate keys in cache including expired items."""
         iterators = (reversed(shard) for shard in reversed(self._shards))
         return it.chain.from_iterable(iterators)
 
     def __len__(self):
-        "Count of items in cache including expired items."
+        """Count of items in cache including expired items."""
         return sum(len(shard) for shard in self._shards)
 
     def reset(self, key, value=ENOVAL):

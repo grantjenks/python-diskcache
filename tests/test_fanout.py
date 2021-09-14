@@ -1,4 +1,4 @@
-"Test diskcache.fanout.FanoutCache."
+"""Test diskcache.fanout.FanoutCache."""
 
 import collections as co
 import hashlib

@@ -1,4 +1,4 @@
-"Benchmark glob.glob1 as used by django.core.cache.backends.filebased."
+"""Benchmark glob.glob1 as used by django.core.cache.backends.filebased."""
 
 import os
 import os.path as op
