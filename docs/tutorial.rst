@@ -570,7 +570,7 @@ access and editing at both front and back sides. :class:`Deque
 cross-thread and cross-process communication. :class:`Deque <diskcache.Deque>`
 objects are also useful in scenarios where contents should remain persistent or
 limitations prohibit holding all items in memory at the same time. The deque
-uses a fixed amout of memory regardless of the size or number of items stored
+uses a fixed amount of memory regardless of the size or number of items stored
 inside it.
 
 Index
@@ -603,7 +603,7 @@ interface. :class:`Index <diskcache.Index>` objects inherit all the benefits of
 cross-thread and cross-process communication. :class:`Index <diskcache.Index>`
 objects are also useful in scenarios where contents should remain persistent or
 limitations prohibit holding all items in memory at the same time. The index
-uses a fixed amout of memory regardless of the size or number of items stored
+uses a fixed amount of memory regardless of the size or number of items stored
 inside it.
 
 .. _tutorial-transactions:
