@@ -65,4 +65,4 @@ __version__ = '5.2.1'
 __build__ = 0x050201
 __author__ = 'Grant Jenks'
 __license__ = 'Apache 2.0'
-__copyright__ = 'Copyright 2016-2021 Grant Jenks'
+__copyright__ = 'Copyright 2016-2022 Grant Jenks'

@@ -20,7 +20,7 @@ import diskcache
 # -- Project information -----------------------------------------------------
 
 project = 'DiskCache'
-copyright = '2021, Grant Jenks'
+copyright = '2022, Grant Jenks'
 author = 'Grant Jenks'
 
 # The full version, including alpha/beta/rc tags
