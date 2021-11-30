@@ -77,8 +77,8 @@ Features
 - Thread-safe and process-safe
 - Supports multiple eviction policies (LRU and LFU included)
 - Keys support "tag" metadata and eviction
-- Developed on Python 3.9
-- Tested on CPython 3.6, 3.7, 3.8, 3.9
+- Developed on Python 3.10
+- Tested on CPython 3.6, 3.7, 3.8, 3.9, 3.10
 - Tested on Linux, Mac OS X, and Windows
 - Tested using GitHub Actions
 
@@ -387,7 +387,7 @@ Reference
 License
 -------
 
-Copyright 2016-2021 Grant Jenks
+Copyright 2016-2022 Grant Jenks
 
 Licensed under the Apache License, Version 2.0 (the "License"); you may not use
 this file except in compliance with the License.  You may obtain a copy of the
