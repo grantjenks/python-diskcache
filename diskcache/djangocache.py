@@ -2,6 +2,7 @@
 
 from functools import wraps
 
+from asgiref.sync import sync_to_async
 from django.core.cache.backends.base import BaseCache
 
 try:
@@ -94,6 +95,9 @@ class DjangoCache(BaseCache):
         timeout = self.get_backend_timeout(timeout=timeout)
         return self._cache.add(key, value, timeout, read, tag, retry)
 
+    async def aadd(self, key, value, timeout=DEFAULT_TIMEOUT, version=None):
+        return await sync_to_async(self.add, thread_sensitive=False)(key, value, timeout, version)
+
     def get(
         self,
         key,
@@ -122,6 +126,9 @@ class DjangoCache(BaseCache):
         # pylint: disable=arguments-differ
         key = self.make_key(key, version=version)
         return self._cache.get(key, default, read, expire_time, tag, retry)
+
+    async def aget(self, key, default=None, version=None):
+        return await sync_to_async(self.get, thread_sensitive=False)(key, default, version)
 
     def read(self, key, version=None):
         """Return file handle corresponding to `key` from Cache.
@@ -164,6 +171,9 @@ class DjangoCache(BaseCache):
         timeout = self.get_backend_timeout(timeout=timeout)
         return self._cache.set(key, value, timeout, read, tag, retry)
 
+    async def aset(self, key, value, timeout=DEFAULT_TIMEOUT, version=None):
+        return await sync_to_async(self.set, thread_sensitive=False)(key, value, timeout, version)
+
     def touch(self, key, timeout=DEFAULT_TIMEOUT, version=None, retry=True):
         """Touch a key in the cache. If timeout is given, that timeout will be
         used for the key; otherwise the default cache timeout will be used.
@@ -180,6 +190,9 @@ class DjangoCache(BaseCache):
         key = self.make_key(key, version=version)
         timeout = self.get_backend_timeout(timeout=timeout)
         return self._cache.touch(key, timeout, retry)
+
+    async def atouch(self, key, timeout=DEFAULT_TIMEOUT, version=None):
+        return await sync_to_async(self.touch, thread_sensitive=False)(key, timeout, version)
 
     def pop(
         self,
@@ -221,6 +234,9 @@ class DjangoCache(BaseCache):
         # pylint: disable=arguments-differ
         key = self.make_key(key, version=version)
         self._cache.delete(key, retry)
+
+    async def adelete(self, key, version=None):
+        return await sync_to_async(self.delete, thread_sensitive=False)(key, version)
 
     def incr(self, key, delta=1, version=None, default=None, retry=True):
         """Increment value by delta for item with key.
@@ -346,6 +362,9 @@ class DjangoCache(BaseCache):
     def clear(self):
         """Remove *all* values from the cache at once."""
         return self._cache.clear()
+
+    async def aclear(self):
+        return await sync_to_async(self.clear, thread_sensitive=False)()
 
     def close(self, **kwargs):
         """Close the cache connection."""
