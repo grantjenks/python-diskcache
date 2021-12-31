@@ -3,64 +3,30 @@
 
 # Unit tests for cache framework
 # Uses whatever cache backend is set in the test settings file.
-import copy
-import io
 import os
 import pickle
-import re
 import shutil
-import sys
 import tempfile
-import threading
 import time
-import unittest
-import warnings
-from pathlib import Path
-from unittest import mock, skipIf
+from unittest import mock
 
 from django.conf import settings
-from django.core import management, signals
 from django.core.cache import (
-    DEFAULT_CACHE_ALIAS,
     CacheKeyWarning,
-    InvalidCacheKey,
     cache,
     caches,
 )
-from django.core.cache.utils import make_template_fragment_key
-from django.db import close_old_connections, connection, connections
-from django.http import (
-    HttpRequest,
-    HttpResponse,
-    HttpResponseNotModified,
-    StreamingHttpResponse,
-)
+from django.http import HttpResponse
 from django.middleware.cache import (
-    CacheMiddleware,
     FetchFromCacheMiddleware,
     UpdateCacheMiddleware,
 )
-from django.middleware.csrf import CsrfViewMiddleware
-from django.template import engines
-from django.template.context_processors import csrf
-from django.template.response import TemplateResponse
 from django.test import (
     RequestFactory,
-    SimpleTestCase,
     TestCase,
-    TransactionTestCase,
     override_settings,
 )
 from django.test.signals import setting_changed
-from django.utils import timezone, translation
-from django.utils.cache import (
-    get_cache_key,
-    learn_cache_key,
-    patch_cache_control,
-    patch_vary_headers,
-)
-from django.utils.encoding import force_text
-from django.views.decorators.cache import cache_page
 
 ################################################################################
 # Setup Django for models import.
