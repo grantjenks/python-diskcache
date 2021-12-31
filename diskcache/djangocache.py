@@ -220,7 +220,7 @@ class DjangoCache(BaseCache):
         """
         # pylint: disable=arguments-differ
         key = self.make_key(key, version=version)
-        self._cache.delete(key, retry)
+        return self._cache.delete(key, retry)
 
     def incr(self, key, delta=1, version=None, default=None, retry=True):
         """Increment value by delta for item with key.
