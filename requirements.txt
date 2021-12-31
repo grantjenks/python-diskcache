@@ -1,7 +1,7 @@
 -e .
 blue
 coverage
-django==2.2.*
+django==3.2.*
 django_redis
 doc8
 flake8
