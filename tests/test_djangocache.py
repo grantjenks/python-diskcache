@@ -11,21 +11,13 @@ import time
 from unittest import mock
 
 from django.conf import settings
-from django.core.cache import (
-    CacheKeyWarning,
-    cache,
-    caches,
-)
+from django.core.cache import CacheKeyWarning, cache, caches
 from django.http import HttpResponse
 from django.middleware.cache import (
     FetchFromCacheMiddleware,
     UpdateCacheMiddleware,
 )
-from django.test import (
-    RequestFactory,
-    TestCase,
-    override_settings,
-)
+from django.test import RequestFactory, TestCase, override_settings
 from django.test.signals import setting_changed
 
 ################################################################################
