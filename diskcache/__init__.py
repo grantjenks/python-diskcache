@@ -65,9 +65,10 @@ else:
             from .djangocache import DjangoCache  # noqa
 
             __all__.append('DjangoCache')
-        except Exception:  # pylint: disable=broad-except  # pragma: no cover
+        except ImportError as err:  # pragma: no cover
+            if err.name != "django":
+                raise
             # Django not installed or not setup so ignore.
-            pass
         return __all__
 
     def __dir__():
@@ -97,7 +98,7 @@ else:
                 # as non existing in __all__
                 if name == 'DjangoCache' and err.name == "django":
                     raise ImportError(
-                        f"cannot import name '{name}' from diskcache",
+                        f"cannot import name 'DjangoCache' from diskcache",
                         name=name,
                     ) from None
                 raise
