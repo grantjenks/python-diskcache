@@ -90,18 +90,19 @@ else:
                 f"cannot import name '{name}' from diskcache",
                 name=name,
             ) from None
+
+        try:
+            _module = importlib.import_module(f'diskcache.{modname}')
+        except ImportError as err:
+            # Manage django import error of DjangoCache in the same way
+            # as non existing in __all__
+            if name == 'DjangoCache' and err.name == "django":
+                raise ImportError(
+                    f"cannot import name 'DjangoCache' from diskcache",
+                    name=name,
+                ) from None
+            raise
         else:
-            try:
-                _module = importlib.import_module(f'diskcache.{modname}')
-            except ImportError as err:
-                # Manage django import error of DjangoCache in the same way
-                # as non existing in __all__
-                if name == 'DjangoCache' and err.name == "django":
-                    raise ImportError(
-                        f"cannot import name 'DjangoCache' from diskcache",
-                        name=name,
-                    ) from None
-                raise
             return getattr(_module, name)
 
 
