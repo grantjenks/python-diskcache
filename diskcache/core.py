@@ -20,6 +20,16 @@ import warnings
 import zlib
 
 
+try:
+    import typing as T
+
+    def decohints(decorator: T.Callable) -> T.Callable:
+        return decorator
+except ImportError: # if it is < 3.5, then we don't have typing
+    def decohints(decorator):
+        return decorator
+
+
 def full_name(func):
     """Return full name of `func` by adding the module and function name."""
     return func.__module__ + '.' + func.__qualname__
@@ -1863,6 +1873,7 @@ class Cache:
         if callable(name):
             raise TypeError('name cannot be callable')
 
+        @decohints
         def decorator(func):
             """Decorator created by memoize() for callable `func`."""
             base = (full_name(func),) if name is None else (name,)
