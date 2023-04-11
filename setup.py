@@ -1,5 +1,3 @@
-from io import open
-
 from setuptools import setup
 from setuptools.command.test import test as TestCommand
 
