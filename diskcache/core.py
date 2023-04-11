@@ -170,7 +170,7 @@ class Disk:
         :return: corresponding Python key
 
         """
-        # pylint: disable=no-self-use,unidiomatic-typecheck
+        # pylint: disable=unidiomatic-typecheck
         if raw:
             return bytes(key) if type(key) is sqlite3.Binary else key
         else:
@@ -228,7 +228,6 @@ class Disk:
                 return len(result), MODE_PICKLE, filename, None
 
     def _write(self, full_path, iterator, mode, encoding=None):
-        # pylint: disable=no-self-use
         full_dir, _ = op.split(full_path)
 
         for count in range(1, 11):
@@ -264,7 +263,7 @@ class Disk:
         :raises: IOError if the value cannot be read
 
         """
-        # pylint: disable=no-self-use,unidiomatic-typecheck,consider-using-with
+        # pylint: disable=unidiomatic-typecheck,consider-using-with
         if mode == MODE_RAW:
             return bytes(value) if type(value) is sqlite3.Binary else value
         elif mode == MODE_BINARY:
@@ -1378,6 +1377,7 @@ class Cache:
         :raises Timeout: if database timeout occurs
 
         """
+        # pylint: disable=unnecessary-dunder-call
         try:
             return self.__delitem__(key, retry=retry)
         except KeyError:
