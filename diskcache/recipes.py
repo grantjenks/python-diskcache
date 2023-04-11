@@ -17,6 +17,9 @@ class Averager:
     Sometimes known as "online statistics," the running average maintains the
     total and count. The average can then be calculated at any time.
 
+    Assumes the key will not be evicted. Set the eviction policy to 'none' on
+    the cache to guarantee the key is not evicted.
+
     >>> import diskcache
     >>> cache = diskcache.FanoutCache()
     >>> ave = Averager(cache, 'latency')
@@ -65,6 +68,9 @@ class Averager:
 class Lock:
     """Recipe for cross-process and cross-thread lock.
 
+    Assumes the key will not be evicted. Set the eviction policy to 'none' on
+    the cache to guarantee the key is not evicted.
+
     >>> import diskcache
     >>> cache = diskcache.Cache()
     >>> lock = Lock(cache, 'report-123')
@@ -112,6 +118,9 @@ class Lock:
 
 class RLock:
     """Recipe for cross-process and cross-thread re-entrant lock.
+
+    Assumes the key will not be evicted. Set the eviction policy to 'none' on
+    the cache to guarantee the key is not evicted.
 
     >>> import diskcache
     >>> cache = diskcache.Cache()
@@ -180,6 +189,9 @@ class RLock:
 
 class BoundedSemaphore:
     """Recipe for cross-process and cross-thread bounded semaphore.
+
+    Assumes the key will not be evicted. Set the eviction policy to 'none' on
+    the cache to guarantee the key is not evicted.
 
     >>> import diskcache
     >>> cache = diskcache.Cache()
@@ -251,6 +263,9 @@ def throttle(
 ):
     """Decorator to throttle calls to function.
 
+    Assumes keys will not be evicted. Set the eviction policy to 'none' on the
+    cache to guarantee the keys are not evicted.
+
     >>> import diskcache, time
     >>> cache = diskcache.Cache()
     >>> count = 0
@@ -304,6 +319,9 @@ def barrier(cache, lock_factory, name=None, expire=None, tag=None):
     """Barrier to calling decorated function.
 
     Supports different kinds of locks: Lock, RLock, BoundedSemaphore.
+
+    Assumes keys will not be evicted. Set the eviction policy to 'none' on the
+    cache to guarantee the keys are not evicted.
 
     >>> import diskcache, time
     >>> cache = diskcache.Cache()
