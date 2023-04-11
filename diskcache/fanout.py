@@ -573,8 +573,10 @@ class FanoutCache:
                     break
         return result
 
-    def cache(self, name):
+    def cache(self, name, timeout=60, disk=None, **settings):
         """Return Cache with given `name` in subdirectory.
+
+        If disk is none (default), uses the fanout cache disk.
 
         >>> fanout_cache = FanoutCache()
         >>> cache = fanout_cache.cache('test')
@@ -588,6 +590,9 @@ class FanoutCache:
         True
 
         :param str name: subdirectory name for Cache
+        :param float timeout: SQLite connection timeout
+        :param disk: Disk type or subclass for serialization
+        :param settings: any of DEFAULT_SETTINGS
         :return: Cache with given name
 
         """
@@ -598,7 +603,12 @@ class FanoutCache:
         except KeyError:
             parts = name.split('/')
             directory = op.join(self._directory, 'cache', *parts)
-            temp = Cache(directory=directory, disk=self._disk)
+            temp = Cache(
+                directory=directory,
+                timeout=timeout,
+                disk=self._disk if disk is None else Disk,
+                **settings,
+            )
             _caches[name] = temp
             return temp
 
@@ -626,7 +636,11 @@ class FanoutCache:
         except KeyError:
             parts = name.split('/')
             directory = op.join(self._directory, 'deque', *parts)
-            cache = Cache(directory=directory, disk=self._disk)
+            cache = Cache(
+                directory=directory,
+                disk=self._disk,
+                eviction_policy='none',
+            )
             deque = Deque.fromcache(cache)
             _deques[name] = deque
             return deque
@@ -658,7 +672,11 @@ class FanoutCache:
         except KeyError:
             parts = name.split('/')
             directory = op.join(self._directory, 'index', *parts)
-            cache = Cache(directory=directory, disk=self._disk)
+            cache = Cache(
+                directory=directory,
+                disk=self._disk,
+                eviction_policy='none',
+            )
             index = Index.fromcache(cache)
             _indexes[name] = index
             return index
