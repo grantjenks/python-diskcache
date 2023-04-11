@@ -49,14 +49,14 @@ DEFAULT_SETTINGS = {
     'statistics': 0,  # False
     'tag_index': 0,  # False
     'eviction_policy': 'least-recently-stored',
-    'size_limit': 2 ** 30,  # 1gb
+    'size_limit': 2**30,  # 1gb
     'cull_limit': 10,
     'sqlite_auto_vacuum': 1,  # FULL
-    'sqlite_cache_size': 2 ** 13,  # 8,192 pages
+    'sqlite_cache_size': 2**13,  # 8,192 pages
     'sqlite_journal_mode': 'wal',
-    'sqlite_mmap_size': 2 ** 26,  # 64mb
+    'sqlite_mmap_size': 2**26,  # 64mb
     'sqlite_synchronous': 1,  # NORMAL
-    'disk_min_file_size': 2 ** 15,  # 32kb
+    'disk_min_file_size': 2**15,  # 32kb
     'disk_pickle_protocol': pickle.HIGHEST_PROTOCOL,
 }
 
@@ -212,7 +212,7 @@ class Disk:
             size = op.getsize(full_path)
             return size, MODE_TEXT, filename, None
         elif read:
-            reader = ft.partial(value.read, 2 ** 22)
+            reader = ft.partial(value.read, 2**22)
             filename, full_path = self.filename(key, value)
             iterator = iter(reader, b'')
             size = self._write(full_path, iterator, 'xb')

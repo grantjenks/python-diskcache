@@ -45,7 +45,7 @@ class FanoutCache:
                 timeout=timeout,
                 disk=disk,
                 size_limit=size_limit,
-                **settings
+                **settings,
             )
             for num in range(shards)
         )

@@ -34,7 +34,7 @@ def test_init(cache):
     del default_settings['size_limit']
     for key, value in default_settings.items():
         assert getattr(cache, key) == value
-    assert cache.size_limit == 2 ** 27
+    assert cache.size_limit == 2**27
 
     cache.check()
 
@@ -229,15 +229,15 @@ def test_incr_concurrent():
 def test_getsetdel(cache):
     values = [
         (None, False),
-        ((None,) * 2 ** 10, False),
+        ((None,) * 2**10, False),
         (1234, False),
-        (2 ** 512, False),
+        (2**512, False),
         (56.78, False),
-        (u'hello', False),
-        (u'hello' * 2 ** 10, False),
+        ('hello', False),
+        ('hello' * 2**10, False),
         (b'world', False),
-        (b'world' * 2 ** 10, False),
-        (io.BytesIO(b'world' * 2 ** 10), True),
+        (b'world' * 2**10, False),
+        (io.BytesIO(b'world' * 2**10), True),
     ]
 
     for key, (value, file_like) in enumerate(values):
@@ -341,7 +341,7 @@ def test_tag_index(cache):
 
 
 def test_read(cache):
-    cache.set(0, b'abcd' * 2 ** 20)
+    cache.set(0, b'abcd' * 2**20)
     with cache.read(0) as reader:
         assert reader is not None
 

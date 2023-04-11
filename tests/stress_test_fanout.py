@@ -32,16 +32,14 @@ def make_keys():
 
     def make_unicode():
         word_size = random.randint(1, 26)
-        word = u''.join(
-            random.sample(u'abcdefghijklmnopqrstuvwxyz', word_size)
-        )
+        word = ''.join(random.sample('abcdefghijklmnopqrstuvwxyz', word_size))
         size = random.randint(1, int(200 / 13))
         return word * size
 
     def make_bytes():
         word_size = random.randint(1, 26)
-        word = u''.join(
-            random.sample(u'abcdefghijklmnopqrstuvwxyz', word_size)
+        word = ''.join(
+            random.sample('abcdefghijklmnopqrstuvwxyz', word_size)
         ).encode('utf-8')
         size = random.randint(1, int(200 / 13))
         return word * size
@@ -76,18 +74,16 @@ def make_vals():
 
     def make_unicode():
         word_size = random.randint(1, 26)
-        word = u''.join(
-            random.sample(u'abcdefghijklmnopqrstuvwxyz', word_size)
-        )
-        size = random.randint(1, int(2 ** 16 / 13))
+        word = ''.join(random.sample('abcdefghijklmnopqrstuvwxyz', word_size))
+        size = random.randint(1, int(2**16 / 13))
         return word * size
 
     def make_bytes():
         word_size = random.randint(1, 26)
-        word = u''.join(
-            random.sample(u'abcdefghijklmnopqrstuvwxyz', word_size)
+        word = ''.join(
+            random.sample('abcdefghijklmnopqrstuvwxyz', word_size)
         ).encode('utf-8')
-        size = random.randint(1, int(2 ** 16 / 13))
+        size = random.randint(1, int(2**16 / 13))
         return word * size
 
     def make_float():
@@ -224,7 +220,7 @@ def percentile(sequence, percent):
 def stress_test(
     create=True,
     delete=True,
-    eviction_policy=u'least-recently-stored',
+    eviction_policy='least-recently-stored',
     processes=1,
     threads=1,
 ):
@@ -284,17 +280,17 @@ def stress_test(
 
 def stress_test_lru():
     """Stress test least-recently-used eviction policy."""
-    stress_test(eviction_policy=u'least-recently-used')
+    stress_test(eviction_policy='least-recently-used')
 
 
 def stress_test_lfu():
     """Stress test least-frequently-used eviction policy."""
-    stress_test(eviction_policy=u'least-frequently-used')
+    stress_test(eviction_policy='least-frequently-used')
 
 
 def stress_test_none():
     """Stress test 'none' eviction policy."""
-    stress_test(eviction_policy=u'none')
+    stress_test(eviction_policy='none')
 
 
 def stress_test_mp():
@@ -387,7 +383,7 @@ if __name__ == '__main__':
         '-v',
         '--eviction-policy',
         type=str,
-        default=u'least-recently-stored',
+        default='least-recently-stored',
     )
 
     args = parser.parse_args()

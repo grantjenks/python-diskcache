@@ -22,7 +22,7 @@ print('-'.join(['-' * size] * len(cols)))
 print(template % ('Count', 'Time'))
 print(' '.join(['=' * size] * len(cols)))
 
-for count in [10 ** exp for exp in range(6)]:
+for count in [10**exp for exp in range(6)]:
     for value in range(count):
         with open(op.join('tmp', '%s.tmp' % value), 'wb') as writer:
             pass
