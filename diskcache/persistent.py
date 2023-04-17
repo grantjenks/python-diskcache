@@ -533,12 +533,13 @@ class Deque(Sequence):
         # GrantJ 2019-03-22 Consider using an algorithm that swaps the values
         # at two keys. Like self._cache.swap(key1, key2, retry=True) The swap
         # method would exchange the values at two given keys. Then, using a
-        # forward iterator and a reverse iterator, the reversis method could
+        # forward iterator and a reverse iterator, the reverse method could
         # avoid making copies of the values.
         temp = Deque(iterable=reversed(self))
         self.clear()
         self.extend(temp)
         directory = temp.directory
+        temp.close()
         del temp
         rmtree(directory)
 
