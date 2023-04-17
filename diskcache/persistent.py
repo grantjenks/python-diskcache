@@ -539,7 +539,7 @@ class Deque(Sequence):
         self.clear()
         self.extend(temp)
         directory = temp.directory
-        temp.close()
+        temp._cache.close()
         del temp
         rmtree(directory)
 
