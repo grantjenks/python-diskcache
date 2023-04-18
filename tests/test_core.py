@@ -5,6 +5,7 @@ import hashlib
 import io
 import os
 import os.path as op
+import pathlib
 import pickle
 import shutil
 import sqlite3
@@ -35,6 +36,13 @@ def test_init(cache):
     cache.check()
     cache.close()
     cache.close()
+
+
+def test_init_path(cache):
+    path = pathlib.Path(cache.directory)
+    other = dc.Cache(path)
+    other.close()
+    assert cache.directory == other.directory
 
 
 def test_init_disk():

@@ -5,6 +5,7 @@ import hashlib
 import io
 import os
 import os.path as op
+import pathlib
 import pickle
 import shutil
 import subprocess as sp
@@ -42,6 +43,13 @@ def test_init(cache):
         setattr(cache, key, value)
 
     cache.check()
+
+
+def test_init_path(cache):
+    path = pathlib.Path(cache.directory)
+    other = dc.FanoutCache(path)
+    other.close()
+    assert cache.directory == other.directory
 
 
 def test_set_get_delete(cache):
