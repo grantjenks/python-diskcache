@@ -530,6 +530,7 @@ class Deque(Sequence):
         ['c', 'b', 'a']
 
         """
+        # pylint: disable=protected-access
         # GrantJ 2019-03-22 Consider using an algorithm that swaps the values
         # at two keys. Like self._cache.swap(key1, key2, retry=True) The swap
         # method would exchange the values at two given keys. Then, using a
