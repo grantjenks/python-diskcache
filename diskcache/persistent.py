@@ -381,6 +381,7 @@ class Deque(Sequence):
     _clear = clear
 
     def copy(self):
+        """Copy deque with same directory and max length."""
         TypeSelf = type(self)
         return TypeSelf(directory=self.directory, maxlen=self.maxlen)
 
