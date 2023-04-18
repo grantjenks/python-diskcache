@@ -77,6 +77,20 @@ def test_getsetdel(deque):
     assert len(deque) == 0
 
 
+def test_append(deque):
+    deque.maxlen = 3
+    for item in 'abcde':
+        deque.append(item)
+    assert deque == 'cde'
+
+
+def test_appendleft(deque):
+    deque.maxlen = 3
+    for item in 'abcde':
+        deque.appendleft(item)
+    assert deque == 'edc'
+
+
 def test_index_positive(deque):
     cache = mock.MagicMock()
     cache.__len__.return_value = 3
@@ -131,9 +145,12 @@ def test_state(deque):
     sequence = list('abcde')
     deque.extend(sequence)
     assert deque == sequence
+    deque.maxlen = 3
+    assert list(deque) == sequence[-3:]
     state = pickle.dumps(deque)
     values = pickle.loads(state)
-    assert values == sequence
+    assert values == sequence[-3:]
+    assert values.maxlen == 3
 
 
 def test_compare(deque):
@@ -159,6 +176,14 @@ def test_repr():
     directory = tempfile.mkdtemp()
     deque = dc.Deque(directory=directory)
     assert repr(deque) == 'Deque(directory=%r)' % directory
+
+
+def test_copy(deque):
+    sequence = list('abcde')
+    deque.extend(sequence)
+    temp = deque.copy()
+    assert deque == sequence
+    assert temp == sequence
 
 
 def test_count(deque):

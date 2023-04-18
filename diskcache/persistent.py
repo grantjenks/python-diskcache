@@ -75,7 +75,7 @@ class Deque(Sequence):
 
     """
 
-    def __init__(self, iterable=(), directory=None):
+    def __init__(self, iterable=(), directory=None, maxlen=None):
         """Initialize deque instance.
 
         If directory is None then temporary directory created. The directory
@@ -86,10 +86,11 @@ class Deque(Sequence):
 
         """
         self._cache = Cache(directory, eviction_policy='none')
-        self.extend(iterable)
+        self._maxlen = float('inf') if maxlen is None else maxlen
+        self._extend(iterable)
 
     @classmethod
-    def fromcache(cls, cache, iterable=()):
+    def fromcache(cls, cache, iterable=(), maxlen=None):
         """Initialize deque using `cache`.
 
         >>> cache = Cache()
@@ -111,7 +112,8 @@ class Deque(Sequence):
         # pylint: disable=no-member,protected-access
         self = cls.__new__(cls)
         self._cache = cache
-        self.extend(iterable)
+        self._maxlen = float('inf') if maxlen is None else maxlen
+        self._extend(iterable)
         return self
 
     @property
@@ -123,6 +125,31 @@ class Deque(Sequence):
     def directory(self):
         """Directory path where deque is stored."""
         return self._cache.directory
+
+    @property
+    def maxlen(self):
+        """Max length of the deque."""
+        return self._maxlen
+
+    @maxlen.setter
+    def maxlen(self, value):
+        """Set max length of the deque.
+
+        Pops items from left while length greater than max.
+
+        >>> deque = Deque()
+        >>> deque.extendleft('abcde')
+        >>> deque.maxlen = 3
+        >>> list(deque)
+        ['c', 'd', 'e']
+
+        :param value: max length
+
+        """
+        self._maxlen = value
+        with self._cache.transact(retry=True):
+            while len(self._cache) > self._maxlen:
+                self._popleft()
 
     def _index(self, index, func):
         len_self = len(self)
@@ -244,7 +271,7 @@ class Deque(Sequence):
         :return: deque with added items
 
         """
-        self.extend(iterable)
+        self._extend(iterable)
         return self
 
     def __iter__(self):
@@ -292,10 +319,11 @@ class Deque(Sequence):
                 pass
 
     def __getstate__(self):
-        return self.directory
+        return self.directory, self.maxlen
 
     def __setstate__(self, state):
-        self.__init__(directory=state)
+        directory, maxlen = state
+        self.__init__(directory=directory, maxlen=maxlen)
 
     def append(self, value):
         """Add `value` to back of deque.
@@ -310,7 +338,12 @@ class Deque(Sequence):
         :param value: value to add to back of deque
 
         """
-        self._cache.push(value, retry=True)
+        with self._cache.transact(retry=True):
+            self._cache.push(value, retry=True)
+            if len(self._cache) > self._maxlen:
+                self._popleft()
+
+    _append = append
 
     def appendleft(self, value):
         """Add `value` to front of deque.
@@ -325,7 +358,12 @@ class Deque(Sequence):
         :param value: value to add to front of deque
 
         """
-        self._cache.push(value, side='front', retry=True)
+        with self._cache.transact(retry=True):
+            self._cache.push(value, side='front', retry=True)
+            if len(self._cache) > self._maxlen:
+                self._pop()
+
+    _appendleft = appendleft
 
     def clear(self):
         """Remove all elements from deque.
@@ -339,6 +377,13 @@ class Deque(Sequence):
 
         """
         self._cache.clear(retry=True)
+
+    _clear = clear
+
+    def copy(self):
+        """Copy deque with same directory and max length."""
+        TypeSelf = type(self)
+        return TypeSelf(directory=self.directory, maxlen=self.maxlen)
 
     def count(self, value):
         """Return number of occurrences of `value` in deque.
@@ -365,7 +410,9 @@ class Deque(Sequence):
 
         """
         for value in iterable:
-            self.append(value)
+            self._append(value)
+
+    _extend = extend
 
     def extendleft(self, iterable):
         """Extend front side of deque with value from `iterable`.
@@ -379,7 +426,7 @@ class Deque(Sequence):
 
         """
         for value in iterable:
-            self.appendleft(value)
+            self._appendleft(value)
 
     def peek(self):
         """Peek at value at back of deque.
@@ -459,6 +506,8 @@ class Deque(Sequence):
             raise IndexError('pop from an empty deque')
         return value
 
+    _pop = pop
+
     def popleft(self):
         """Remove and return value at front of deque.
 
@@ -482,6 +531,8 @@ class Deque(Sequence):
         if value is ENOVAL:
             raise IndexError('pop from an empty deque')
         return value
+
+    _popleft = popleft
 
     def remove(self, value):
         """Remove first occurrence of `value` in deque.
@@ -537,8 +588,8 @@ class Deque(Sequence):
         # forward iterator and a reverse iterator, the reverse method could
         # avoid making copies of the values.
         temp = Deque(iterable=reversed(self))
-        self.clear()
-        self.extend(temp)
+        self._clear()
+        self._extend(temp)
         directory = temp.directory
         temp._cache.close()
         del temp
@@ -575,22 +626,22 @@ class Deque(Sequence):
 
             for _ in range(steps):
                 try:
-                    value = self.pop()
+                    value = self._pop()
                 except IndexError:
                     return
                 else:
-                    self.appendleft(value)
+                    self._appendleft(value)
         else:
             steps *= -1
             steps %= len_self
 
             for _ in range(steps):
                 try:
-                    value = self.popleft()
+                    value = self._popleft()
                 except IndexError:
                     return
                 else:
-                    self.append(value)
+                    self._append(value)
 
     __hash__ = None  # type: ignore
 
@@ -669,7 +720,9 @@ class Index(MutableMapping):
                 args = args[1:]
             directory = None
         self._cache = Cache(directory, eviction_policy='none')
-        self.update(*args, **kwargs)
+        self._update(*args, **kwargs)
+
+    _update = MutableMapping.update
 
     @classmethod
     def fromcache(cls, cache, *args, **kwargs):
@@ -695,7 +748,7 @@ class Index(MutableMapping):
         # pylint: disable=no-member,protected-access
         self = cls.__new__(cls)
         self._cache = cache
-        self.update(*args, **kwargs)
+        self._update(*args, **kwargs)
         return self
 
     @property
