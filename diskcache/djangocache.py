@@ -44,14 +44,15 @@ class DjangoCache(BaseCache):
         """
         return self._cache.cache(name)
 
-    def deque(self, name):
+    def deque(self, name, maxlen=None):
         """Return Deque with given `name` in subdirectory.
 
         :param str name: subdirectory name for Deque
+        :param maxlen: max length (default None, no max)
         :return: Deque with given name
 
         """
-        return self._cache.deque(name)
+        return self._cache.deque(name, maxlen=maxlen)
 
     def index(self, name):
         """Return Index with given `name` in subdirectory.

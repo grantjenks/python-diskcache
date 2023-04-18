@@ -565,6 +565,9 @@ access and editing at both front and back sides. :class:`Deque
     4
     >>> other.popleft()
     'foo'
+    >>> thing = Deque('abcde', maxlen=3)
+    >>> list(thing)
+    ['c', 'd', 'e']
 
 :class:`Deque <diskcache.Deque>` objects provide an efficient and safe means of
 cross-thread and cross-process communication. :class:`Deque <diskcache.Deque>`
