@@ -148,7 +148,7 @@ class Deque(Sequence):
         """
         self._maxlen = value
         with self._cache.transact(retry=True):
-            if len(self._cache) > self._maxlen:
+            while len(self._cache) > self._maxlen:
                 self._popleft()
 
     def _index(self, index, func):

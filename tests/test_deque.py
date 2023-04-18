@@ -88,7 +88,7 @@ def test_appendleft(deque):
     deque.maxlen = 3
     for item in 'abcde':
         deque.appendleft(item)
-    assert deque == 'cba'
+    assert deque == 'edc'
 
 
 def test_index_positive(deque):
@@ -146,7 +146,7 @@ def test_state(deque):
     deque.extend(sequence)
     assert deque == sequence
     deque.maxlen = 3
-    assert deque == sequence[-3:]
+    assert list(deque) == sequence[-3:]
     state = pickle.dumps(deque)
     values = pickle.loads(state)
     assert values == sequence[-3:]
