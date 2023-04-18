@@ -12,9 +12,9 @@ jobs:
         check: [bluecheck, doc8, docs, flake8, isortcheck, mypy, pylint, rstcheck]
 
     steps:
-    - uses: actions/checkout@v2
+    - uses: actions/checkout@v3
     - name: Set up Python
-      uses: actions/setup-python@v2
+      uses: actions/setup-python@v4
       with:
         python-version: '3.11'
     - name: Install dependencies
@@ -36,12 +36,12 @@ jobs:
 
     steps:
     - name: Set up Python ${{ matrix.python-version }} x64
-      uses: actions/setup-python@v2
+      uses: actions/setup-python@v4
       with:
         python-version: ${{ matrix.python-version }}
         architecture: x64
 
-    - uses: actions/checkout@v2
+    - uses: actions/checkout@v3
 
     - name: Install tox
       run: |
