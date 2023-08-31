@@ -302,3 +302,13 @@ def test_rotate_indexerror_negative(deque):
 
     with mock.patch.object(deque, '_cache', cache):
         deque.rotate(-1)
+
+
+def test_peek(deque):
+    value = b'x' * 100_000
+    deque.append(value)
+    assert len(deque) == 1
+    assert deque.peek() == value
+    assert len(deque) == 1
+    assert deque.peek() == value
+    assert len(deque) == 1
