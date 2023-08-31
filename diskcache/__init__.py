@@ -61,8 +61,8 @@ except Exception:  # pylint: disable=broad-except  # pragma: no cover
     pass
 
 __title__ = 'diskcache'
-__version__ = '5.6.1'
-__build__ = 0x050601
+__version__ = '5.6.2'
+__build__ = 0x050602
 __author__ = 'Grant Jenks'
 __license__ = 'Apache 2.0'
 __copyright__ = 'Copyright 2016-2023 Grant Jenks'
