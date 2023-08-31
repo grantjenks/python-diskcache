@@ -1703,9 +1703,6 @@ class Cache:
             except IOError:
                 # Key was deleted before we could retrieve result.
                 continue
-            finally:
-                if name is not None:
-                    self._disk.remove(name)
             break
 
         if expire_time and tag:
