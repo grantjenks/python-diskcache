@@ -1,10 +1,7 @@
 """Stress test diskcache.persistent.Index."""
 
-from __future__ import print_function
-
 import itertools as it
 import multiprocessing as mp
-import os
 import random
 import time
 
@@ -96,12 +93,6 @@ def stress(seed, index):
 
 
 def test(status=False):
-    if os.environ.get('TRAVIS') == 'true':
-        return
-
-    if os.environ.get('APPVEYOR') == 'True':
-        return
-
     random.seed(SEED)
     index = dc.Index(enumerate(range(KEYS)))
     processes = []

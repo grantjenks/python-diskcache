@@ -1,0 +1,23 @@
+-e .
+blue
+coverage
+django==4.2.*
+django_redis
+doc8
+flake8
+ipython
+jedi
+pickleDB
+pylibmc
+pylint
+pytest
+pytest-cov
+pytest-django
+pytest-env
+pytest-xdist
+rstcheck
+sphinx
+sqlitedict
+tox
+twine
+wheel

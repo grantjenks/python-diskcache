@@ -1,10 +1,7 @@
 """Stress test diskcache.persistent.Deque."""
 
-from __future__ import print_function
-
 import collections as co
 import functools as ft
-import itertools as it
 import random
 
 import diskcache as dc

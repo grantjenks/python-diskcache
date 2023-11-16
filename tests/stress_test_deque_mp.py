@@ -1,11 +1,7 @@
 """Stress test diskcache.persistent.Deque."""
 
-from __future__ import print_function
-
-import functools as ft
 import itertools as it
 import multiprocessing as mp
-import os
 import random
 import time
 
@@ -110,12 +106,6 @@ def stress(seed, deque):
 
 
 def test(status=False):
-    if os.environ.get('TRAVIS') == 'true':
-        return
-
-    if os.environ.get('APPVEYOR') == 'True':
-        return
-
     random.seed(SEED)
     deque = dc.Deque(range(SIZE))
     processes = []

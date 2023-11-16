@@ -1,6 +1,4 @@
 import doctest
-import shutil
-import sys
 
 import diskcache.core
 import diskcache.djangocache

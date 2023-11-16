@@ -2,26 +2,15 @@
 
 $ export PYTHONPATH=/Users/grantj/repos/python-diskcache
 $ python tests/benchmark_djangocache.py > tests/timings_djangocache.txt
-
-
 """
-
-from __future__ import print_function
 
 import collections as co
 import multiprocessing as mp
 import os
+import pickle
 import random
 import shutil
-import sys
 import time
-import warnings
-
-if sys.hexversion < 0x03000000:
-    range = xrange
-    import cPickle as pickle
-else:
-    import pickle
 
 from utils import display
 
@@ -34,6 +23,7 @@ WARMUP = int(1e3)
 def setup():
     os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'tests.settings_benchmark')
     import django
+
     django.setup()
 
 
@@ -48,7 +38,7 @@ def worker(num, name):
 
     timings = co.defaultdict(list)
 
-    time.sleep(0.01) # Let other processes start.
+    time.sleep(0.01)  # Let other processes start.
 
     for count in range(OPS):
         key = str(random.randrange(RANGE)).encode('utf-8')
@@ -65,13 +55,13 @@ def worker(num, name):
             start = time.time()
             result = obj.set(key, value)
             end = time.time()
-            miss = result == False
+            miss = result is False
             action = 'set'
         else:
             start = time.time()
             result = obj.delete(key)
             end = time.time()
-            miss = result == False
+            miss = result is False
             action = 'delete'
 
         if count > WARMUP:
@@ -97,14 +87,14 @@ def prepare(name):
 
     try:
         obj.close()
-    except:
+    except Exception:
         pass
 
 
 def dispatch():
     setup()
 
-    from django.core.cache import caches
+    from django.core.cache import caches  # noqa
 
     for name in ['locmem', 'memcached', 'redis', 'diskcache', 'filebased']:
         shutil.rmtree('tmp', ignore_errors=True)
@@ -147,19 +137,31 @@ if __name__ == '__main__':
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
     )
     parser.add_argument(
-        '-p', '--processes', type=int, default=PROCS,
+        '-p',
+        '--processes',
+        type=int,
+        default=PROCS,
         help='Number of processes to start',
     )
     parser.add_argument(
-        '-n', '--operations', type=float, default=OPS,
+        '-n',
+        '--operations',
+        type=float,
+        default=OPS,
         help='Number of operations to perform',
     )
     parser.add_argument(
-        '-r', '--range', type=int, default=RANGE,
+        '-r',
+        '--range',
+        type=int,
+        default=RANGE,
         help='Range of keys',
     )
     parser.add_argument(
-        '-w', '--warmup', type=float, default=WARMUP,
+        '-w',
+        '--warmup',
+        type=float,
+        default=WARMUP,
         help='Number of warmup operations before timings',
     )
 
