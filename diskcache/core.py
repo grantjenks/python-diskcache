@@ -51,7 +51,7 @@ DEFAULT_SETTINGS = {
     'eviction_policy': 'least-recently-stored',
     'size_limit': 2**30,  # 1gb
     'cull_limit': 10,
-    'sqlite_query_only': 0,    
+    'sqlite_query_only': 0,
     'sqlite_auto_vacuum': 1,  # FULL
     'sqlite_cache_size': 2**13,  # 8,192 pages
     'sqlite_journal_mode': 'wal',
@@ -458,8 +458,8 @@ class Cache:
                     raise EnvironmentError(
                         error.errno,
                         'Cache directory "%s" does not exist'
-                        ' and could not be created' % self._directory
-                    )
+                        ' and could not be created' % self._directory,
+                    ) from None
 
         # The SQLite query_only pragma is a special case. Before the cache
         # connection is opened, get the setting from keyword arguments.
@@ -520,13 +520,13 @@ class Cache:
             else:
                 query = 'INSERT OR REPLACE INTO Settings VALUES (?, ?)'
                 sql(query, (key, value))
-            self.reset(key, value, update=(not self.sqlite_query_only))
+            self.reset(key, value, update=not self.sqlite_query_only)
 
         for key, value in METADATA.items():
             if not self.sqlite_query_only:
                 query = 'INSERT OR IGNORE INTO Settings VALUES (?, ?)'
                 sql(query, (key, value))
-            self.reset(key, update=(not self.sqlite_query_only))
+            self.reset(key, update=not self.sqlite_query_only)
 
         ((self._page_size,),) = sql('PRAGMA page_size').fetchall()
 
