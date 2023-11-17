@@ -68,7 +68,7 @@ METADATA = {
     'misses': 0,
 }
 
-# TODO: these cannot be verified for a read_only database
+# these cannot be verified for a read_only database
 UNVERIFIABLE_SETTINGS = ['sqlite_query_only']
 
 EVICTION_POLICY = {
@@ -508,25 +508,7 @@ class Cache:
         }
         self._disk = disk(directory, **kwargs)
 
-        # Set cached attributes: updates settings and sets pragmas.
-
-        for key, value in sets.items():
-            if self.sqlite_query_only:
-                query = 'SELECT value FROM Settings WHERE key = ?'
-                db_value = sql(query, (key,)).fetchall()
-                assert len(db_value) == 1
-                if key not in UNVERIFIABLE_SETTINGS:
-                    assert value == db_value[0][0]
-            else:
-                query = 'INSERT OR REPLACE INTO Settings VALUES (?, ?)'
-                sql(query, (key, value))
-            self.reset(key, value, update=not self.sqlite_query_only)
-
-        for key, value in METADATA.items():
-            if not self.sqlite_query_only:
-                query = 'INSERT OR IGNORE INTO Settings VALUES (?, ?)'
-                sql(query, (key, value))
-            self.reset(key, update=not self.sqlite_query_only)
+        self._synch_settings(sets, sql)
 
         ((self._page_size,),) = sql('PRAGMA page_size').fetchall()
 
@@ -613,6 +595,27 @@ class Cache:
         self.close()
         self._timeout = timeout
         self._sql  # pylint: disable=pointless-statement
+
+    def _synch_settings(self, sets, sql):
+        # Set cached attributes: updates settings and sets pragmas.
+
+        for key, value in sets.items():
+            if self.sqlite_query_only:
+                query = 'SELECT value FROM Settings WHERE key = ?'
+                db_value = sql(query, (key,)).fetchall()
+                assert len(db_value) == 1
+                if key not in UNVERIFIABLE_SETTINGS:
+                    assert value == db_value[0][0]
+            else:
+                query = 'INSERT OR REPLACE INTO Settings VALUES (?, ?)'
+                sql(query, (key, value))
+            self.reset(key, value, update=not self.sqlite_query_only)
+
+        for key, value in METADATA.items():
+            if not self.sqlite_query_only:
+                query = 'INSERT OR IGNORE INTO Settings VALUES (?, ?)'
+                sql(query, (key, value))
+            self.reset(key, update=not self.sqlite_query_only)
 
     @property
     def directory(self):
