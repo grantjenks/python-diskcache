@@ -2064,7 +2064,9 @@ class Cache:
         """
         if self.tag_index == 0:
             sql = self._sql
-            sql('CREATE INDEX IF NOT EXISTS Cache_tag_rowid ON Cache(tag, rowid)')
+            sql(
+                'CREATE INDEX IF NOT EXISTS Cache_tag_rowid ON Cache(tag, rowid)'
+            )
             self.reset('tag_index', 1)
 
     def drop_tag_index(self):
