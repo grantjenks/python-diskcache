@@ -69,6 +69,3 @@ def test_fork_multithreading(cache):
 
     thread.join()
 
-with dc.Cache() as cache:
-    test_fork_multithreading(cache)
-shutil.rmtree(cache.directory, ignore_errors=True)
