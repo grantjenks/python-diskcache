@@ -45,7 +45,7 @@ def _test_wait_pid(pid):
     _, status = os.waitpid(pid, 0)
     assert status == 0, "Child died unexpectedly"
 
-@pytest.mark.skipif(sys.platform == "win32", reason="skips this test on Windows")
+@pytest.mark.skipif(sys.platform == "win32", reason="no fork on Windows")
 def test_fork_multithreading(cache):
     thread = Thread(target=_test_thread_imp, args=(cache,))
     thread.start()
