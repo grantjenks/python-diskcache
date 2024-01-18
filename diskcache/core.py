@@ -2460,17 +2460,15 @@ if hasattr(os, 'register_at_fork'):
 
     def _acquireLock():
         global _lock
-        if _lock:
-            try:
-                _lock.acquire()
-            except BaseException:
-                _lock.release()
-                raise
+        try:
+            _lock.acquire()
+        except BaseException:
+            _lock.release()
+            raise
 
     def _releaseLock():
         global _lock
-        if _lock:
-            _lock.release()
+        _lock.release()
 
     def _after_at_fork_child_reinit_locks():
         global _lock
