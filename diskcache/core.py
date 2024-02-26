@@ -531,7 +531,7 @@ class Cache:
 
         sql(
             'CREATE INDEX IF NOT EXISTS Cache_expire_time ON'
-            ' Cache (expire_time)'
+            ' Cache (expire_time) WHERE expire_time IS NOT NULL'
         )
 
         query = EVICTION_POLICY[self.eviction_policy]['init']
