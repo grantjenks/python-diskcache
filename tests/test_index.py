@@ -1,12 +1,10 @@
-"Test diskcache.persistent.Index."
+"""Test diskcache.persistent.Index."""
 
-import functools as ft
 import pickle
-import pytest
 import shutil
-import sys
+import tempfile
 
-from unittest import mock
+import pytest
 
 import diskcache as dc
 
@@ -26,7 +24,7 @@ def index():
 
 
 def test_init():
-    directory = '/tmp/diskcache/index'
+    directory = tempfile.mkdtemp()
     mapping = {'a': 5, 'b': 4, 'c': 3, 'd': 2, 'e': 1}
     index = dc.Index(None, mapping)
 

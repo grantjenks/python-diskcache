@@ -2,18 +2,18 @@
 
 $ export PYTHONPATH=/Users/grantj/repos/python-diskcache
 $ python tests/plot.py --show tests/timings_core_p1.txt
-
 """
 
 import argparse
 import collections as co
-import matplotlib.pyplot as plt
 import re
 import sys
 
+import matplotlib.pyplot as plt
+
 
 def parse_timing(timing, limit):
-    "Parse timing."
+    """Parse timing."""
     if timing.endswith('ms'):
         value = float(timing[:-2]) * 1e-3
     elif timing.endswith('us'):
@@ -25,12 +25,12 @@ def parse_timing(timing, limit):
 
 
 def parse_row(row, line):
-    "Parse row."
+    """Parse row."""
     return [val.strip() for val in row.match(line).groups()]
 
 
 def parse_data(infile):
-    "Parse data from `infile`."
+    """Parse data from `infile`."""
     blocks = re.compile(' '.join(['=' * 9] * 8))
     dashes = re.compile('^-{79}$')
     title = re.compile('^Timings for (.*)$')
@@ -47,7 +47,7 @@ def parse_data(infile):
         if blocks.match(line):
             try:
                 name = title.match(lines[index + 1]).group(1)
-            except:
+            except Exception:
                 index += 1
                 continue
 
@@ -82,7 +82,7 @@ def parse_data(infile):
 
 
 def make_plot(data, action, save=False, show=False, limit=0.005):
-    "Make plot."
+    """Make plot."""
     fig, ax = plt.subplots(figsize=(8, 10))
     colors = ['#ff7f00', '#377eb8', '#4daf4a', '#984ea3', '#e41a1c']
     width = 0.15
@@ -93,12 +93,17 @@ def make_plot(data, action, save=False, show=False, limit=0.005):
     bars = []
 
     for pos, (name, color) in enumerate(zip(names, colors)):
-        bars.append(ax.bar(
-            [val + pos * width for val in index],
-            [parse_timing(data[name][action][tick], limit) for tick in ticks],
-            width,
-            color=color,
-        ))
+        bars.append(
+            ax.bar(
+                [val + pos * width for val in index],
+                [
+                    parse_timing(data[name][action][tick], limit)
+                    for tick in ticks
+                ],
+                width,
+                color=color,
+            )
+        )
 
     ax.set_ylabel('Time (microseconds)')
     ax.set_title('"%s" Time vs Percentile' % action)
@@ -106,12 +111,14 @@ def make_plot(data, action, save=False, show=False, limit=0.005):
     ax.set_xticklabels(ticks)
 
     box = ax.get_position()
-    ax.set_position([box.x0, box.y0 + box.height * 0.2, box.width, box.height * 0.8])
+    ax.set_position(
+        [box.x0, box.y0 + box.height * 0.2, box.width, box.height * 0.8]
+    )
     ax.legend(
         [bar[0] for bar in bars],
         names,
         loc='lower center',
-        bbox_to_anchor=(0.5, -0.25)
+        bbox_to_anchor=(0.5, -0.25),
     )
 
     if show:

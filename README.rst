@@ -4,7 +4,7 @@ DiskCache: Disk Backed Cache
 `DiskCache`_ is an Apache2 licensed disk and file backed cache library, written
 in pure-Python, and compatible with Django.
 
-The cloud-based computing of 2019 puts a premium on memory. Gigabytes of empty
+The cloud-based computing of 2023 puts a premium on memory. Gigabytes of empty
 space is left on disks as processes vie for memory. Among these processes is
 Memcached (and sometimes Redis) which is used as a cache. Wouldn't it be nice
 to leverage empty disk space for caching?
@@ -77,16 +77,16 @@ Features
 - Thread-safe and process-safe
 - Supports multiple eviction policies (LRU and LFU included)
 - Keys support "tag" metadata and eviction
-- Developed on Python 3.7
-- Tested on CPython 2.7, 3.4, 3.5, 3.6, 3.7 and PyPy
+- Developed on Python 3.10
+- Tested on CPython 3.6, 3.7, 3.8, 3.9, 3.10
 - Tested on Linux, Mac OS X, and Windows
-- Tested using Travis CI and AppVeyor CI
+- Tested using GitHub Actions
 
-.. image:: https://api.travis-ci.org/grantjenks/python-diskcache.svg?branch=master
-    :target: http://www.grantjenks.com/docs/diskcache/
+.. image:: https://github.com/grantjenks/python-diskcache/workflows/integration/badge.svg
+   :target: https://github.com/grantjenks/python-diskcache/actions?query=workflow%3Aintegration
 
-.. image:: https://ci.appveyor.com/api/projects/status/github/grantjenks/python-diskcache?branch=master&svg=true
-    :target: http://www.grantjenks.com/docs/diskcache/
+.. image:: https://github.com/grantjenks/python-diskcache/workflows/release/badge.svg
+   :target: https://github.com/grantjenks/python-diskcache/actions?query=workflow%3Arelease
 
 Quickstart
 ----------
@@ -99,7 +99,7 @@ You can access documentation in the interpreter with Python's built-in help
 function::
 
   >>> import diskcache
-  >>> help(diskcache)
+  >>> help(diskcache)                             # doctest: +SKIP
 
 The core of `DiskCache`_ is three data types intended for caching. `Cache`_
 objects manage a SQLite database and filesystem directory to store key and
@@ -107,26 +107,26 @@ value pairs. `FanoutCache`_ provides a sharding layer to utilize multiple
 caches and `DjangoCache`_ integrates that with `Django`_::
 
   >>> from diskcache import Cache, FanoutCache, DjangoCache
-  >>> help(Cache)
-  >>> help(FanoutCache)
-  >>> help(DjangoCache)
+  >>> help(Cache)                                 # doctest: +SKIP
+  >>> help(FanoutCache)                           # doctest: +SKIP
+  >>> help(DjangoCache)                           # doctest: +SKIP
 
 Built atop the caching data types, are `Deque`_ and `Index`_ which work as a
 cross-process, persistent replacements for Python's ``collections.deque`` and
 ``dict``. These implement the sequence and mapping container base classes::
 
   >>> from diskcache import Deque, Index
-  >>> help(Deque)
-  >>> help(Index)
+  >>> help(Deque)                                 # doctest: +SKIP
+  >>> help(Index)                                 # doctest: +SKIP
 
 Finally, a number of `recipes`_ for cross-process synchronization are provided
 using an underlying cache. Features like memoization with cache stampede
 prevention, cross-process locking, and cross-process throttling are available::
 
   >>> from diskcache import memoize_stampede, Lock, throttle
-  >>> help(memoize_stampede)
-  >>> help(Lock)
-  >>> help(throttle)
+  >>> help(memoize_stampede)                      # doctest: +SKIP
+  >>> help(Lock)                                  # doctest: +SKIP
+  >>> help(throttle)                              # doctest: +SKIP
 
 Python's docstrings are a quick way to get started but not intended as a
 replacement for the `DiskCache Tutorial`_ and `DiskCache API Reference`_.
@@ -185,7 +185,7 @@ other projects are shown in the tables below.
   access. Keys are arbitrary strings, values arbitrary pickle-able objects.
 * `pickleDB`_ is a lightweight and simple key-value store. It is built upon
   Python's simplejson module and was inspired by Redis. It is licensed with the
-  BSD three-caluse license.
+  BSD three-clause license.
 
 .. _`dbm`: https://docs.python.org/3/library/dbm.html
 .. _`shelve`: https://docs.python.org/3/library/shelve.html
@@ -314,7 +314,6 @@ Object Relational Mappings (ORM)
 .. _`Django ORM`: https://docs.djangoproject.com/en/dev/topics/db/
 .. _`SQLAlchemy`: https://www.sqlalchemy.org/
 .. _`Peewee`: http://docs.peewee-orm.com/
-.. _`dataset`: https://dataset.readthedocs.io/
 .. _`SQLObject`: http://sqlobject.org/
 .. _`Pony ORM`: https://ponyorm.com/
 
@@ -388,7 +387,7 @@ Reference
 License
 -------
 
-Copyright 2016-2019 Grant Jenks
+Copyright 2016-2023 Grant Jenks
 
 Licensed under the Apache License, Version 2.0 (the "License"); you may not use
 this file except in compliance with the License.  You may obtain a copy of the

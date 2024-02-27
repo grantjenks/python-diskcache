@@ -1,34 +1,27 @@
-"Test diskcache.core.Cache."
+"""Test diskcache.core.Cache."""
 
-import collections as co
 import errno
-import functools as ft
 import hashlib
 import io
 import os
 import os.path as op
+import pathlib
 import pickle
-import pytest
-import random
 import shutil
 import sqlite3
 import subprocess as sp
-import sys
 import tempfile
 import threading
 import time
-import unittest
 import warnings
-
 from unittest import mock
 
-import diskcache
+import pytest
+
 import diskcache as dc
 
 pytestmark = pytest.mark.filterwarnings('ignore', category=dc.EmptyDirWarning)
 
-if sys.hexversion < 0x03000000:
-    range = xrange
 
 @pytest.fixture
 def cache():
@@ -45,12 +38,19 @@ def test_init(cache):
     cache.close()
 
 
+def test_init_path(cache):
+    path = pathlib.Path(cache.directory)
+    other = dc.Cache(path)
+    other.close()
+    assert cache.directory == other.directory
+
+
 def test_init_disk():
-    with dc.Cache(disk_pickle_protocol=1, disk_min_file_size=2 ** 20) as cache:
+    with dc.Cache(disk_pickle_protocol=1, disk_min_file_size=2**20) as cache:
         key = (None, 0, 'abc')
         cache[key] = 0
         cache.check()
-        assert cache.disk_min_file_size == 2 ** 20
+        assert cache.disk_min_file_size == 2**20
         assert cache.disk_pickle_protocol == 1
     shutil.rmtree(cache.directory, ignore_errors=True)
 
@@ -67,15 +67,15 @@ def test_disk_reset():
         assert cache._disk.min_file_size == 0
         assert cache._disk.pickle_protocol == 0
 
-        cache.reset('disk_min_file_size', 2 ** 10)
+        cache.reset('disk_min_file_size', 2**10)
         cache.reset('disk_pickle_protocol', 2)
 
         cache[1] = value
         cache.check()
 
-        assert cache.disk_min_file_size == 2 ** 10
+        assert cache.disk_min_file_size == 2**10
         assert cache.disk_pickle_protocol == 2
-        assert cache._disk.min_file_size == 2 ** 10
+        assert cache._disk.min_file_size == 2**10
         assert cache._disk.pickle_protocol == 2
 
     shutil.rmtree(cache.directory, ignore_errors=True)
@@ -97,10 +97,15 @@ def test_custom_disk():
         for value in values:
             assert cache[value] == value
 
+        for key, value in zip(cache, values):
+            assert key == value
+
+        test_memoize_iter(cache)
+
     shutil.rmtree(cache.directory, ignore_errors=True)
 
 
-class SHA256FilenameDisk(diskcache.Disk):
+class SHA256FilenameDisk(dc.Disk):
     def filename(self, key=dc.UNKNOWN, value=dc.UNKNOWN):
         filename = hashlib.sha256(key).hexdigest()[:32]
         full_path = op.join(self._directory, filename)
@@ -133,7 +138,7 @@ def test_init_makedirs():
     with pytest.raises(EnvironmentError):
         try:
             with mock.patch('os.makedirs', makedirs):
-                cache = dc.Cache(cache_dir)
+                dc.Cache(cache_dir)
         except EnvironmentError:
             shutil.rmtree(cache_dir, ignore_errors=True)
             raise
@@ -153,7 +158,7 @@ def test_pragma_error(cache):
     cursor.fetchall = fetchall
     fetchall.side_effect = [sqlite3.OperationalError] * 60000
 
-    size = 2 ** 28
+    size = 2**28
 
     with mock.patch('time.sleep', lambda num: 0):
         with mock.patch.object(cache, '_local', local):
@@ -165,6 +170,7 @@ def test_close_error(cache):
     class LocalTest(object):
         def __init__(self):
             self._calls = 0
+
         def __getattr__(self, name):
             if self._calls:
                 raise AttributeError
@@ -179,15 +185,15 @@ def test_close_error(cache):
 def test_getsetdel(cache):
     values = [
         (None, False),
-        ((None,) * 2 ** 20, False),
+        ((None,) * 2**20, False),
         (1234, False),
-        (2 ** 512, False),
+        (2**512, False),
         (56.78, False),
-        (u'hello', False),
-        (u'hello' * 2 ** 20, False),
+        ('hello', False),
+        ('hello' * 2**20, False),
         (b'world', False),
-        (b'world' * 2 ** 20, False),
-        (io.BytesIO(b'world' * 2 ** 20), True),
+        (b'world' * 2**20, False),
+        (io.BytesIO(b'world' * 2**20), True),
     ]
 
     for key, (value, file_like) in enumerate(values):
@@ -231,7 +237,7 @@ def test_get_keyerror4(cache):
     func = mock.Mock(side_effect=IOError(errno.ENOENT, ''))
 
     cache.reset('statistics', True)
-    cache[0] = b'abcd' * 2 ** 20
+    cache[0] = b'abcd' * 2**20
 
     with mock.patch('diskcache.core.open', func):
         with pytest.raises((IOError, KeyError, OSError)):
@@ -239,19 +245,19 @@ def test_get_keyerror4(cache):
 
 
 def test_read(cache):
-    cache.set(0, b'abcd' * 2 ** 20)
+    cache.set(0, b'abcd' * 2**20)
     with cache.read(0) as reader:
         assert reader is not None
 
 
 def test_read_keyerror(cache):
     with pytest.raises(KeyError):
-        with cache.read(0) as reader:
+        with cache.read(0):
             pass
 
 
 def test_set_twice(cache):
-    large_value = b'abcd' * 2 ** 20
+    large_value = b'abcd' * 2**20
 
     cache[0] = 0
     cache[0] = 1
@@ -285,7 +291,7 @@ def test_set_timeout(cache):
     with pytest.raises(dc.Timeout):
         try:
             with mock.patch.object(cache, '_local', local):
-                cache.set('a', 'b' * 2 ** 20)
+                cache.set('a', 'b' * 2**20)
         finally:
             cache.check()
 
@@ -301,11 +307,12 @@ def test_get(cache):
     assert cache.get(2, {}) == {}
     assert cache.get(0, expire_time=True, tag=True) == (None, None, None)
 
-    assert cache.set(0, 0, expire=None, tag=u'number')
+    assert cache.set(0, 0, expire=None, tag='number')
 
     assert cache.get(0, expire_time=True) == (0, None)
-    assert cache.get(0, tag=True) == (0, u'number')
-    assert cache.get(0, expire_time=True, tag=True) == (0, None, u'number')
+    assert cache.get(0, tag=True) == (0, 'number')
+    assert cache.get(0, expire_time=True, tag=True) == (0, None, 'number')
+
 
 def test_get_expired_fast_path(cache):
     assert cache.set(0, 0, expire=0.001)
@@ -339,26 +346,6 @@ def test_get_expired_slow_path(cache):
     assert cache.get(0) is None
 
 
-def test_get_ioerror_slow_path(cache):
-    cache.reset('eviction_policy', 'least-recently-used')
-    cache.set(0, 0)
-
-    disk = mock.Mock()
-    put = mock.Mock()
-    fetch = mock.Mock()
-
-    disk.put = put
-    put.side_effect = [(0, True)]
-    disk.fetch = fetch
-    io_error = IOError()
-    io_error.errno = errno.EACCES
-    fetch.side_effect = io_error
-
-    with mock.patch.object(cache, '_disk', disk):
-        with pytest.raises(IOError):
-            cache.get(0)
-
-
 def test_pop(cache):
     assert cache.incr('alpha') == 1
     assert cache.pop('alpha') == 1
@@ -380,8 +367,8 @@ def test_pop(cache):
     assert cache.set('delta', 210)
     assert cache.pop('delta', expire_time=True) == (210, None)
 
-    assert cache.set('epsilon', '0' * 2 ** 20)
-    assert cache.pop('epsilon') == '0' * 2 ** 20
+    assert cache.set('epsilon', '0' * 2**20)
+    assert cache.pop('epsilon') == '0' * 2**20
 
 
 def test_pop_ioerror(cache):
@@ -400,25 +387,6 @@ def test_pop_ioerror(cache):
 
     with mock.patch.object(cache, '_disk', disk):
         assert cache.pop(0) is None
-
-
-def test_pop_ioerror_eacces(cache):
-    assert cache.set(0, 0)
-
-    disk = mock.Mock()
-    put = mock.Mock()
-    fetch = mock.Mock()
-
-    disk.put = put
-    put.side_effect = [(0, True)]
-    disk.fetch = fetch
-    io_error = IOError()
-    io_error.errno = errno.EACCES
-    fetch.side_effect = io_error
-
-    with mock.patch.object(cache, '_disk', disk):
-        with pytest.raises(IOError):
-            cache.pop(0)
 
 
 def test_delete(cache):
@@ -466,11 +434,11 @@ def test_stats(cache):
 
 
 def test_path(cache):
-    cache[0] = u'abc'
-    large_value = b'abc' * 2 ** 20
+    cache[0] = 'abc'
+    large_value = b'abc' * 2**20
     cache[1] = large_value
 
-    assert cache.get(0, read=True) == u'abc'
+    assert cache.get(0, read=True) == 'abc'
 
     with cache.get(1, read=True) as reader:
         assert reader.name is not None
@@ -505,7 +473,7 @@ def test_expire_rows(cache):
 
 
 def test_least_recently_stored(cache):
-    cache.reset('eviction_policy', u'least-recently-stored')
+    cache.reset('eviction_policy', 'least-recently-stored')
     cache.reset('size_limit', int(10.1e6))
     cache.reset('cull_limit', 2)
 
@@ -540,7 +508,7 @@ def test_least_recently_stored(cache):
 
 
 def test_least_recently_used(cache):
-    cache.reset('eviction_policy', u'least-recently-used')
+    cache.reset('eviction_policy', 'least-recently-used')
     cache.reset('size_limit', int(10.1e6))
     cache.reset('cull_limit', 5)
 
@@ -570,7 +538,7 @@ def test_least_recently_used(cache):
 
 
 def test_least_frequently_used(cache):
-    cache.reset('eviction_policy', u'least-frequently-used')
+    cache.reset('eviction_policy', 'least-frequently-used')
     cache.reset('size_limit', int(10.1e6))
     cache.reset('cull_limit', 5)
 
@@ -597,32 +565,9 @@ def test_least_frequently_used(cache):
     assert len(cache.check()) == 0
 
 
-def test_filename_error(cache):
-    func = mock.Mock(side_effect=OSError(errno.EACCES))
-
-    with mock.patch('os.makedirs', func):
-        with pytest.raises(OSError):
-            cache._disk.filename()
-
-
-def test_remove_error(cache):
-    func = mock.Mock(side_effect=OSError(errno.EACCES))
-
-    try:
-        with mock.patch('os.remove', func):
-            cache._disk.remove('ab/cd/efg.val')
-    except OSError:
-        pass
-    else:
-        if os.name == 'nt':
-            pass  # File delete errors ignored on Windows.
-        else:
-            raise Exception('test_remove_error failed')
-
-
 def test_check(cache):
-    blob = b'a' * 2 ** 20
-    keys = (0, 1, 1234, 56.78, u'hello', b'world', None)
+    blob = b'a' * 2**20
+    keys = (0, 1, 1234, 56.78, 'hello', b'world', None)
 
     for key in keys:
         cache[key] = blob
@@ -646,7 +591,7 @@ def test_check(cache):
         cache.check()
         cache.check(fix=True)
 
-    assert len(cache.check()) == 0 # Should display no warnings.
+    assert len(cache.check()) == 0  # Should display no warnings.
 
 
 def test_integrity_check(cache):
@@ -657,7 +602,7 @@ def test_integrity_check(cache):
 
     with io.open(op.join(cache.directory, 'cache.db'), 'r+b') as writer:
         writer.seek(52)
-        writer.write(b'\x00\x01') # Should be 0, change it.
+        writer.write(b'\x00\x01')  # Should be 0, change it.
 
     cache = dc.Cache(cache.directory)
 
@@ -725,12 +670,12 @@ def test_clear_timeout(cache):
 
 
 def test_tag(cache):
-    assert cache.set(0, None, tag=u'zero')
+    assert cache.set(0, None, tag='zero')
     assert cache.set(1, None, tag=1234)
     assert cache.set(2, None, tag=5.67)
     assert cache.set(3, None, tag=b'three')
 
-    assert cache.get(0, tag=True) == (None, u'zero')
+    assert cache.get(0, tag=True) == (None, 'zero')
     assert cache.get(1, tag=True) == (None, 1234)
     assert cache.get(2, tag=True) == (None, 5.67)
     assert cache.get(3, tag=True) == (None, b'three')
@@ -738,11 +683,11 @@ def test_tag(cache):
 
 def test_with(cache):
     with dc.Cache(cache.directory) as tmp:
-        tmp[u'a'] = 0
-        tmp[u'b'] = 1
+        tmp['a'] = 0
+        tmp['b'] = 1
 
-    assert cache[u'a'] == 0
-    assert cache[u'b'] == 1
+    assert cache['a'] == 0
+    assert cache['b'] == 1
 
 
 def test_contains(cache):
@@ -771,7 +716,7 @@ def test_add(cache):
 
 
 def test_add_large_value(cache):
-    value = b'abcd' * 2 ** 20
+    value = b'abcd' * 2**20
     assert cache.add(b'test-key', value)
     assert cache.get(b'test-key') == value
     assert not cache.add(b'test-key', value * 2)
@@ -982,7 +927,7 @@ def test_push_peek_expire(cache):
 
 
 def test_push_pull_large_value(cache):
-    value = b'test' * (2 ** 20)
+    value = b'test' * (2**20)
     cache.push(value)
     assert cache.pull() == (500000000000000, value)
     assert len(cache) == 0
@@ -990,7 +935,7 @@ def test_push_pull_large_value(cache):
 
 
 def test_push_peek_large_value(cache):
-    value = b'test' * (2 ** 20)
+    value = b'test' * (2**20)
     cache.push(value)
     assert cache.peek() == (500000000000000, value)
     assert len(cache) == 1
@@ -1032,44 +977,6 @@ def test_peek_ioerror(cache):
     with mock.patch.object(cache, '_disk', disk):
         _, value = cache.peek()
         assert value == 0
-
-
-def test_pull_ioerror_eacces(cache):
-    assert cache.push(0) == 500000000000000
-
-    disk = mock.Mock()
-    put = mock.Mock()
-    fetch = mock.Mock()
-
-    disk.put = put
-    put.side_effect = [(0, True)]
-    disk.fetch = fetch
-    io_error = IOError()
-    io_error.errno = errno.EACCES
-    fetch.side_effect = io_error
-
-    with mock.patch.object(cache, '_disk', disk):
-        with pytest.raises(IOError):
-            cache.pull()
-
-
-def test_peek_ioerror_eacces(cache):
-    assert cache.push(0) == 500000000000000
-
-    disk = mock.Mock()
-    put = mock.Mock()
-    fetch = mock.Mock()
-
-    disk.put = put
-    put.side_effect = [(0, True)]
-    disk.fetch = fetch
-    io_error = IOError()
-    io_error.errno = errno.EACCES
-    fetch.side_effect = io_error
-
-    with mock.patch.object(cache, '_disk', disk):
-        with pytest.raises(IOError):
-            cache.peek()
 
 
 def test_peekitem_extras(cache):
@@ -1121,27 +1028,6 @@ def test_peekitem_ioerror(cache):
     with mock.patch.object(cache, '_disk', disk):
         _, value = cache.peekitem()
         assert value == 2
-
-
-def test_peekitem_ioerror_eacces(cache):
-    assert cache.set('a', 0)
-    assert cache.set('b', 1)
-    assert cache.set('c', 2)
-
-    disk = mock.Mock()
-    put = mock.Mock()
-    fetch = mock.Mock()
-
-    disk.put = put
-    put.side_effect = [(0, True)]
-    disk.fetch = fetch
-    io_error = IOError()
-    io_error.errno = errno.EACCES
-    fetch.side_effect = io_error
-
-    with mock.patch.object(cache, '_disk', disk):
-        with pytest.raises(IOError):
-            cache.peekitem()
 
 
 def test_iterkeys(cache):
@@ -1266,8 +1152,8 @@ def test_cull_timeout(cache):
 
 
 def test_key_roundtrip(cache):
-    key_part_0 = u"part0"
-    key_part_1 = u"part1"
+    key_part_0 = 'part0'
+    key_part_1 = 'part1'
     to_test = [
         (key_part_0, key_part_1),
         [key_part_0, key_part_1],
@@ -1285,6 +1171,7 @@ def test_key_roundtrip(cache):
 
 def test_constant():
     import diskcache.core
+
     assert repr(diskcache.core.ENOVAL) == 'ENOVAL'
 
 
@@ -1466,6 +1353,55 @@ def test_memoize(cache):
     assert misses2 == misses1
 
 
-if __name__ == '__main__':
-    import nose
-    nose.runmodule()
+def test_memoize_kwargs(cache):
+    @cache.memoize(typed=True)
+    def foo(*args, **kwargs):
+        return args, kwargs
+
+    assert foo(1, 2, 3, a=4, b=5) == ((1, 2, 3), {'a': 4, 'b': 5})
+
+
+def test_cleanup_dirs(cache):
+    value = b'\0' * 2**20
+    start_count = len(os.listdir(cache.directory))
+    for i in range(10):
+        cache[i] = value
+    set_count = len(os.listdir(cache.directory))
+    assert set_count > start_count
+    for i in range(10):
+        del cache[i]
+    del_count = len(os.listdir(cache.directory))
+    assert start_count == del_count
+
+
+def test_disk_write_os_error(cache):
+    func = mock.Mock(side_effect=[OSError] * 10)
+    with mock.patch('diskcache.core.open', func):
+        with pytest.raises(OSError):
+            cache[0] = '\0' * 2**20
+
+
+def test_memoize_ignore(cache):
+    @cache.memoize(ignore={1, 'arg1'})
+    def test(*args, **kwargs):
+        return args, kwargs
+
+    cache.stats(enable=True)
+    assert test('a', 'b', 'c', arg0='d', arg1='e', arg2='f')
+    assert test('a', 'w', 'c', arg0='d', arg1='x', arg2='f')
+    assert test('a', 'y', 'c', arg0='d', arg1='z', arg2='f')
+    assert cache.stats() == (2, 1)
+
+
+def test_memoize_iter(cache):
+    @cache.memoize()
+    def test(*args, **kwargs):
+        return sum(args) + sum(kwargs.values())
+
+    cache.clear()
+    assert test(1, 2, 3)
+    assert test(a=1, b=2, c=3)
+    assert test(-1, 0, 1, a=1, b=2, c=3)
+    assert len(cache) == 3
+    for key in cache:
+        assert cache[key] == 6

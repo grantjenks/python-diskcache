@@ -1,7 +1,5 @@
 """Stress test diskcache.persistent.Index."""
 
-from __future__ import print_function
-
 import collections as co
 import itertools as it
 import random

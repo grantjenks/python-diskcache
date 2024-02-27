@@ -1,18 +1,1 @@
-coverage
-django==2.2.*
-django_redis
-doc8
-gj
-nose
-pylibmc
-pylint
-pytest
-pytest-cov
-pytest-django
-pytest-env
-pytest-xdist
-rstcheck
-sphinx
-tox
-twine
-wheel
+-e .

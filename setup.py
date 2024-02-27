@@ -1,4 +1,3 @@
-from io import open
 from setuptools import setup
 from setuptools.command.test import test as TestCommand
 
@@ -10,8 +9,10 @@ class Tox(TestCommand):
         TestCommand.finalize_options(self)
         self.test_args = []
         self.test_suite = True
+
     def run_tests(self):
         import tox
+
         errno = tox.cmdline(self.test_args)
         exit(errno)
 
@@ -27,10 +28,17 @@ setup(
     author='Grant Jenks',
     author_email='contact@grantjenks.com',
     url='http://www.grantjenks.com/docs/diskcache/',
+    project_urls={
+        'Documentation': 'http://www.grantjenks.com/docs/diskcache/',
+        'Funding': 'https://gum.co/diskcache',
+        'Source': 'https://github.com/grantjenks/python-diskcache',
+        'Tracker': 'https://github.com/grantjenks/python-diskcache/issues',
+    },
     license='Apache 2.0',
     packages=['diskcache'],
     tests_require=['tox'],
     cmdclass={'test': Tox},
+    python_requires='>=3',
     install_requires=[],
     classifiers=(
         'Development Status :: 5 - Production/Stable',
@@ -38,14 +46,12 @@ setup(
         'License :: OSI Approved :: Apache Software License',
         'Natural Language :: English',
         'Programming Language :: Python',
-        'Programming Language :: Python :: 2',
-        'Programming Language :: Python :: 2.7',
         'Programming Language :: Python :: 3',
-        'Programming Language :: Python :: 3.4',
         'Programming Language :: Python :: 3.5',
         'Programming Language :: Python :: 3.6',
         'Programming Language :: Python :: 3.7',
+        'Programming Language :: Python :: 3.8',
+        'Programming Language :: Python :: 3.9',
         'Programming Language :: Python :: Implementation :: CPython',
-        'Programming Language :: Python :: Implementation :: PyPy',
     ),
 )

@@ -1,35 +1,26 @@
-"Test diskcache.fanout.FanoutCache."
-
-from __future__ import print_function
+"""Test diskcache.fanout.FanoutCache."""
 
 import collections as co
-import errno
-import functools as ft
 import hashlib
 import io
 import os
 import os.path as op
+import pathlib
 import pickle
-import pytest
-import random
 import shutil
-import sqlite3
 import subprocess as sp
-import sys
 import tempfile
 import threading
 import time
 import warnings
-
 from unittest import mock
+
+import pytest
 
 import diskcache as dc
 
 warnings.simplefilter('error')
 warnings.simplefilter('ignore', category=dc.EmptyDirWarning)
-
-if sys.hexversion < 0x03000000:
-    range = xrange
 
 
 @pytest.fixture
@@ -44,7 +35,7 @@ def test_init(cache):
     del default_settings['size_limit']
     for key, value in default_settings.items():
         assert getattr(cache, key) == value
-    assert cache.size_limit == 2 ** 27
+    assert cache.size_limit == 2**27
 
     cache.check()
 
@@ -52,6 +43,13 @@ def test_init(cache):
         setattr(cache, key, value)
 
     cache.check()
+
+
+def test_init_path(cache):
+    path = pathlib.Path(cache.directory)
+    other = dc.FanoutCache(path)
+    other.close()
+    assert cache.directory == other.directory
 
 
 def test_set_get_delete(cache):
@@ -72,7 +70,7 @@ def test_set_get_delete(cache):
 
     for value in range(100):
         assert cache.delete(value)
-    assert cache.delete(100) == False
+    assert cache.delete(100) is False
 
     cache.check()
 
@@ -239,15 +237,15 @@ def test_incr_concurrent():
 def test_getsetdel(cache):
     values = [
         (None, False),
-        ((None,) * 2 ** 10, False),
+        ((None,) * 2**10, False),
         (1234, False),
-        (2 ** 512, False),
+        (2**512, False),
         (56.78, False),
-        (u'hello', False),
-        (u'hello' * 2 ** 10, False),
+        ('hello', False),
+        ('hello' * 2**10, False),
         (b'world', False),
-        (b'world' * 2 ** 10, False),
-        (io.BytesIO(b'world' * 2 ** 10), True),
+        (b'world' * 2**10, False),
+        (io.BytesIO(b'world' * 2**10), True),
     ]
 
     for key, (value, file_like) in enumerate(values):
@@ -351,14 +349,14 @@ def test_tag_index(cache):
 
 
 def test_read(cache):
-    cache.set(0, b'abcd' * 2 ** 20)
+    cache.set(0, b'abcd' * 2**20)
     with cache.read(0) as reader:
         assert reader is not None
 
 
 def test_read_keyerror(cache):
     with pytest.raises(KeyError):
-        with cache.read(0) as reader:
+        with cache.read(0):
             pass
 
 
@@ -685,8 +683,3 @@ def test_custom_filename_disk():
             assert content == str(count) * int(1e5)
 
     shutil.rmtree(cache.directory, ignore_errors=True)
-
-
-if __name__ == '__main__':
-    import nose
-    nose.runmodule()

@@ -1,12 +1,12 @@
-"Test diskcache.recipes."
+"""Test diskcache.recipes."""
 
-import diskcache as dc
-import pytest
 import shutil
 import threading
 import time
 
-from unittest import mock
+import pytest
+
+import diskcache as dc
 
 
 @pytest.fixture
@@ -28,14 +28,37 @@ def test_averager(cache):
     assert nums.pop() == 9.5
 
 
+def test_lock(cache):
+    state = {'num': 0}
+    lock = dc.Lock(cache, 'demo')
+
+    def worker():
+        state['num'] += 1
+        with lock:
+            assert lock.locked()
+            state['num'] += 1
+            time.sleep(0.1)
+
+    with lock:
+        thread = threading.Thread(target=worker)
+        thread.start()
+        time.sleep(0.1)
+        assert state['num'] == 1
+    thread.join()
+    assert state['num'] == 2
+
+
 def test_rlock(cache):
     state = {'num': 0}
     rlock = dc.RLock(cache, 'demo')
+
     def worker():
         state['num'] += 1
         with rlock:
-            state['num'] += 1
-            time.sleep(0.1)
+            with rlock:
+                state['num'] += 1
+                time.sleep(0.1)
+
     with rlock:
         thread = threading.Thread(target=worker)
         thread.start()
@@ -48,11 +71,13 @@ def test_rlock(cache):
 def test_semaphore(cache):
     state = {'num': 0}
     semaphore = dc.BoundedSemaphore(cache, 'demo', value=3)
+
     def worker():
         state['num'] += 1
         with semaphore:
             state['num'] += 1
             time.sleep(0.1)
+
     semaphore.acquire()
     semaphore.acquire()
     with semaphore:
@@ -68,11 +93,13 @@ def test_semaphore(cache):
 
 def test_memoize_stampede(cache):
     state = {'num': 0}
+
     @dc.memoize_stampede(cache, 0.1)
     def worker(num):
         time.sleep(0.01)
         state['num'] += 1
         return num
+
     start = time.time()
     while (time.time() - start) < 1:
         worker(100)

@@ -1,11 +1,11 @@
-"Test diskcache.persistent.Deque."
+"""Test diskcache.persistent.Deque."""
 
-import functools as ft
 import pickle
-import pytest
 import shutil
-
+import tempfile
 from unittest import mock
+
+import pytest
 
 import diskcache as dc
 from diskcache.core import ENOVAL
@@ -26,7 +26,7 @@ def deque():
 
 
 def test_init():
-    directory = '/tmp/diskcache/deque'
+    directory = tempfile.mkdtemp()
     sequence = list('abcde')
     deque = dc.Deque(sequence, None)
 
@@ -75,6 +75,20 @@ def test_getsetdel(deque):
             del deque[0]
 
     assert len(deque) == 0
+
+
+def test_append(deque):
+    deque.maxlen = 3
+    for item in 'abcde':
+        deque.append(item)
+    assert deque == 'cde'
+
+
+def test_appendleft(deque):
+    deque.maxlen = 3
+    for item in 'abcde':
+        deque.appendleft(item)
+    assert deque == 'edc'
 
 
 def test_index_positive(deque):
@@ -131,9 +145,12 @@ def test_state(deque):
     sequence = list('abcde')
     deque.extend(sequence)
     assert deque == sequence
+    deque.maxlen = 3
+    assert list(deque) == sequence[-3:]
     state = pickle.dumps(deque)
     values = pickle.loads(state)
-    assert values == sequence
+    assert values == sequence[-3:]
+    assert values.maxlen == 3
 
 
 def test_compare(deque):
@@ -156,9 +173,17 @@ def test_indexerror(deque):
 
 
 def test_repr():
-    directory = '/tmp/diskcache/deque'
+    directory = tempfile.mkdtemp()
     deque = dc.Deque(directory=directory)
     assert repr(deque) == 'Deque(directory=%r)' % directory
+
+
+def test_copy(deque):
+    sequence = list('abcde')
+    deque.extend(sequence)
+    temp = deque.copy()
+    assert deque == sequence
+    assert temp == sequence
 
 
 def test_count(deque):
@@ -279,5 +304,11 @@ def test_rotate_indexerror_negative(deque):
         deque.rotate(-1)
 
 
-def test_repr(deque):
-    assert repr(deque).startswith('Deque(')
+def test_peek(deque):
+    value = b'x' * 100_000
+    deque.append(value)
+    assert len(deque) == 1
+    assert deque.peek() == value
+    assert len(deque) == 1
+    assert deque.peek() == value
+    assert len(deque) == 1

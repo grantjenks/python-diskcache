@@ -535,7 +535,7 @@ they are guaranteed to be stored in files. The full path is available on the
 file handle in the `name` attribute. Remember to also include the
 `Content-Type` header if known.
 
-.. _`Django documentation on caching`: https://docs.djangoproject.com/en/1.9/topics/cache/#the-low-level-cache-api
+.. _`Django documentation on caching`: https://docs.djangoproject.com/en/3.2/topics/cache/#the-low-level-cache-api
 
 Deque
 -----
@@ -565,12 +565,15 @@ access and editing at both front and back sides. :class:`Deque
     4
     >>> other.popleft()
     'foo'
+    >>> thing = Deque('abcde', maxlen=3)
+    >>> list(thing)
+    ['c', 'd', 'e']
 
 :class:`Deque <diskcache.Deque>` objects provide an efficient and safe means of
 cross-thread and cross-process communication. :class:`Deque <diskcache.Deque>`
 objects are also useful in scenarios where contents should remain persistent or
 limitations prohibit holding all items in memory at the same time. The deque
-uses a fixed amout of memory regardless of the size or number of items stored
+uses a fixed amount of memory regardless of the size or number of items stored
 inside it.
 
 Index
@@ -603,7 +606,7 @@ interface. :class:`Index <diskcache.Index>` objects inherit all the benefits of
 cross-thread and cross-process communication. :class:`Index <diskcache.Index>`
 objects are also useful in scenarios where contents should remain persistent or
 limitations prohibit holding all items in memory at the same time. The index
-uses a fixed amout of memory regardless of the size or number of items stored
+uses a fixed amount of memory regardless of the size or number of items stored
 inside it.
 
 .. _tutorial-transactions:
@@ -818,30 +821,28 @@ example below uses compressed JSON, available for convenience as
 
 .. code-block:: python
 
-    import json, zlib
-
     class JSONDisk(diskcache.Disk):
         def __init__(self, directory, compress_level=1, **kwargs):
             self.compress_level = compress_level
-            super(JSONDisk, self).__init__(directory, **kwargs)
+            super().__init__(directory, **kwargs)
 
         def put(self, key):
             json_bytes = json.dumps(key).encode('utf-8')
             data = zlib.compress(json_bytes, self.compress_level)
-            return super(JSONDisk, self).put(data)
+            return super().put(data)
 
         def get(self, key, raw):
-            data = super(JSONDisk, self).get(key, raw)
+            data = super().get(key, raw)
             return json.loads(zlib.decompress(data).decode('utf-8'))
 
-        def store(self, value, read):
+        def store(self, value, read, key=UNKNOWN):
             if not read:
                 json_bytes = json.dumps(value).encode('utf-8')
                 value = zlib.compress(json_bytes, self.compress_level)
-            return super(JSONDisk, self).store(value, read)
+            return super().store(value, read, key=key)
 
         def fetch(self, mode, filename, value, read):
-            data = super(JSONDisk, self).fetch(mode, filename, value, read)
+            data = super().fetch(mode, filename, value, read)
             if not read:
                 data = json.loads(zlib.decompress(data).decode('utf-8'))
             return data
@@ -863,8 +864,17 @@ protocol`_ is not used. Neither the `__hash__` nor `__eq__` methods are used
 for lookups. Instead lookups depend on the serialization method defined by
 :class:`Disk <diskcache.Disk>` objects. For strings, bytes, integers, and
 floats, equality matches Python's definition. But large integers and all other
-types will be converted to bytes using pickling and the bytes representation
-will define equality.
+types will be converted to bytes and the bytes representation will define
+equality.
+
+The default :class:`diskcache.Disk` serialization uses pickling for both keys
+and values. Unfortunately, pickling produces inconsistencies sometimes when
+applied to container data types like tuples. Two equal tuples may serialize to
+different bytes objects using pickle. The likelihood of differences is reduced
+by using `pickletools.optimize` but still inconsistencies occur (`#54`_). The
+inconsistent serialized pickle values is particularly problematic when applied
+to the key in the cache. Consider using an alternative Disk type, like
+:class:`JSONDisk <diskcache.JSONDisk>`, for consistent serialization of keys.
 
 SQLite is used to synchronize database access between threads and processes and
 as such inherits all SQLite caveats. Most notably SQLite is `not recommended`_
@@ -892,6 +902,13 @@ thread-pool executor asynchronously. For example::
 
     asyncio.run(set_async('test-key', 'test-value'))
 
+The cache :meth:`volume <diskcache.Cache.volume>` is based on the size of the
+database that stores metadata and the size of the values stored in files. It
+does not account the size of directories themselves or other filesystem
+metadata. If directory count or size is a concern then consider implementing an
+alternative :class:`Disk <diskcache.Disk>`.
+
+.. _`#54`: https://github.com/grantjenks/python-diskcache/issues/54
 .. _`hash protocol`: https://docs.python.org/library/functions.html#hash
 .. _`not recommended`: https://www.sqlite.org/faq.html#q5
 .. _`performs poorly`: https://www.pythonanywhere.com/forums/topic/1847/

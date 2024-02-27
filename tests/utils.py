@@ -1,5 +1,3 @@
-from __future__ import print_function
-
 import os
 import subprocess as sp
 
@@ -20,7 +18,6 @@ def percentile(sequence, percent):
 
 def secs(value):
     units = ['s ', 'ms', 'us', 'ns']
-    pos = 0
 
     if value is None:
         return '  0.000ns'
@@ -35,7 +32,7 @@ def secs(value):
 
 
 def run(*args):
-    "Run command, print output, and return output."
+    """Run command, print output, and return output."""
     print('utils$', *args)
     result = sp.check_output(args)
     print(result)
@@ -43,7 +40,7 @@ def run(*args):
 
 
 def mount_ramdisk(size, path):
-    "Mount RAM disk at `path` with `size` in bytes."
+    """Mount RAM disk at `path` with `size` in bytes."""
     sectors = size / 512
 
     os.makedirs(path)
@@ -56,28 +53,10 @@ def mount_ramdisk(size, path):
 
 
 def unmount_ramdisk(dev_path, path):
-    "Unmount RAM disk with `dev_path` and `path`."
+    """Unmount RAM disk with `dev_path` and `path`."""
     run('umount', path)
     run('diskutil', 'eject', dev_path)
     run('rm', '-r', path)
-
-
-def retry(sql, query):
-    pause = 0.001
-    error = sqlite3.OperationalError
-
-    for _ in range(int(LIMITS[u'timeout'] / pause)):
-        try:
-            sql(query).fetchone()
-        except sqlite3.OperationalError as exc:
-            error = exc
-            time.sleep(pause)
-        else:
-            break
-    else:
-        raise error
-
-    del error
 
 
 def display(name, timings):
@@ -98,16 +77,19 @@ def display(name, timings):
         len_total += len(values)
         sum_total += sum(values)
 
-        print(template % (
-            action,
-            len(values),
-            len(timings.get(action + '-miss', [])),
-            secs(percentile(values, 0.5)),
-            secs(percentile(values, 0.9)),
-            secs(percentile(values, 0.99)),
-            secs(percentile(values, 1.0)),
-            secs(sum(values)),
-        ))
+        print(
+            template
+            % (
+                action,
+                len(values),
+                len(timings.get(action + '-miss', [])),
+                secs(percentile(values, 0.5)),
+                secs(percentile(values, 0.9)),
+                secs(percentile(values, 0.99)),
+                secs(percentile(values, 1.0)),
+                secs(sum(values)),
+            )
+        )
 
     totals = ('Total', len_total, '', '', '', '', '', secs(sum_total))
     print(template % totals)
