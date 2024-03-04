@@ -1120,7 +1120,7 @@ class Cache:
         """
         return self.incr(key, -delta, default, retry)
 
-    def get(
+    def __get(
         self,
         key,
         default=None,
@@ -1154,18 +1154,20 @@ class Cache:
             ' AND (expire_time IS NULL OR expire_time > ?)'
         )
 
+        did_cache_hit: bool = False
+
         if expire_time and tag:
             default = (default, None, None)
         elif expire_time or tag:
             default = (default, None)
 
-        if not self.statistics and update_column is None:
+        if update_column is None:
             # Fast path, no transaction necessary.
 
             rows = self._sql(select, (db_key, raw, time.time())).fetchall()
 
             if not rows:
-                return default
+                return (default, did_cache_hit)
 
             ((rowid, db_expire_time, db_tag, mode, filename, db_value),) = rows
 
@@ -1173,23 +1175,14 @@ class Cache:
                 value = self._disk.fetch(mode, filename, db_value, read)
             except IOError:
                 # Key was deleted before we could retrieve result.
-                return default
+                return (default, did_cache_hit)
 
         else:  # Slow path, transaction required.
-            cache_hit = (
-                'UPDATE Settings SET value = value + 1 WHERE key = "hits"'
-            )
-            cache_miss = (
-                'UPDATE Settings SET value = value + 1 WHERE key = "misses"'
-            )
-
             with self._transact(retry) as (sql, _):
                 rows = sql(select, (db_key, raw, time.time())).fetchall()
 
                 if not rows:
-                    if self.statistics:
-                        sql(cache_miss)
-                    return default
+                    return (default, did_cache_hit)
 
                 (
                     (rowid, db_expire_time, db_tag, mode, filename, db_value),
@@ -1199,27 +1192,68 @@ class Cache:
                     value = self._disk.fetch(mode, filename, db_value, read)
                 except IOError:
                     # Key was deleted before we could retrieve result.
-                    if self.statistics:
-                        sql(cache_miss)
-                    return default
-
-                if self.statistics:
-                    sql(cache_hit)
-
-                now = time.time()
-                update = 'UPDATE Cache SET %s WHERE rowid = ?'
+                    return (default, did_cache_hit)
 
                 if update_column is not None:
+                    now = time.time()
+                    update = 'UPDATE Cache SET %s WHERE rowid = ?'
                     sql(update % update_column.format(now=now), (rowid,))
 
+        did_cache_hit = True
+
         if expire_time and tag:
-            return (value, db_expire_time, db_tag)
+            return ((value, db_expire_time, db_tag), did_cache_hit)
         elif expire_time:
-            return (value, db_expire_time)
+            return ((value, db_expire_time), did_cache_hit)
         elif tag:
-            return (value, db_tag)
+            return ((value, db_tag), did_cache_hit)
         else:
-            return value
+            return value, did_cache_hit
+
+    def get(
+        self,
+        key,
+        default=None,
+        read=False,
+        expire_time=False,
+        tag=False,
+        retry=False,
+    ):
+        """Retrieve value from cache. If `key` is missing, return `default`.
+
+        Raises :exc:`Timeout` error when database timeout occurs and `retry` is
+        `False` (default).
+
+        :param key: key for item
+        :param default: value to return if key is missing (default None)
+        :param bool read: if True, return file handle to value
+            (default False)
+        :param bool expire_time: if True, return expire_time in tuple
+            (default False)
+        :param bool tag: if True, return tag in tuple (default False)
+        :param bool retry: retry if database timeout occurs (default False)
+        :return: value for item or default if key not found
+        :raises Timeout: if database timeout occurs
+
+        """
+        data, did_cache_hit = self.__get(
+            key, default, read, expire_time, tag, retry
+        )
+
+        if self.statistics:
+            self.track_statistics(did_cache_hit)
+        return data
+
+    def track_statistics(self, did_cache_hit: bool):
+        """Track statistics about cache. Can be overridden for custom functionality."""
+        cache_hit = 'UPDATE Settings SET value = value + 1 WHERE key = "hits"'
+        cache_miss = (
+            'UPDATE Settings SET value = value + 1 WHERE key = "misses"'
+        )
+        if did_cache_hit is True:
+            self._sql(cache_hit)
+        elif did_cache_hit is False:
+            self._sql(cache_miss)
 
     def __getitem__(self, key):
         """Return corresponding value for `key` from cache.
