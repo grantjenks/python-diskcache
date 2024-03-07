@@ -707,44 +707,48 @@ class Cache:
 
     @cl.contextmanager
     def _transact(self, retry=False, filename=None):
-        sql = self._sql
-        filenames = []
-        _disk_remove = self._disk.remove
-        tid = threading.get_ident()
-        txn_id = self._txn_id
-
-        if tid == txn_id:
-            begin = False
-        else:
-            while True:
-                try:
-                    sql('BEGIN IMMEDIATE')
-                    begin = True
-                    self._txn_id = tid
-                    break
-                except sqlite3.OperationalError:
-                    if retry:
-                        continue
-                    if filename is not None:
-                        _disk_remove(filename)
-                    raise Timeout from None
-
+        _acquireLock()
         try:
-            yield sql, filenames.append
-        except BaseException:
-            if begin:
-                assert self._txn_id == tid
-                self._txn_id = None
-                sql('ROLLBACK')
-            raise
-        else:
-            if begin:
-                assert self._txn_id == tid
-                self._txn_id = None
-                sql('COMMIT')
-            for name in filenames:
-                if name is not None:
-                    _disk_remove(name)
+            sql = self._sql
+            filenames = []
+            _disk_remove = self._disk.remove
+            tid = threading.get_ident()
+            txn_id = self._txn_id
+
+            if tid == txn_id:
+                begin = False
+            else:
+                while True:
+                    try:
+                        sql('BEGIN IMMEDIATE')
+                        begin = True
+                        self._txn_id = tid
+                        break
+                    except sqlite3.OperationalError:
+                        if retry:
+                            continue
+                        if filename is not None:
+                            _disk_remove(filename)
+                        raise Timeout from None
+
+            try:
+                yield sql, filenames.append
+            except BaseException:
+                if begin:
+                    assert self._txn_id == tid
+                    self._txn_id = None
+                    sql('ROLLBACK')
+                raise
+            else:
+                if begin:
+                    assert self._txn_id == tid
+                    self._txn_id = None
+                    sql('COMMIT')
+                for name in filenames:
+                    if name is not None:
+                        _disk_remove(name)
+        finally:
+            _releaseLock()
 
     def set(self, key, value, expire=None, read=False, tag=None, retry=False):
         """Set `key` and `value` item in cache.
@@ -2453,3 +2457,32 @@ class Cache:
 
         setattr(self, key, value)
         return value
+
+if hasattr(os, 'register_at_fork'):
+    _lock = threading.RLock()
+
+    def _acquireLock():
+        global _lock
+        try:
+            _lock.acquire()
+        except BaseException:
+            _lock.release()
+            raise
+
+    def _releaseLock():
+        global _lock
+        _lock.release()
+
+    def _after_at_fork_child_reinit_locks():
+        global _lock
+        _lock = threading.RLock()
+
+    os.register_at_fork(before=_acquireLock,
+                        after_in_child=_after_at_fork_child_reinit_locks,
+                        after_in_parent=_releaseLock)
+else:
+    def _acquireLock():
+        pass
+
+    def _releaseLock():
+        pass
