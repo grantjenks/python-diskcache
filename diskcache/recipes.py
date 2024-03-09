@@ -486,3 +486,130 @@ def memoize_stampede(
         return wrapper
 
     return decorator
+
+
+def memoize_lease(cache, expire, lease, name=None, typed=False, tag=None):
+    """Memoizing cache decorator with cache lease.
+
+    The `expire` argument is a "hard deadline" for evicting cache entries. Set
+    `expire` to `None` to avoid evictions due to expiration.
+
+    The `lease` represents a "soft deadline" for the memoized cache entry. Once
+    the lease time has passed, cache entries will be updated asynchronously
+    using a background thread. At most one background thread will be started
+    for each cache entry. While the background thread is executing, memoized
+    cache entries will continue to be treated as "cache hits" until expiration.
+
+    If name is set to None (default), the callable name will be determined
+    automatically.
+
+    If typed is set to True, function arguments of different types will be
+    cached separately. For example, f(3) and f(3.0) will be treated as distinct
+    calls with distinct results.
+
+    The original underlying function is accessible through the `__wrapped__`
+    attribute. This is useful for introspection, for bypassing the cache, or
+    for rewrapping the function with a different cache.
+
+    >>> from diskcache import Cache
+    >>> cache = Cache()
+    >>> @memoize_lease(cache, expire=10, lease=1)
+    ... def fib(number):
+    ...     if number == 0:
+    ...         return 0
+    ...     elif number == 1:
+    ...         return 1
+    ...     else:
+    ...         return fib(number - 1) + fib(number - 2)
+    >>> print(fib(100))
+    354224848179261915075
+
+    An additional `__cache_key__` attribute can be used to generate the cache
+    key used for the given arguments.
+
+    >>> key = fib.__cache_key__(100)
+    >>> del cache[key]
+
+    Remember to call memoize when decorating a callable. If you forget, then a
+    TypeError will occur.
+
+    :param cache: cache to store callable arguments and return values
+    :param float expire: seconds until arguments expire
+    :param float lease: minimum seconds after last execution
+                        we want to update the cache value
+    :param str name: name given for callable (default None, automatic)
+    :param bool typed: cache different types separately (default False)
+    :param str tag: text to associate with arguments (default None)
+    :return: callable decorator
+
+    """
+    # Caution: Nearly identical code exists in recipes.memoize_stampede
+    def decorator(func):
+        "Decorator created by memoize call for callable."
+        base = (full_name(func),) if name is None else (name,)
+
+        def timer(*args, **kwargs):
+            "Time execution of `func` and return result and time delta."
+            start = time.time()
+            result = func(*args, **kwargs)
+            delta = time.time() - start
+            return result, delta, time.time()
+
+        @functools.wraps(func)
+        def wrapper(*args, **kwargs):
+            "Wrapper for callable to cache arguments and return values."
+            key = wrapper.__cache_key__(*args, **kwargs)
+            trio = cache.get(
+                key,
+                default=ENOVAL,
+                retry=True,
+            )
+
+            if trio is not ENOVAL:
+                result, delta, last_exec = trio
+                now = time.time()
+
+                if (now - last_exec) < lease:
+                    return result  # Cache hit.
+
+                # Check whether a thread has started for early recomputation.
+
+                thread_key = key + (ENOVAL,)
+                thread_added = cache.add(
+                    thread_key,
+                    None,
+                    expire=delta,
+                    retry=True,
+                )
+
+                if thread_added:
+                    # Start thread for early recomputation.
+                    def recompute():
+                        with cache:
+                            trio = timer(*args, **kwargs)
+                            cache.set(
+                                key,
+                                trio,
+                                expire=expire,
+                                tag=tag,
+                                retry=True,
+                            )
+
+                    thread = threading.Thread(target=recompute)
+                    thread.daemon = True
+                    thread.start()
+
+                return result
+
+            trio = timer(*args, **kwargs)
+            cache.set(key, trio, expire=expire, tag=tag, retry=True)
+            return trio[0]
+
+        def __cache_key__(*args, **kwargs):
+            "Make key for cache given function arguments."
+            return args_to_key(base, args, kwargs, typed)
+
+        wrapper.__cache_key__ = __cache_key__
+        return wrapper
+
+    return decorator
