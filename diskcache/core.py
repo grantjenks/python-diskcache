@@ -401,9 +401,7 @@ def args_to_key(base, args, kwargs, typed, ignore):
     if kwargs:
         kwargs = {key: val for key, val in kwargs.items() if key not in ignore}
         sorted_items = sorted(kwargs.items())
-
-        for item in sorted_items:
-            key += item
+        key += tuple(sorted_items)
 
     if typed:
         key += tuple(type(arg) for arg in args)
@@ -412,6 +410,53 @@ def args_to_key(base, args, kwargs, typed, ignore):
             key += tuple(type(value) for _, value in sorted_items)
 
     return key
+
+
+def key_to_args(key):
+    """Get the args and kwargs from a cache key's tail (i.e. everything
+    following the base of the key).
+
+    :param tuple key: cache key tuple
+    :return: tuple of args, kwargs
+    :rtype: tuple pair of tuple and dict
+
+    """
+    kwargs_ranges = []
+    type_range = None
+    last_kwargs_start_idx = last_typed_start_idx = None
+    for idx, val in enumerate(key):
+        if last_kwargs_start_idx is not None and not isinstance(val, tuple):
+            kwargs_ranges.append((last_kwargs_start_idx, idx))
+            last_kwargs_start_idx = None
+        if last_kwargs_start_idx is None and val is None:
+            last_kwargs_start_idx = idx + 1
+
+        val_is_type = isinstance(val, type)
+        if last_typed_start_idx is not None and not val_is_type:
+            last_typed_start_idx = None
+        if last_typed_start_idx is None and val_is_type:
+            last_typed_start_idx = idx
+
+    if last_kwargs_start_idx is not None:
+        kwargs_ranges.append((last_kwargs_start_idx, len(key)))
+    elif last_typed_start_idx is not None:
+        type_range = (last_typed_start_idx, len(key))
+
+    if type_range is not None:
+        num_args_kwargs = type_range[1] - type_range[0]
+        kwargs_range = [
+            (start, end)
+            for start, end in kwargs_ranges
+            if (start - 1) + (end - start) == num_args_kwargs
+        ][-1]
+    else:
+        kwargs_range = kwargs_ranges[-1]
+
+    start, end = kwargs_range
+    args = key[: start - 1]
+    kwargs = key[start:end]
+
+    return (args, dict(kwargs))
 
 
 class Cache:
