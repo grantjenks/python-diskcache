@@ -375,6 +375,7 @@ Reference
 ---------
 
 * `DiskCache Documentation`_
+* `DiskCache API Reference`_
 * `DiskCache at PyPI`_
 * `DiskCache at GitHub`_
 * `DiskCache Issue Tracker`_
