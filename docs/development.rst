@@ -76,10 +76,7 @@ Testing uses `tox <https://pypi.python.org/pypi/tox>`_. If you don't want to
 install all the development requirements, then, after downloading, you can
 simply run::
 
-    $ python setup.py test
-
-The test argument to setup.py will download a minimal testing infrastructure
-and run the tests.
+    $ tox
 
 ::
 

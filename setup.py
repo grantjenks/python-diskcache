@@ -1,20 +1,6 @@
 from setuptools import setup
-from setuptools.command.test import test as TestCommand
 
 import diskcache
-
-
-class Tox(TestCommand):
-    def finalize_options(self):
-        TestCommand.finalize_options(self)
-        self.test_args = []
-        self.test_suite = True
-
-    def run_tests(self):
-        import tox
-
-        errno = tox.cmdline(self.test_args)
-        exit(errno)
 
 
 with open('README.rst', encoding='utf-8') as reader:
@@ -36,8 +22,6 @@ setup(
     },
     license='Apache 2.0',
     packages=['diskcache'],
-    tests_require=['tox'],
-    cmdclass={'test': Tox},
     python_requires='>=3',
     install_requires=[],
     classifiers=(
