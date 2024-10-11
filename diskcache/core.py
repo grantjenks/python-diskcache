@@ -204,7 +204,7 @@ class Disk:
                 return 0, MODE_RAW, None, sqlite3.Binary(value)
             else:
                 filename, full_path = self.filename(key, value)
-                self._write(full_path, io.BytesIO(value), 'xb')
+                self._write(full_path, value, 'xb')
                 return len(value), MODE_BINARY, filename, None
         elif type_value is str:
             filename, full_path = self.filename(key, value)
@@ -224,10 +224,10 @@ class Disk:
                 return 0, MODE_PICKLE, None, sqlite3.Binary(result)
             else:
                 filename, full_path = self.filename(key, value)
-                self._write(full_path, io.BytesIO(result), 'xb')
+                self._write(full_path, result, 'xb')
                 return len(result), MODE_PICKLE, filename, None
 
-    def _write(self, full_path, iterator, mode, encoding=None):
+    def _write(self, full_path, iterator_or_bytes, mode, encoding=None):
         full_dir, _ = op.split(full_path)
 
         for count in range(1, 11):
@@ -245,11 +245,15 @@ class Disk:
                 continue
 
             with writer:
-                size = 0
-                for chunk in iterator:
-                    size += len(chunk)
-                    writer.write(chunk)
-                return size
+                if isinstance(iterator_or_bytes, bytes):
+                    writer.write(iterator_or_bytes)
+                    return len(iterator_or_bytes)
+                else:
+                    size = 0
+                    for chunk in iterator_or_bytes:
+                        size += len(chunk)
+                        writer.write(chunk)
+                    return size
 
     def fetch(self, mode, filename, value, read):
         """Convert fields `mode`, `filename`, and `value` from Cache table to
