@@ -2364,6 +2364,10 @@ class Cache:
         """Count of items in cache including expired items."""
         return self.reset('count')
 
+    def __bool__(self):
+        """Mark Cache objects as Truthy"""
+        return True
+
     def __getstate__(self):
         return (self.directory, self.timeout, type(self.disk))
 
