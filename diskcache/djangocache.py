@@ -48,7 +48,7 @@ class DjangoCache(BaseCache):
         """Return Deque with given `name` in subdirectory.
 
         :param str name: subdirectory name for Deque
-        :param maxlen: max length (default None, no max)
+        :param int or None maxlen: max length (default None, no max)
         :return: Deque with given name
 
         """
@@ -83,9 +83,9 @@ class DjangoCache(BaseCache):
         :param value: value for item
         :param float timeout: seconds until the item expires
             (default 300 seconds)
-        :param int version: key version number (default None, cache parameter)
+        :param int or None version: key version number (default None, cache parameter)
         :param bool read: read value as bytes from file (default False)
-        :param str tag: text to associate with key (default None)
+        :param str or None tag: text to associate with key (default None)
         :param bool retry: retry if database timeout occurs (default True)
         :return: True if item was added
 
@@ -110,7 +110,7 @@ class DjangoCache(BaseCache):
 
         :param key: key for item
         :param default: return value if key is missing (default None)
-        :param int version: key version number (default None, cache parameter)
+        :param int or None version: key version number (default None, cache parameter)
         :param bool read: if True, return file handle to value
             (default False)
         :param float expire_time: if True, return expire_time in tuple
@@ -128,7 +128,7 @@ class DjangoCache(BaseCache):
         """Return file handle corresponding to `key` from Cache.
 
         :param key: Python key to retrieve
-        :param int version: key version number (default None, cache parameter)
+        :param int or None version: key version number (default None, cache parameter)
         :return: file open for reading in binary mode
         :raises KeyError: if key is not found
 
@@ -153,9 +153,9 @@ class DjangoCache(BaseCache):
         :param value: value for item
         :param float timeout: seconds until the item expires
             (default 300 seconds)
-        :param int version: key version number (default None, cache parameter)
+        :param int or None version: key version number (default None, cache parameter)
         :param bool read: read value as bytes from file (default False)
-        :param str tag: text to associate with key (default None)
+        :param str or None tag: text to associate with key (default None)
         :param bool retry: retry if database timeout occurs (default True)
         :return: True if item was set
 
@@ -172,7 +172,7 @@ class DjangoCache(BaseCache):
         :param key: key for item
         :param float timeout: seconds until the item expires
             (default 300 seconds)
-        :param int version: key version number (default None, cache parameter)
+        :param int or None version: key version number (default None, cache parameter)
         :param bool retry: retry if database timeout occurs (default True)
         :return: True if key was touched
 
@@ -199,7 +199,7 @@ class DjangoCache(BaseCache):
 
         :param key: key for item
         :param default: return value if key is missing (default None)
-        :param int version: key version number (default None, cache parameter)
+        :param int or None version: key version number (default None, cache parameter)
         :param float expire_time: if True, return expire_time in tuple
             (default False)
         :param tag: if True, return tag in tuple (default False)
@@ -214,7 +214,7 @@ class DjangoCache(BaseCache):
         """Delete a key from the cache, failing silently.
 
         :param key: key for item
-        :param int version: key version number (default None, cache parameter)
+        :param int or None version: key version number (default None, cache parameter)
         :param bool retry: retry if database timeout occurs (default True)
         :return: True if item was deleted
 
@@ -238,8 +238,8 @@ class DjangoCache(BaseCache):
 
         :param key: key for item
         :param int delta: amount to increment (default 1)
-        :param int version: key version number (default None, cache parameter)
-        :param int default: value if key is missing (default None)
+        :param int or None version: key version number (default None, cache parameter)
+        :param int or None default: value if key is missing (default None)
         :param bool retry: retry if database timeout occurs (default True)
         :return: new value for item on success else None
         :raises ValueError: if key is not found and default is None
@@ -270,8 +270,8 @@ class DjangoCache(BaseCache):
 
         :param key: key for item
         :param int delta: amount to decrement (default 1)
-        :param int version: key version number (default None, cache parameter)
-        :param int default: value if key is missing (default None)
+        :param int or None version: key version number (default None, cache parameter)
+        :param int or None default: value if key is missing (default None)
         :param bool retry: retry if database timeout occurs (default True)
         :return: new value for item on success else None
         :raises ValueError: if key is not found and default is None
@@ -284,7 +284,7 @@ class DjangoCache(BaseCache):
         """Returns True if the key is in the cache and has not expired.
 
         :param key: key for item
-        :param int version: key version number (default None, cache parameter)
+        :param int or None version: key version number (default None, cache parameter)
         :return: True if key is found
 
         """
@@ -403,12 +403,12 @@ class DjangoCache(BaseCache):
         Remember to call memoize when decorating a callable. If you forget,
         then a TypeError will occur.
 
-        :param str name: name given for callable (default None, automatic)
+        :param str or None name: name given for callable (default None, automatic)
         :param float timeout: seconds until the item expires
             (default 300 seconds)
-        :param int version: key version number (default None, cache parameter)
+        :param int or None version: key version number (default None, cache parameter)
         :param bool typed: cache different types separately (default False)
-        :param str tag: text to associate with arguments (default None)
+        :param str or None tag: text to associate with arguments (default None)
         :param set ignore: positional or keyword args to ignore (default ())
         :return: callable decorator
 

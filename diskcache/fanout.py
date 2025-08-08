@@ -21,7 +21,7 @@ class FanoutCache:
     ):
         """Initialize cache instance.
 
-        :param str directory: cache directory
+        :param str or None directory: cache directory
         :param int shards: number of shards to distribute writes
         :param float timeout: SQLite connection timeout
         :param disk: `Disk` instance for serialization
@@ -110,10 +110,10 @@ class FanoutCache:
 
         :param key: key for item
         :param value: value for item
-        :param float expire: seconds until the key expires
+        :param float or None expire: seconds until the key expires
             (default None, no expiry)
         :param bool read: read value as raw bytes from file (default False)
-        :param str tag: text to associate with key (default None)
+        :param str or None tag: text to associate with key (default None)
         :param bool retry: retry if database timeout occurs (default False)
         :return: True if item was set
 
@@ -145,7 +145,7 @@ class FanoutCache:
         `True` (default `False`).
 
         :param key: key for item
-        :param float expire: seconds until the key expires
+        :param float or None expire: seconds until the key expires
             (default None, no expiry)
         :param bool retry: retry if database timeout occurs (default False)
         :return: True if key was touched
@@ -174,10 +174,10 @@ class FanoutCache:
 
         :param key: key for item
         :param value: value for item
-        :param float expire: seconds until the key expires
+        :param float or None expire: seconds until the key expires
             (default None, no expiry)
         :param bool read: read value as bytes from file (default False)
-        :param str tag: text to associate with key (default None)
+        :param str or None tag: text to associate with key (default None)
         :param bool retry: retry if database timeout occurs (default False)
         :return: True if item was added
 
@@ -592,7 +592,7 @@ class FanoutCache:
 
         :param str name: subdirectory name for Cache
         :param float timeout: SQLite connection timeout
-        :param disk: Disk type or subclass for serialization
+        :param Disk or None disk: Disk type or subclass for serialization
         :param settings: any of DEFAULT_SETTINGS
         :return: Cache with given name
 
@@ -627,7 +627,7 @@ class FanoutCache:
         1
 
         :param str name: subdirectory name for Deque
-        :param maxlen: max length (default None, no max)
+        :param int or None maxlen: max length (default None, no max)
         :return: Deque with given name
 
         """

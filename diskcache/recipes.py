@@ -407,9 +407,9 @@ def memoize_stampede(
 
     :param cache: cache to store callable arguments and return values
     :param float expire: seconds until arguments expire
-    :param str name: name given for callable (default None, automatic)
+    :param str or None name: name given for callable (default None, automatic)
     :param bool typed: cache different types separately (default False)
-    :param str tag: text to associate with arguments (default None)
+    :param str or None tag: text to associate with arguments (default None)
     :param set ignore: positional or keyword args to ignore (default ())
     :return: callable decorator
 

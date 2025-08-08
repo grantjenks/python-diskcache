@@ -82,7 +82,8 @@ class Deque(Sequence):
         will *not* be automatically removed.
 
         :param iterable: iterable of items to append to deque
-        :param directory: deque directory (default None)
+        :param str or None directory: deque directory (default None)
+        :param int or None maxlen: max length (default None, no max)
 
         """
         self._cache = Cache(directory, eviction_policy='none')
@@ -106,6 +107,7 @@ class Deque(Sequence):
 
         :param Cache cache: cache to use
         :param iterable: iterable of items
+        :param int or None maxlen: max length (default None, no max)
         :return: initialized Deque
 
         """
@@ -953,7 +955,7 @@ class Index(MutableMapping):
         'fruit-500000000000000'
 
         :param value: value for item
-        :param str prefix: key prefix (default None, key is integer)
+        :param str or None prefix: key prefix (default None, key is integer)
         :param str side: either 'back' or 'front' (default 'back')
         :return: key for item in cache
 
@@ -991,7 +993,7 @@ class Index(MutableMapping):
         >>> index.pull(prefix='fruit')
         (None, None)
 
-        :param str prefix: key prefix (default None, key is integer)
+        :param str or None prefix: key prefix (default None, key is integer)
         :param default: value to return if key is missing
             (default (None, None))
         :param str side: either 'front' or 'back' (default 'front')
@@ -1200,7 +1202,7 @@ class Index(MutableMapping):
             ...
         TypeError: name cannot be callable
 
-        :param str name: name given for callable (default None, automatic)
+        :param str or None name: name given for callable (default None, automatic)
         :param bool typed: cache different types separately (default False)
         :param set ignore: positional or keyword args to ignore (default ())
         :return: callable decorator

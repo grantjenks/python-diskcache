@@ -420,7 +420,7 @@ class Cache:
     def __init__(self, directory=None, timeout=60, disk=Disk, **settings):
         """Initialize cache instance.
 
-        :param str directory: cache directory
+        :param str or None directory: cache directory
         :param float timeout: SQLite connection timeout
         :param disk: Disk type or subclass for serialization
         :param settings: any of DEFAULT_SETTINGS
@@ -757,10 +757,10 @@ class Cache:
 
         :param key: key for item
         :param value: value for item
-        :param float expire: seconds until item expires
+        :param float or None expire: seconds until item expires
             (default None, no expiry)
         :param bool read: read value as bytes from file (default False)
-        :param str tag: text to associate with key (default None)
+        :param str or None tag: text to associate with key (default None)
         :param bool retry: retry if database timeout occurs (default False)
         :return: True if item was set
         :raises Timeout: if database timeout occurs
@@ -931,7 +931,7 @@ class Cache:
         `False` (default).
 
         :param key: key for item
-        :param float expire: seconds until item expires
+        :param float or None expire: seconds until item expires
             (default None, no expiry)
         :param bool retry: retry if database timeout occurs (default False)
         :return: True if key was touched
@@ -977,10 +977,10 @@ class Cache:
 
         :param key: key for item
         :param value: value for item
-        :param float expire: seconds until the key expires
+        :param float or None expire: seconds until the key expires
             (default None, no expiry)
         :param bool read: read value as bytes from file (default False)
-        :param str tag: text to associate with key (default None)
+        :param str or None tag: text to associate with key (default None)
         :param bool retry: retry if database timeout occurs (default False)
         :return: True if item was added
         :raises Timeout: if database timeout occurs
@@ -1425,12 +1425,12 @@ class Cache:
         'userids-500000000000000'
 
         :param value: value for item
-        :param str prefix: key prefix (default None, key is integer)
+        :param str or None prefix: key prefix (default None, key is integer)
         :param str side: either 'back' or 'front' (default 'back')
-        :param float expire: seconds until the key expires
+        :param float or None expire: seconds until the key expires
             (default None, no expiry)
         :param bool read: read value as bytes from file (default False)
-        :param str tag: text to associate with key (default None)
+        :param str or None tag: text to associate with key (default None)
         :param bool retry: retry if database timeout occurs (default False)
         :return: key for item in cache
         :raises Timeout: if database timeout occurs
@@ -1533,7 +1533,7 @@ class Cache:
         >>> value
         1234
 
-        :param str prefix: key prefix (default None, key is integer)
+        :param str or None prefix: key prefix (default None, key is integer)
         :param default: value to return if key is missing
             (default (None, None))
         :param str side: either 'front' or 'back' (default 'front')
@@ -1648,7 +1648,7 @@ class Cache:
         >>> value
         'c'
 
-        :param str prefix: key prefix (default None, key is integer)
+        :param str or None prefix: key prefix (default None, key is integer)
         :param default: value to return if key is missing
             (default (None, None))
         :param str side: either 'front' or 'back' (default 'front')
@@ -1848,11 +1848,11 @@ class Cache:
         TypeError: name cannot be callable
 
         :param cache: cache to store callable arguments and return values
-        :param str name: name given for callable (default None, automatic)
+        :param str or None name: name given for callable (default None, automatic)
         :param bool typed: cache different types separately (default False)
-        :param float expire: seconds until arguments expire
+        :param float or None expire: seconds until arguments expire
             (default None, no expiry)
-        :param str tag: text to associate with arguments (default None)
+        :param str or None tag: text to associate with arguments (default None)
         :param set ignore: positional or keyword args to ignore (default ())
         :return: callable decorator
 
@@ -2084,7 +2084,7 @@ class Cache:
         Raises :exc:`Timeout` error when database timeout occurs and `retry` is
         `False` (default).
 
-        :param float now: current time (default None, ``time.time()`` used)
+        :param float or None now: current time (default None, ``time.time()`` used)
         :param bool retry: retry if database timeout occurs (default False)
         :return: count of items removed
         :raises Timeout: if database timeout occurs
