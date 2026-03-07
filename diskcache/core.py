@@ -1,6 +1,7 @@
 """Core disk and file backed cache API.
 """
 
+import asyncio
 import codecs
 import contextlib as cl
 import errno
@@ -1864,19 +1865,34 @@ class Cache:
         def decorator(func):
             """Decorator created by memoize() for callable `func`."""
             base = (full_name(func),) if name is None else (name,)
+            
+            if asyncio.iscoroutinefunction(func):
+                @ft.wraps(func)
+                async def wrapper(*args, **kwargs):
+                    """Wrapper for callable to cache arguments and return values."""
+                    key = wrapper.__cache_key__(*args, **kwargs)
+                    result = self.get(key, default=ENOVAL, retry=True)
 
-            @ft.wraps(func)
-            def wrapper(*args, **kwargs):
-                """Wrapper for callable to cache arguments and return values."""
-                key = wrapper.__cache_key__(*args, **kwargs)
-                result = self.get(key, default=ENOVAL, retry=True)
+                    if result is ENOVAL:
+                        result = await func(*args, **kwargs)
+                        if expire is None or expire > 0:
+                            self.set(key, result, expire, tag=tag, retry=True)
 
-                if result is ENOVAL:
-                    result = func(*args, **kwargs)
-                    if expire is None or expire > 0:
-                        self.set(key, result, expire, tag=tag, retry=True)
+                    return result
 
-                return result
+            else:
+                @ft.wraps(func)
+                def wrapper(*args, **kwargs):
+                    """Wrapper for callable to cache arguments and return values."""
+                    key = wrapper.__cache_key__(*args, **kwargs)
+                    result = self.get(key, default=ENOVAL, retry=True)
+
+                    if result is ENOVAL:
+                        result = func(*args, **kwargs)
+                        if expire is None or expire > 0:
+                            self.set(key, result, expire, tag=tag, retry=True)
+
+                    return result
 
             def __cache_key__(*args, **kwargs):
                 """Make key for cache given function arguments."""
