@@ -232,7 +232,7 @@ class Disk:
 
         for count in range(1, 11):
             with cl.suppress(OSError):
-                os.makedirs(full_dir)
+                os.makedirs(full_dir, 0o700)
 
             try:
                 # Another cache may have deleted the directory before
@@ -444,7 +444,7 @@ class Cache:
 
         if not op.isdir(directory):
             try:
-                os.makedirs(directory, 0o755)
+                os.makedirs(directory, 0o700)
             except OSError as error:
                 if error.errno != errno.EEXIST:
                     raise EnvironmentError(
