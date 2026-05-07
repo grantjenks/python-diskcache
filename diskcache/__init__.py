@@ -16,6 +16,7 @@ from .core import (
     JSONDisk,
     Timeout,
     UnknownFileWarning,
+    UnsafePickleWarning,
 )
 from .fanout import FanoutCache
 from .persistent import Deque, Index
@@ -47,6 +48,7 @@ __all__ = [
     'Timeout',
     'UNKNOWN',
     'UnknownFileWarning',
+    'UnsafePickleWarning',
     'barrier',
     'memoize_stampede',
     'throttle',
