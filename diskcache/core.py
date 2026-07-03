@@ -100,6 +100,149 @@ EVICTION_POLICY = {
 }
 
 
+class UnpicklingError(pickle.UnpicklingError):
+    """Error raised when unpickling encounters a disallowed type."""
+
+
+# Safe modules and classes that are allowed during deserialization.
+# These are standard Python types that cannot execute arbitrary code
+# during unpickling. This structure is immutable to prevent runtime
+# modification as a security bypass.
+SAFE_PICKLE_CLASSES = {
+    'builtins': frozenset(
+        {
+            'True',
+            'False',
+            'None',
+            'bytes',
+            'bytearray',
+            'complex',
+            'dict',
+            'float',
+            'frozenset',
+            'int',
+            'list',
+            'object',
+            'range',
+            'set',
+            'slice',
+            'str',
+            'tuple',
+        }
+    ),
+    # Python 2 module name used by pickle protocols 0 and 1.
+    '__builtin__': frozenset(
+        {
+            'True',
+            'False',
+            'None',
+            'bytes',
+            'bytearray',
+            'complex',
+            'dict',
+            'float',
+            'frozenset',
+            'int',
+            'list',
+            'long',
+            'object',
+            'range',
+            'set',
+            'slice',
+            'str',
+            'tuple',
+            'unicode',
+            'xrange',
+        }
+    ),
+    'collections': frozenset(
+        {
+            'OrderedDict',
+            'defaultdict',
+            'deque',
+        }
+    ),
+    # Used by pickle protocols 0 and 1 for object reconstruction.
+    'copy_reg': frozenset(
+        {
+            '_reconstructor',
+        }
+    ),
+    'copyreg': frozenset(
+        {
+            '_reconstructor',
+        }
+    ),
+    'datetime': frozenset(
+        {
+            'date',
+            'datetime',
+            'time',
+            'timedelta',
+            'timezone',
+        }
+    ),
+    'decimal': frozenset(
+        {
+            'Decimal',
+        }
+    ),
+    'fractions': frozenset(
+        {
+            'Fraction',
+        }
+    ),
+    'uuid': frozenset(
+        {
+            'UUID',
+        }
+    ),
+    '_codecs': frozenset(
+        {
+            'encode',
+        }
+    ),
+}
+
+
+class SafeUnpickler(pickle.Unpickler):
+    """Restricted unpickler that only allows safe built-in types.
+
+    This prevents arbitrary code execution via crafted pickle payloads.
+    Only types listed in SAFE_PICKLE_CLASSES are permitted.
+
+    """
+
+    def find_class(self, module, name):
+        """Only allow safe classes to be unpickled.
+
+        :param str module: module name
+        :param str name: class/function name
+        :raises UnpicklingError: if the class is not in the allowlist
+
+        """
+        allowed = SAFE_PICKLE_CLASSES.get(module, frozenset())
+        if name in allowed:
+            return super().find_class(module, name)
+        raise UnpicklingError(
+            'Unpickling of {}.{} is not allowed. '
+            'Only safe built-in types can be deserialized. '
+            'Use JSONDisk or a custom Disk subclass for other types.'.format(
+                module, name
+            )
+        )
+
+
+def safe_pickle_load(file_obj):
+    """Load a pickle from a file object using the restricted unpickler.
+
+    :param file_obj: file-like object to read from
+    :return: deserialized Python object
+
+    """
+    return SafeUnpickler(file_obj).load()
+
+
 class Disk:
     """Cache key and value serialization for SQLite database and files."""
 
@@ -174,7 +317,7 @@ class Disk:
         if raw:
             return bytes(key) if type(key) is sqlite3.Binary else key
         else:
-            return pickle.load(io.BytesIO(key))
+            return safe_pickle_load(io.BytesIO(key))
 
     def store(self, value, read, key=UNKNOWN):
         """Convert `value` to fields size, mode, filename, and value for Cache
@@ -279,9 +422,9 @@ class Disk:
         elif mode == MODE_PICKLE:
             if value is None:
                 with open(op.join(self._directory, filename), 'rb') as reader:
-                    return pickle.load(reader)
+                    return safe_pickle_load(reader)
             else:
-                return pickle.load(io.BytesIO(value))
+                return safe_pickle_load(io.BytesIO(value))
 
     def filename(self, key=UNKNOWN, value=UNKNOWN):
         """Return filename and full-path tuple for file storage.

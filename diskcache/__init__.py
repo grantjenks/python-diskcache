@@ -14,8 +14,10 @@ from .core import (
     Disk,
     EmptyDirWarning,
     JSONDisk,
+    SafeUnpickler,
     Timeout,
     UnknownFileWarning,
+    UnpicklingError,
 )
 from .fanout import FanoutCache
 from .persistent import Deque, Index
@@ -44,9 +46,11 @@ __all__ = [
     'JSONDisk',
     'Lock',
     'RLock',
+    'SafeUnpickler',
     'Timeout',
     'UNKNOWN',
     'UnknownFileWarning',
+    'UnpicklingError',
     'barrier',
     'memoize_stampede',
     'throttle',
@@ -61,8 +65,8 @@ except Exception:  # pylint: disable=broad-except  # pragma: no cover
     pass
 
 __title__ = 'diskcache'
-__version__ = '5.6.3'
-__build__ = 0x050603
+__version__ = '6.0.0'
+__build__ = 0x060000
 __author__ = 'Grant Jenks'
 __license__ = 'Apache 2.0'
 __copyright__ = 'Copyright 2016-2023 Grant Jenks'
