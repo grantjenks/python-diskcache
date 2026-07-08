@@ -280,7 +280,7 @@ Pure-Python Databases
 
 * `ZODB`_ supports an isomorphic interface for database operations which means
   there's little impact on your code to make objects persistent and there's no
-  database mapper that partially hides the datbase.
+  database mapper that partially hides the database.
 * `CodernityDB`_ is an open source, pure-Python, multi-platform, schema-less,
   NoSQL database and includes an HTTP server version, and a Python client
   library that aims to be 100% compatible with the embedded version.
