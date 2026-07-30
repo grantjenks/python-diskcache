@@ -30,6 +30,16 @@ def cache():
     shutil.rmtree(cache.directory, ignore_errors=True)
 
 
+def test_hasattr_unknown_attribute(cache):
+    """hasattr must not raise; missing attributes return False (#353)."""
+    assert hasattr(cache, 'timeout') is True
+    assert hasattr(cache, 'definitely_missing_attr_xyz') is False
+    with pytest.raises(AttributeError):
+        _ = cache.definitely_missing_attr_xyz
+
+
+
+
 def test_init(cache):
     default_settings = dc.DEFAULT_SETTINGS.copy()
     del default_settings['size_limit']

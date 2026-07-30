@@ -61,9 +61,14 @@ class FanoutCache:
         return self._directory
 
     def __getattr__(self, name):
+        # Raise AttributeError (not AssertionError) so builtins.hasattr() and
+        # introspection tools work. See GitHub issue #353.
         safe_names = {'timeout', 'disk'}
         valid_name = name in DEFAULT_SETTINGS or name in safe_names
-        assert valid_name, 'cannot access {} in cache shard'.format(name)
+        if not valid_name:
+            raise AttributeError(
+                'cannot access {} in cache shard'.format(name)
+            )
         return getattr(self._shards[0], name)
 
     @cl.contextmanager
