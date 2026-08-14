@@ -12,6 +12,14 @@ import time
 from .core import DEFAULT_SETTINGS, ENOVAL, Cache, Disk, Timeout
 from .persistent import Deque, Index
 
+def _default_with_meta(default, expire_time, tag):
+    """Match Cache.get/pop: wrap default when expire_time or tag is requested."""
+    if expire_time and tag:
+        return (default, None, None)
+    if expire_time or tag:
+        return (default, None)
+    return default
+
 
 class FanoutCache:
     """Cache that shards keys and values."""
@@ -284,7 +292,7 @@ class FanoutCache:
         try:
             return shard.get(key, default, read, expire_time, tag, retry)
         except (Timeout, sqlite3.OperationalError):
-            return default
+            return _default_with_meta(default, expire_time, tag)
 
     def __getitem__(self, key):
         """Return corresponding value for `key` from cache.
@@ -350,7 +358,7 @@ class FanoutCache:
         try:
             return shard.pop(key, default, expire_time, tag, retry)
         except Timeout:
-            return default
+            return _default_with_meta(default, expire_time, tag)
 
     def delete(self, key, retry=False):
         """Delete corresponding item for `key` from cache.

@@ -316,6 +316,34 @@ def test_pop_timeout(cache):
         assert cache.pop(0) is None
 
 
+def test_get_timeout_expire_time(cache):
+    shards = mock.Mock()
+    shard = mock.Mock()
+    get_func = mock.Mock()
+
+    shards.__getitem__ = mock.Mock(side_effect=lambda key: shard)
+    shard.get = get_func
+    get_func.side_effect = dc.Timeout
+
+    with mock.patch.object(cache, '_shards', shards):
+        assert cache.get(0, expire_time=True) == (None, None)
+        assert cache.get(0, default=1, expire_time=True, tag=True) == (1, None, None)
+
+
+def test_pop_timeout_expire_time(cache):
+    shards = mock.Mock()
+    shard = mock.Mock()
+    pop_func = mock.Mock()
+
+    shards.__getitem__ = mock.Mock(side_effect=lambda key: shard)
+    shard.pop = pop_func
+    pop_func.side_effect = dc.Timeout
+
+    with mock.patch.object(cache, '_shards', shards):
+        assert cache.pop(0, expire_time=True) == (None, None)
+        assert cache.pop(0, default=1, expire_time=True, tag=True) == (1, None, None)
+
+
 def test_delete_timeout(cache):
     shards = mock.Mock()
     shard = mock.Mock()
