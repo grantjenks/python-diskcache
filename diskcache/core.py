@@ -5,6 +5,7 @@ import codecs
 import contextlib as cl
 import errno
 import functools as ft
+import inspect
 import io
 import json
 import os
@@ -384,7 +385,7 @@ class EmptyDirWarning(UserWarning):
     """Warning used by Cache.check for empty directories."""
 
 
-def args_to_key(base, args, kwargs, typed, ignore):
+def args_to_key(base, args, kwargs, typed, ignore, arg_names=()):
     """Create cache key out of function arguments.
 
     :param tuple base: base of key
@@ -392,10 +393,18 @@ def args_to_key(base, args, kwargs, typed, ignore):
     :param dict kwargs: function keyword arguments
     :param bool typed: include types in cache key
     :param set ignore: positional or keyword args to ignore
+    :param tuple arg_names: names of the wrapped function's positional
+        parameters, in order, so a name in `ignore` matches a positional
+        argument the same way it matches a keyword argument (default ())
     :return: cache key tuple
 
     """
-    args = tuple(arg for index, arg in enumerate(args) if index not in ignore)
+    args = tuple(
+        arg
+        for index, arg in enumerate(args)
+        if index not in ignore
+        and not (index < len(arg_names) and arg_names[index] in ignore)
+    )
     key = base + args + (None,)
 
     if kwargs:
@@ -1853,7 +1862,10 @@ class Cache:
         :param float expire: seconds until arguments expire
             (default None, no expiry)
         :param str tag: text to associate with arguments (default None)
-        :param set ignore: positional or keyword args to ignore (default ())
+        :param set ignore: positional or keyword args to ignore (default ()).
+            A parameter's name in this set is matched whether it was passed
+            positionally or by keyword; a positional index is also still
+            matched by position, same as before.
         :return: callable decorator
 
         """
@@ -1864,6 +1876,14 @@ class Cache:
         def decorator(func):
             """Decorator created by memoize() for callable `func`."""
             base = (full_name(func),) if name is None else (name,)
+
+            try:
+                arg_names = tuple(inspect.signature(func).parameters)
+            except (TypeError, ValueError):
+                # Some callables (e.g. certain builtins) don't expose a
+                # signature; fall back to matching `ignore` by position only,
+                # same as before this parameter-name lookup was added.
+                arg_names = ()
 
             @ft.wraps(func)
             def wrapper(*args, **kwargs):
@@ -1880,7 +1900,7 @@ class Cache:
 
             def __cache_key__(*args, **kwargs):
                 """Make key for cache given function arguments."""
-                return args_to_key(base, args, kwargs, typed, ignore)
+                return args_to_key(base, args, kwargs, typed, ignore, arg_names)
 
             wrapper.__cache_key__ = __cache_key__
             return wrapper

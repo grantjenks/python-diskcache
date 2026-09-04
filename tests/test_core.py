@@ -1393,6 +1393,20 @@ def test_memoize_ignore(cache):
     assert cache.stats() == (2, 1)
 
 
+def test_memoize_ignore_by_name_regardless_of_call_style(cache):
+    # Regression test for GH #240: a name in `ignore` should be honored
+    # whether the caller passes that argument positionally or by keyword.
+    # `session` is deliberately something that can't be pickled, so if it
+    # ever leaks into the cache key this raises instead of quietly caching
+    # under two different keys.
+    @cache.memoize(ignore={'session'})
+    def get(entity_id, session):
+        return entity_id
+
+    assert get('a', session=threading.Lock())
+    assert get('b', threading.Lock())
+
+
 def test_memoize_iter(cache):
     @cache.memoize()
     def test(*args, **kwargs):
