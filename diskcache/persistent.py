@@ -136,6 +136,7 @@ class Deque(Sequence):
         """Set max length of the deque.
 
         Pops items from left while length greater than max.
+        Set to None to remove the length limit.
 
         >>> deque = Deque()
         >>> deque.extendleft('abcde')
@@ -146,7 +147,7 @@ class Deque(Sequence):
         :param value: max length
 
         """
-        self._maxlen = value
+        self._maxlen = float('inf') if value is None else value
         with self._cache.transact(retry=True):
             while len(self._cache) > self._maxlen:
                 self._popleft()

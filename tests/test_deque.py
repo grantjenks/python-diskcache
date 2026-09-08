@@ -312,3 +312,14 @@ def test_peek(deque):
     assert len(deque) == 1
     assert deque.peek() == value
     assert len(deque) == 1
+
+
+def test_maxlen_can_be_reset_to_unlimited(tmp_path):
+    with dc.Cache(str(tmp_path), eviction_policy='none') as cache:
+        deque = dc.Deque.fromcache(cache, 'abc', maxlen=3)
+
+        deque.maxlen = None
+
+        deque.extend('def')
+        assert list(deque) == list('abcdef')
+        assert deque.maxlen == float('inf')
