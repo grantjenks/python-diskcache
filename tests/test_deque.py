@@ -3,6 +3,7 @@
 import pickle
 import shutil
 import tempfile
+from collections import deque as memory_deque
 from unittest import mock
 
 import pytest
@@ -203,6 +204,36 @@ def test_extendleft(deque):
     sequence = list('abcde')
     deque.extendleft(sequence)
     assert deque == list(reversed(sequence))
+
+
+@pytest.mark.parametrize('method', ['extend', 'extendleft', '__iadd__'])
+@pytest.mark.parametrize('size', [0, 1, 3, 101])
+@pytest.mark.parametrize('maxlen', [None, 0, 1, 3, 101])
+def test_extend_self(deque, method, size, maxlen):
+    if maxlen is not None:
+        deque.maxlen = maxlen
+    deque.extend(range(size))
+    expected = memory_deque(range(size), maxlen=maxlen)
+    original_size = len(expected)
+    getattr(expected, method)(expected)
+
+    append_name = '_appendleft' if method == 'extendleft' else '_append'
+    append = getattr(deque, append_name)
+    calls = 0
+
+    def bounded_append(value):
+        nonlocal calls
+        calls += 1
+        # Stop a regression before self-extension can grow without bound.
+        assert calls <= original_size
+        append(value)
+
+    with mock.patch.object(deque, append_name, bounded_append):
+        result = getattr(deque, method)(deque)
+
+    assert list(deque) == list(expected)
+    if method == '__iadd__':
+        assert result is deque
 
 
 def test_pop(deque):

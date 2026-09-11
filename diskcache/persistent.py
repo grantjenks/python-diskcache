@@ -409,6 +409,8 @@ class Deque(Sequence):
         :param iterable: iterable of values
 
         """
+        if iterable is self:
+            iterable = tuple(iterable)
         for value in iterable:
             self._append(value)
 
@@ -425,6 +427,8 @@ class Deque(Sequence):
         :param iterable: iterable of values
 
         """
+        if iterable is self:
+            iterable = tuple(iterable)
         for value in iterable:
             self._appendleft(value)
 
