@@ -311,6 +311,20 @@ keys will be serialized which is likely to have a meaningless sorted order.
     >>> cache.peekitem(last=False)
     ('c', None)
 
+To iterate keys with a matching tag, pass `tag` to :meth:`iterkeys
+<.Cache.iterkeys>`. Filtering happens in the database without reading cached
+values. Omitting `tag` includes all keys; ``tag=None`` selects untagged keys.
+As with other iteration methods, expired items are included.
+
+    >>> _ = cache.set('a', None, tag='letter')
+    >>> _ = cache.set('c', None, tag='letter')
+    >>> list(cache.iterkeys(tag='letter'))
+    ['a', 'c']
+    >>> list(cache.iterkeys(reverse=True, tag='letter'))
+    ['c', 'a']
+    >>> list(cache.iterkeys(tag=None))
+    ['b']
+
 If only the first or last item in insertion order is desired then
 :meth:`peekitem <.Cache.peekitem>` is more efficient than using iteration.
 

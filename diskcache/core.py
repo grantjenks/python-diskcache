@@ -2205,7 +2205,7 @@ class Cache:
 
         return count
 
-    def iterkeys(self, reverse=False):
+    def iterkeys(self, reverse=False, tag=ENOVAL):
         """Iterate Cache keys in database sort order.
 
         >>> cache = Cache()
@@ -2216,36 +2216,39 @@ class Cache:
         >>> list(cache.iterkeys(reverse=True))
         [4, 3, 2, 1, 0]
 
+        If `tag` is given, only keys with a matching tag are returned. Use
+        ``tag=None`` to iterate untagged keys. Omitting `tag` returns all keys.
+        Iteration includes expired items and does not read cached values.
+
         :param bool reverse: reverse sort order (default False)
+        :param tag: tag to match (default ENOVAL, matching all tags)
         :return: iterator of Cache keys
 
         """
         sql = self._sql
         limit = 100
         _disk_get = self._disk.get
+        select = 'SELECT key, raw FROM Cache'
+        args = ()
+
+        if tag is None:
+            select += ' WHERE tag IS NULL'
+        elif tag is not ENOVAL:
+            select += ' WHERE tag = ?'
+            args = (tag,)
+
+        iterate = select + (' WHERE (' if tag is ENOVAL else ' AND (')
 
         if reverse:
-            select = (
-                'SELECT key, raw FROM Cache'
-                ' ORDER BY key DESC, raw DESC LIMIT 1'
-            )
-            iterate = (
-                'SELECT key, raw FROM Cache'
-                ' WHERE key = ? AND raw < ? OR key < ?'
-                ' ORDER BY key DESC, raw DESC LIMIT ?'
-            )
+            iterate += 'key = ? AND raw < ? OR key < ?)'
+            order = ' ORDER BY key DESC, raw DESC'
         else:
-            select = (
-                'SELECT key, raw FROM Cache'
-                ' ORDER BY key ASC, raw ASC LIMIT 1'
-            )
-            iterate = (
-                'SELECT key, raw FROM Cache'
-                ' WHERE key = ? AND raw > ? OR key > ?'
-                ' ORDER BY key ASC, raw ASC LIMIT ?'
-            )
+            iterate += 'key = ? AND raw > ? OR key > ?)'
+            order = ' ORDER BY key ASC, raw ASC'
 
-        row = sql(select).fetchall()
+        select += order + ' LIMIT 1'
+        iterate += order + ' LIMIT ?'
+        row = sql(select, args).fetchall()
 
         if row:
             ((key, raw),) = row
@@ -2255,7 +2258,7 @@ class Cache:
         yield _disk_get(key, raw)
 
         while True:
-            rows = sql(iterate, (key, raw, key, limit)).fetchall()
+            rows = sql(iterate, args + (key, raw, key, limit)).fetchall()
 
             if not rows:
                 break
