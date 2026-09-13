@@ -173,6 +173,20 @@ decrementing a missing key will raise a :exc:`KeyError`.
         ...
     KeyError: 'carol'
 
+Use `tag` to associate a newly created counter with a group for eviction. The
+tag is applied atomically when the key is missing or expired. Incrementing or
+decrementing an existing item preserves its tag and expiration time, even if
+a different `tag` is supplied. :class:`FanoutCache` supports the same option.
+
+    >>> cache.incr('requests', tag='counters')
+    1
+    >>> cache.decr('requests', tag='another-group')
+    0
+    >>> cache.get('requests', tag=True)
+    (0, 'counters')
+    >>> cache.evict('counters')
+    1
+
 Increment and decrement operations are atomic and assume the value may be
 stored in a SQLite integer column. SQLite supports 64-bit signed integers.
 

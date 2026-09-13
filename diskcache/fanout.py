@@ -189,11 +189,14 @@ class FanoutCache:
         except Timeout:
             return False
 
-    def incr(self, key, delta=1, default=0, retry=False):
+    def incr(self, key, delta=1, default=0, retry=False, tag=None):
         """Increment value by delta for item with key.
 
         If key is missing and default is None then raise KeyError. Else if key
         is missing and default is not None then use default for value.
+
+        The tag is applied only when creating a missing or expired item.
+        Existing items retain their tag and expiration time.
 
         Operation is atomic. All concurrent increment operations will be
         counted individually.
@@ -209,6 +212,7 @@ class FanoutCache:
         :param int delta: amount to increment (default 1)
         :param int default: value if key is missing (default 0)
         :param bool retry: retry if database timeout occurs (default False)
+        :param str tag: tag for a newly created item (default None)
         :return: new value for item on success else None
         :raises KeyError: if key is not found and default is None
 
@@ -216,15 +220,18 @@ class FanoutCache:
         index = self._hash(key) % self._count
         shard = self._shards[index]
         try:
-            return shard.incr(key, delta, default, retry)
+            return shard.incr(key, delta, default, retry, tag=tag)
         except Timeout:
             return None
 
-    def decr(self, key, delta=1, default=0, retry=False):
+    def decr(self, key, delta=1, default=0, retry=False, tag=None):
         """Decrement value by delta for item with key.
 
         If key is missing and default is None then raise KeyError. Else if key
         is missing and default is not None then use default for value.
+
+        The tag is applied only when creating a missing or expired item.
+        Existing items retain their tag and expiration time.
 
         Operation is atomic. All concurrent decrement operations will be
         counted individually.
@@ -243,6 +250,7 @@ class FanoutCache:
         :param int delta: amount to decrement (default 1)
         :param int default: value if key is missing (default 0)
         :param bool retry: retry if database timeout occurs (default False)
+        :param str tag: tag for a newly created item (default None)
         :return: new value for item on success else None
         :raises KeyError: if key is not found and default is None
 
@@ -250,7 +258,7 @@ class FanoutCache:
         index = self._hash(key) % self._count
         shard = self._shards[index]
         try:
-            return shard.decr(key, delta, default, retry)
+            return shard.decr(key, delta, default, retry, tag=tag)
         except Timeout:
             return None
 
