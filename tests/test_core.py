@@ -565,6 +565,17 @@ def test_least_frequently_used(cache):
     assert len(cache.check()) == 0
 
 
+def test_cachedir_tag(cache):
+    tag_path = op.join(cache.directory, dc.core.CACHEDIR_TAG)
+    assert op.exists(tag_path)
+    with open(tag_path, 'rb') as reader:
+        assert reader.read().startswith(b'Signature: 8a477f597d28d172789f06886806bc55\n')
+
+    # The tag file should not be reported (or removed) as an unknown file.
+    assert len(cache.check(fix=True)) == 0
+    assert op.exists(tag_path)
+
+
 def test_check(cache):
     blob = b'a' * 2**20
     keys = (0, 1, 1234, 56.78, 'hello', b'world', None)

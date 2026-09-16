@@ -39,6 +39,14 @@ DBNAME = 'cache.db'
 ENOVAL = Constant('ENOVAL')
 UNKNOWN = Constant('UNKNOWN')
 
+CACHEDIR_TAG = 'CACHEDIR.TAG'
+CACHEDIR_TAG_CONTENTS = (
+    b'Signature: 8a477f597d28d172789f06886806bc55\n'
+    b'# This file is a cache directory tag automatically created by diskcache.\n'
+    b'# For information about cache directory tags, see:\n'
+    b'#\thttps://bford.info/cachedir/\n'
+)
+
 MODE_NONE = 0
 MODE_RAW = 1
 MODE_BINARY = 2
@@ -452,6 +460,14 @@ class Cache:
                         'Cache directory "%s" does not exist'
                         ' and could not be created' % self._directory,
                     ) from None
+
+        tag_path = op.join(directory, CACHEDIR_TAG)
+        if not op.exists(tag_path):
+            try:
+                with open(tag_path, 'xb') as writer:
+                    writer.write(CACHEDIR_TAG_CONTENTS)
+            except OSError:
+                pass
 
         sql = self._sql_retry
 
@@ -1967,7 +1983,7 @@ class Cache:
                     error = set(paths) - filenames
 
                     for full_path in error:
-                        if DBNAME in full_path:
+                        if DBNAME in full_path or CACHEDIR_TAG in full_path:
                             continue
 
                         message = 'unknown file: %s' % full_path
