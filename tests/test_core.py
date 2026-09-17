@@ -144,6 +144,23 @@ def test_init_makedirs():
             raise
 
 
+def test_init_makedirs_respects_umask():
+    cache_dir = tempfile.mkdtemp()
+    shutil.rmtree(cache_dir)
+    makedirs = mock.Mock(wraps=os.makedirs)
+
+    try:
+        with mock.patch('os.makedirs', makedirs):
+            cache = dc.Cache(cache_dir)
+        cache.close()
+    finally:
+        shutil.rmtree(cache_dir, ignore_errors=True)
+
+    # No explicit mode should be passed, so the OS applies the umask to the
+    # default mode like it does for any other new directory.
+    makedirs.assert_called_once_with(cache_dir)
+
+
 def test_pragma_error(cache):
     local = mock.Mock()
     con = mock.Mock()
