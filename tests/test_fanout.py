@@ -45,6 +45,16 @@ def test_init(cache):
     cache.check()
 
 
+def test_getattr_invalid_name_raises_attribute_error(cache):
+    # Regression test: __getattr__ used to raise AssertionError for an
+    # unknown attribute, which breaks hasattr() (it only treats
+    # AttributeError as "attribute not found").
+    with pytest.raises(AttributeError):
+        cache.__slots__
+
+    assert not hasattr(cache, '__slots__')
+
+
 def test_init_path(cache):
     path = pathlib.Path(cache.directory)
     other = dc.FanoutCache(path)
