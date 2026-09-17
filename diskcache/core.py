@@ -444,7 +444,11 @@ class Cache:
 
         if not op.isdir(directory):
             try:
-                os.makedirs(directory, 0o755)
+                # Let the OS apply the umask to the default mode rather than
+                # hard-coding 0o755, so the cache directory's permissions
+                # honor the caller's umask like any other newly created
+                # directory would.
+                os.makedirs(directory)
             except OSError as error:
                 if error.errno != errno.EEXIST:
                     raise EnvironmentError(
