@@ -25,6 +25,17 @@ def full_name(func):
     return func.__module__ + '.' + func.__qualname__
 
 
+
+def _reject_bool_numeric(value, name):
+    """Raise TypeError if value is bool (bool subclasses int/float)."""
+    if isinstance(value, bool):
+        raise TypeError(
+            '%s must be a number, not bool (got %r; bool subclasses int so '
+            '%r would silently become %d)' % (name, value, value, int(value))
+        )
+
+
+
 class Constant(tuple):
     """Pretty display of immutable constant."""
 
@@ -587,6 +598,8 @@ class Cache:
         # Close and re-open database connection with given timeout.
 
         self.close()
+        # bool subclasses int; timeout=True would silently become 1s
+        _reject_bool_numeric(timeout, 'timeout')
         self._timeout = timeout
         self._sql  # pylint: disable=pointless-statement
 
@@ -768,6 +781,10 @@ class Cache:
         """
         now = time.time()
         db_key, raw = self._disk.put(key)
+        # bool subclasses int; expire=True would silently become 1s TTL;
+        # expire=False would become 0 (immediate expiry)
+        if expire is not None:
+            _reject_bool_numeric(expire, 'expire')
         expire_time = None if expire is None else now + expire
         size, mode, filename, db_value = self._disk.store(value, read, key=key)
         columns = (expire_time, tag, size, mode, filename, db_value)
@@ -940,6 +957,10 @@ class Cache:
         """
         now = time.time()
         db_key, raw = self._disk.put(key)
+        # bool subclasses int; expire=True would silently become 1s TTL;
+        # expire=False would become 0 (immediate expiry)
+        if expire is not None:
+            _reject_bool_numeric(expire, 'expire')
         expire_time = None if expire is None else now + expire
 
         with self._transact(retry) as (sql, _):
@@ -988,6 +1009,10 @@ class Cache:
         """
         now = time.time()
         db_key, raw = self._disk.put(key)
+        # bool subclasses int; expire=True would silently become 1s TTL;
+        # expire=False would become 0 (immediate expiry)
+        if expire is not None:
+            _reject_bool_numeric(expire, 'expire')
         expire_time = None if expire is None else now + expire
         size, mode, filename, db_value = self._disk.store(value, read, key=key)
         columns = (expire_time, tag, size, mode, filename, db_value)
@@ -1445,6 +1470,10 @@ class Cache:
 
         now = time.time()
         raw = True
+        # bool subclasses int; expire=True would silently become 1s TTL;
+        # expire=False would become 0 (immediate expiry)
+        if expire is not None:
+            _reject_bool_numeric(expire, 'expire')
         expire_time = None if expire is None else now + expire
         size, mode, filename, db_value = self._disk.store(value, read)
         columns = (expire_time, tag, size, mode, filename, db_value)
