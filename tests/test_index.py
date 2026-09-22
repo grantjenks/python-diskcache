@@ -3,6 +3,8 @@
 import pickle
 import shutil
 import tempfile
+from collections import OrderedDict, UserDict
+from types import MappingProxyType
 
 import pytest
 
@@ -71,6 +73,38 @@ def test_getsetdel(index):
         del index[key]
 
     assert len(index) == 0
+
+
+@pytest.mark.parametrize('mapping_type', [dict, UserDict, MappingProxyType])
+@pytest.mark.parametrize(
+    'other_items, expected',
+    [
+        ({'missing': 0}, False),
+        ({'missing': ('ENOVAL',)}, False),
+        ({'key': ('ENOVAL',)}, True),
+        ({'key': ('different',)}, False),
+    ],
+)
+def test_compare_mapping_sentinel_value(
+    index, mapping_type, other_items, expected
+):
+    index['key'] = ('ENOVAL',)
+    other = mapping_type(other_items)
+
+    assert (index == other) is expected
+    assert (index != other) is not expected
+    assert (other == index) is expected
+    assert (other != index) is not expected
+
+
+def test_compare_mapping_order(index):
+    index.update([('a', ('ENOVAL',)), ('b', 1)])
+    same_order = OrderedDict(index.items())
+    reverse_order = OrderedDict(reversed(list(index.items())))
+
+    assert index == same_order
+    assert index != reverse_order
+    assert index == dict(reverse_order)
 
 
 def test_pop(index):

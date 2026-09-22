@@ -1126,7 +1126,13 @@ class Index(MutableMapping):
             pairs = zip(alpha, beta)
             return not any(a != x or b != y for (a, b), (x, y) in pairs)
         else:
-            return all(self[key] == other.get(key, ENOVAL) for key in self)
+            missing = object()
+            for key in self:
+                value = other.get(key, missing)
+                equal = value is not missing and self[key] == value
+                if not equal:
+                    return False
+            return True
 
     def __ne__(self, other):
         """index.__ne__(other) <==> index != other
