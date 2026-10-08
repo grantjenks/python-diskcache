@@ -104,3 +104,25 @@ def test_memoize_stampede(cache):
     while (time.time() - start) < 1:
         worker(100)
     assert state['num'] > 0
+
+
+@pytest.mark.parametrize('elapsed', [0, 10])
+def test_throttle_preserves_tag(cache, elapsed):
+    clock = [0]
+
+    @dc.throttle(
+        cache,
+        2,
+        1,
+        name='rate-limit',
+        tag='limiters',
+        time_func=lambda: clock[0],
+    )
+    def worker():
+        return 'called'
+
+    assert cache.get('rate-limit', tag=True)[1] == 'limiters'
+    clock[0] = elapsed
+    assert worker() == 'called'
+    assert cache.get('rate-limit', tag=True)[1] == 'limiters'
+    assert cache.evict('limiters') == 1

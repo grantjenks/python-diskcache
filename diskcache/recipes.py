@@ -297,9 +297,9 @@ def throttle(
                     delay = 0
 
                     if tally > count:
-                        cache.set(key, (now, count - 1), expire)
+                        cache.set(key, (now, count - 1), expire, tag=tag)
                     elif tally >= 1:
-                        cache.set(key, (now, tally - 1), expire)
+                        cache.set(key, (now, tally - 1), expire, tag=tag)
                     else:
                         delay = (1 - tally) / rate
 
