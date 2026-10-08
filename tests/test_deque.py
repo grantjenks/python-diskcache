@@ -312,3 +312,31 @@ def test_peek(deque):
     assert len(deque) == 1
     assert deque.peek() == value
     assert len(deque) == 1
+
+
+@pytest.mark.parametrize('index', [0.0, 1.0])
+@pytest.mark.parametrize('operation', ['get', 'set', 'del'])
+def test_index_rejects_float_without_mutation(deque, index, operation):
+    deque.extend('abc')
+    method = getattr(deque, '__' + operation + 'item__')
+    args = (index, 'changed') if operation == 'set' else (index,)
+    with pytest.raises(TypeError):
+        method(*args)
+    assert list(deque) == list('abc')
+
+
+def test_index_protocol(deque):
+    class Index:
+        def __init__(self, value):
+            self.value = value
+
+        def __index__(self):
+            return self.value
+
+    deque.extend('abc')
+    assert deque[Index(1)] == 'b'
+    deque[Index(-1)] = 'z'
+    del deque[Index(0)]
+    assert list(deque) == ['b', 'z']
+    with pytest.raises(IndexError):
+        deque[Index(2)]

@@ -152,6 +152,7 @@ class Deque(Sequence):
                 self._popleft()
 
     def _index(self, index, func):
+        index = op.index(index)
         len_self = len(self)
 
         if index >= 0:
