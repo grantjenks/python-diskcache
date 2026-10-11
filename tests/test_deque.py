@@ -50,6 +50,32 @@ def test_init():
     rmdir(directory)
 
 
+@pytest.mark.parametrize('factory', ['constructor', 'fromcache'])
+def test_negative_maxlen_does_not_change_existing_data(tmp_path, factory):
+    deque = dc.Deque([1, 2, 3], directory=str(tmp_path / 'deque'))
+    try:
+        with pytest.raises(ValueError, match='maxlen'):
+            if factory == 'constructor':
+                dc.Deque([4], directory=deque.directory, maxlen=-1)
+            else:
+                dc.Deque.fromcache(deque.cache, [4], maxlen=-1)
+
+        assert list(deque) == [1, 2, 3]
+    finally:
+        deque.cache.close()
+
+
+def test_negative_maxlen_assignment_keeps_limit_and_data(deque):
+    deque.maxlen = 3
+    deque.extend([1, 2, 3])
+
+    with pytest.raises(ValueError, match='maxlen'):
+        deque.maxlen = -1
+
+    assert deque.maxlen == 3
+    assert list(deque) == [1, 2, 3]
+
+
 def test_getsetdel(deque):
     sequence = list('abcde')
     assert len(deque) == 0

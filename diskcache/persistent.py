@@ -83,8 +83,11 @@ class Deque(Sequence):
 
         :param iterable: iterable of items to append to deque
         :param directory: deque directory (default None)
+        :raises ValueError: if maxlen is negative
 
         """
+        if maxlen is not None and maxlen < 0:
+            raise ValueError('maxlen must be non-negative')
         self._cache = Cache(directory, eviction_policy='none')
         self._maxlen = float('inf') if maxlen is None else maxlen
         self._extend(iterable)
@@ -107,8 +110,11 @@ class Deque(Sequence):
         :param Cache cache: cache to use
         :param iterable: iterable of items
         :return: initialized Deque
+        :raises ValueError: if maxlen is negative
 
         """
+        if maxlen is not None and maxlen < 0:
+            raise ValueError('maxlen must be non-negative')
         # pylint: disable=no-member,protected-access
         self = cls.__new__(cls)
         self._cache = cache
@@ -144,8 +150,11 @@ class Deque(Sequence):
         ['c', 'd', 'e']
 
         :param value: max length
+        :raises ValueError: if value is negative
 
         """
+        if value is not None and value < 0:
+            raise ValueError('maxlen must be non-negative')
         self._maxlen = value
         with self._cache.transact(retry=True):
             while len(self._cache) > self._maxlen:
