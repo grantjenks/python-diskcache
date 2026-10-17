@@ -27,43 +27,72 @@ class FanoutCache:
         :param disk: `Disk` instance for serialization
         :param settings: any of `DEFAULT_SETTINGS`
 
-        """
-        if directory is None:
-            directory = tempfile.mkdtemp(prefix='diskcache-')
-        directory = str(directory)
-        directory = op.expanduser(directory)
-        directory = op.expandvars(directory)
+        When `directory` is omitted, the temporary cache directory and shard
+        databases are created on first use so importing a module that
+        constructs a module-level `FanoutCache()` has no filesystem side
+        effect.
 
+        """
         default_size_limit = DEFAULT_SETTINGS['size_limit']
         size_limit = settings.pop('size_limit', default_size_limit) / shards
 
         self._count = shards
-        self._directory = directory
         self._disk = disk
-        self._shards = tuple(
-            Cache(
-                directory=op.join(directory, '%03d' % num),
-                timeout=timeout,
-                disk=disk,
-                size_limit=size_limit,
-                **settings,
-            )
-            for num in range(shards)
-        )
-        self._hash = self._shards[0].disk.hash
+        self._timeout = timeout
+        self._size_limit = size_limit
+        self._settings = settings
+        self._shards = None
+        self._hash = None
         self._caches = {}
         self._deques = {}
         self._indexes = {}
 
+        if directory is None:
+            self._directory = None
+        else:
+            self._directory = self._normalize_directory(directory)
+            self._init_shards()
+
+    @staticmethod
+    def _normalize_directory(directory):
+        directory = str(directory)
+        directory = op.expanduser(directory)
+        directory = op.expandvars(directory)
+        return directory
+
+    def _ensure_ready(self):
+        """Create temp directory and shards on first use when deferred."""
+        if self._shards is not None:
+            return
+        if self._directory is None:
+            self._directory = tempfile.mkdtemp(prefix='diskcache-')
+        self._init_shards()
+
+    def _init_shards(self):
+        directory = self._directory
+        self._shards = tuple(
+            Cache(
+                directory=op.join(directory, '%03d' % num),
+                timeout=self._timeout,
+                disk=self._disk,
+                size_limit=self._size_limit,
+                **self._settings,
+            )
+            for num in range(self._count)
+        )
+        self._hash = self._shards[0].disk.hash
+
     @property
     def directory(self):
         """Cache directory."""
+        self._ensure_ready()
         return self._directory
 
     def __getattr__(self, name):
         safe_names = {'timeout', 'disk'}
         valid_name = name in DEFAULT_SETTINGS or name in safe_names
         assert valid_name, 'cannot access {} in cache shard'.format(name)
+        self._ensure_ready()
         return getattr(self._shards[0], name)
 
     @cl.contextmanager
@@ -94,6 +123,7 @@ class FanoutCache:
         """
         assert retry, 'retry must be True in FanoutCache'
         with cl.ExitStack() as stack:
+            self._ensure_ready()
             for shard in self._shards:
                 shard_transaction = shard.transact(retry=True)
                 stack.enter_context(shard_transaction)
@@ -118,6 +148,7 @@ class FanoutCache:
         :return: True if item was set
 
         """
+        self._ensure_ready()
         index = self._hash(key) % self._count
         shard = self._shards[index]
         try:
@@ -134,6 +165,7 @@ class FanoutCache:
         :param value: value for item
 
         """
+        self._ensure_ready()
         index = self._hash(key) % self._count
         shard = self._shards[index]
         shard[key] = value
@@ -151,6 +183,7 @@ class FanoutCache:
         :return: True if key was touched
 
         """
+        self._ensure_ready()
         index = self._hash(key) % self._count
         shard = self._shards[index]
         try:
@@ -182,6 +215,7 @@ class FanoutCache:
         :return: True if item was added
 
         """
+        self._ensure_ready()
         index = self._hash(key) % self._count
         shard = self._shards[index]
         try:
@@ -213,6 +247,7 @@ class FanoutCache:
         :raises KeyError: if key is not found and default is None
 
         """
+        self._ensure_ready()
         index = self._hash(key) % self._count
         shard = self._shards[index]
         try:
@@ -247,6 +282,7 @@ class FanoutCache:
         :raises KeyError: if key is not found and default is None
 
         """
+        self._ensure_ready()
         index = self._hash(key) % self._count
         shard = self._shards[index]
         try:
@@ -279,6 +315,7 @@ class FanoutCache:
         :return: value for item if key is found else default
 
         """
+        self._ensure_ready()
         index = self._hash(key) % self._count
         shard = self._shards[index]
         try:
@@ -296,6 +333,7 @@ class FanoutCache:
         :raises KeyError: if key is not found
 
         """
+        self._ensure_ready()
         index = self._hash(key) % self._count
         shard = self._shards[index]
         return shard[key]
@@ -320,6 +358,7 @@ class FanoutCache:
         :return: True if key is found
 
         """
+        self._ensure_ready()
         index = self._hash(key) % self._count
         shard = self._shards[index]
         return key in shard
@@ -345,6 +384,7 @@ class FanoutCache:
         :return: value for item if key is found else default
 
         """
+        self._ensure_ready()
         index = self._hash(key) % self._count
         shard = self._shards[index]
         try:
@@ -365,6 +405,7 @@ class FanoutCache:
         :return: True if item was deleted
 
         """
+        self._ensure_ready()
         index = self._hash(key) % self._count
         shard = self._shards[index]
         try:
@@ -381,6 +422,7 @@ class FanoutCache:
         :raises KeyError: if key is not found
 
         """
+        self._ensure_ready()
         index = self._hash(key) % self._count
         shard = self._shards[index]
         del shard[key]
@@ -405,6 +447,7 @@ class FanoutCache:
         :raises Timeout: if database timeout occurs
 
         """
+        self._ensure_ready()
         warnings = (shard.check(fix, retry) for shard in self._shards)
         return functools.reduce(operator.iadd, warnings, [])
 
@@ -428,6 +471,7 @@ class FanoutCache:
         :raises Timeout: if database timeout occurs
 
         """
+        self._ensure_ready()
         for shard in self._shards:
             shard.create_tag_index()
 
@@ -437,6 +481,7 @@ class FanoutCache:
         :raises Timeout: if database timeout occurs
 
         """
+        self._ensure_ready()
         for shard in self._shards:
             shard.drop_tag_index()
 
@@ -479,6 +524,7 @@ class FanoutCache:
 
     def _remove(self, name, args=(), retry=False):
         total = 0
+        self._ensure_ready()
         for shard in self._shards:
             method = getattr(shard, name)
             while True:
@@ -499,6 +545,7 @@ class FanoutCache:
         :return: (hits, misses)
 
         """
+        self._ensure_ready()
         results = [shard.stats(enable, reset) for shard in self._shards]
         total_hits = sum(hits for hits, _ in results)
         total_misses = sum(misses for _, misses in results)
@@ -510,10 +557,16 @@ class FanoutCache:
         :return: size in bytes
 
         """
+        self._ensure_ready()
         return sum(shard.volume() for shard in self._shards)
 
     def close(self):
         """Close database connection."""
+        if self._shards is None:
+            self._caches.clear()
+            self._deques.clear()
+            self._indexes.clear()
+            return
         for shard in self._shards:
             shard.close()
         self._caches.clear()
@@ -521,12 +574,14 @@ class FanoutCache:
         self._indexes.clear()
 
     def __enter__(self):
+        self._ensure_ready()
         return self
 
     def __exit__(self, *exception):
         self.close()
 
     def __getstate__(self):
+        self._ensure_ready()
         return (self._directory, self._count, self.timeout, type(self.disk))
 
     def __setstate__(self, state):
@@ -534,16 +589,19 @@ class FanoutCache:
 
     def __iter__(self):
         """Iterate keys in cache including expired items."""
+        self._ensure_ready()
         iterators = (iter(shard) for shard in self._shards)
         return it.chain.from_iterable(iterators)
 
     def __reversed__(self):
         """Reverse iterate keys in cache including expired items."""
+        self._ensure_ready()
         iterators = (reversed(shard) for shard in reversed(self._shards))
         return it.chain.from_iterable(iterators)
 
     def __len__(self):
         """Count of items in cache including expired items."""
+        self._ensure_ready()
         return sum(len(shard) for shard in self._shards)
 
     def reset(self, key, value=ENOVAL):
@@ -564,6 +622,7 @@ class FanoutCache:
         :return: updated value for item
 
         """
+        self._ensure_ready()
         for shard in self._shards:
             while True:
                 try:
@@ -602,6 +661,7 @@ class FanoutCache:
         try:
             return _caches[name]
         except KeyError:
+            self._ensure_ready()
             parts = name.split('/')
             directory = op.join(self._directory, 'cache', *parts)
             temp = Cache(
@@ -636,6 +696,7 @@ class FanoutCache:
         try:
             return _deques[name]
         except KeyError:
+            self._ensure_ready()
             parts = name.split('/')
             directory = op.join(self._directory, 'deque', *parts)
             cache = Cache(
@@ -672,6 +733,7 @@ class FanoutCache:
         try:
             return _indexes[name]
         except KeyError:
+            self._ensure_ready()
             parts = name.split('/')
             directory = op.join(self._directory, 'index', *parts)
             cache = Cache(

@@ -683,3 +683,45 @@ def test_custom_filename_disk():
             assert content == str(count) * int(1e5)
 
     shutil.rmtree(cache.directory, ignore_errors=True)
+
+
+def test_fanout_defers_tempdir_until_use(tmp_path, monkeypatch):
+    """FanoutCache() must not create a temp directory until first use (#379)."""
+    calls = []
+    real_mkdtemp = tempfile.mkdtemp
+
+    def tracking_mkdtemp(*args, **kwargs):
+        path = real_mkdtemp(*args, **kwargs)
+        calls.append(path)
+        return path
+
+    monkeypatch.setattr(tempfile, 'mkdtemp', tracking_mkdtemp)
+
+    cache = dc.FanoutCache()
+    assert calls == []
+    assert cache._shards is None
+    assert cache._directory is None
+
+    cache['key'] = 'value'
+    assert len(calls) == 1
+    assert cache.directory == calls[0]
+    assert cache['key'] == 'value'
+
+    cache.close()
+    shutil.rmtree(cache.directory, ignore_errors=True)
+
+
+def test_fanout_close_before_use_is_noop(monkeypatch):
+    calls = []
+    real_mkdtemp = tempfile.mkdtemp
+
+    def tracking_mkdtemp(*args, **kwargs):
+        path = real_mkdtemp(*args, **kwargs)
+        calls.append(path)
+        return path
+
+    monkeypatch.setattr(tempfile, 'mkdtemp', tracking_mkdtemp)
+
+    cache = dc.FanoutCache()
+    cache.close()
+    assert calls == []
