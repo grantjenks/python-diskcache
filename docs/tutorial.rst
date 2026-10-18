@@ -850,6 +850,34 @@ example below uses compressed JSON, available for convenience as
     with Cache(disk=JSONDisk, disk_compress_level=6) as cache:
         pass
 
+``JSONDisk`` also serializes keys, which is incompatible with some
+:class:`Deque <diskcache.Deque>` operations. The queue methods
+:meth:`Cache.push <diskcache.Cache.push>` and
+:meth:`Cache.pull <diskcache.Cache.pull>` use integer or string keys without
+passing them through ``Disk.put()``. Indexing or iterating over a ``Deque``
+then attempts to decode these keys with ``JSONDisk.get()``, raising
+``TypeError``.
+
+To use JSON serialization for queue values, keep the default key serialization
+by overriding ``put`` and ``get``:
+
+.. code-block:: python
+
+    import diskcache
+    from tempfile import TemporaryDirectory
+
+    class JSONDiskValues(diskcache.JSONDisk):
+        put = diskcache.Disk.put
+        get = diskcache.Disk.get
+
+    with TemporaryDirectory() as directory:
+        with diskcache.Cache(directory, disk=JSONDiskValues,
+                             eviction_policy='none') as cache:
+            queue = diskcache.Deque.fromcache(cache)
+            queue.extend([{'task': 'first'}, {'task': 'second'}])
+            assert queue[0] == {'task': 'first'}
+            assert queue.popleft() == {'task': 'first'}
+
 Four data types can be stored natively in the cache metadata database:
 integers, floats, strings, and bytes. Other datatypes are converted to bytes
 via the Pickle protocol. Beware that integers and floats like ``1`` and ``1.0``
