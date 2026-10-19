@@ -332,7 +332,17 @@ class Disk:
 
 
 class JSONDisk(Disk):
-    """Cache key and value using JSON serialization with zlib compression."""
+    """Cache key and value using JSON serialization with zlib compression.
+
+    Override ``json_dumps`` and ``json_loads`` in a subclass to customize JSON
+    serialization. The dumper accepts an object and returns a string; the
+    loader accepts a string and returns an object. Wrap function attributes
+    with :func:`staticmethod` to avoid binding them to the disk instance.
+
+    """
+
+    json_dumps = staticmethod(json.dumps)
+    json_loads = staticmethod(json.loads)
 
     def __init__(self, directory, compress_level=1, **kwargs):
         """Initialize JSON disk instance.
@@ -351,24 +361,24 @@ class JSONDisk(Disk):
         super().__init__(directory, **kwargs)
 
     def put(self, key):
-        json_bytes = json.dumps(key).encode('utf-8')
+        json_bytes = self.json_dumps(key).encode('utf-8')
         data = zlib.compress(json_bytes, self.compress_level)
         return super().put(data)
 
     def get(self, key, raw):
         data = super().get(key, raw)
-        return json.loads(zlib.decompress(data).decode('utf-8'))
+        return self.json_loads(zlib.decompress(data).decode('utf-8'))
 
     def store(self, value, read, key=UNKNOWN):
         if not read:
-            json_bytes = json.dumps(value).encode('utf-8')
+            json_bytes = self.json_dumps(value).encode('utf-8')
             value = zlib.compress(json_bytes, self.compress_level)
         return super().store(value, read, key=key)
 
     def fetch(self, mode, filename, value, read):
         data = super().fetch(mode, filename, value, read)
         if not read:
-            data = json.loads(zlib.decompress(data).decode('utf-8'))
+            data = self.json_loads(zlib.decompress(data).decode('utf-8'))
         return data
 
 

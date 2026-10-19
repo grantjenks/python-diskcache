@@ -815,40 +815,47 @@ database while values are sometimes stored separately in files.
 
 To customize serialization, you may pass in a :class:`Disk <diskcache.Disk>`
 subclass to initialize the cache. All clients accessing the cache are expected
-to use the same serialization. The default implementation uses Pickle and the
-example below uses compressed JSON, available for convenience as
-:class:`JSONDisk <diskcache.JSONDisk>`.
+to use the same serialization. The default implementation uses Pickle;
+compressed JSON is available as :class:`JSONDisk <diskcache.JSONDisk>`:
 
 .. code-block:: python
 
-    class JSONDisk(diskcache.Disk):
-        def __init__(self, directory, compress_level=1, **kwargs):
-            self.compress_level = compress_level
-            super().__init__(directory, **kwargs)
-
-        def put(self, key):
-            json_bytes = json.dumps(key).encode('utf-8')
-            data = zlib.compress(json_bytes, self.compress_level)
-            return super().put(data)
-
-        def get(self, key, raw):
-            data = super().get(key, raw)
-            return json.loads(zlib.decompress(data).decode('utf-8'))
-
-        def store(self, value, read, key=UNKNOWN):
-            if not read:
-                json_bytes = json.dumps(value).encode('utf-8')
-                value = zlib.compress(json_bytes, self.compress_level)
-            return super().store(value, read, key=key)
-
-        def fetch(self, mode, filename, value, read):
-            data = super().fetch(mode, filename, value, read)
-            if not read:
-                data = json.loads(zlib.decompress(data).decode('utf-8'))
-            return data
+    from diskcache import Cache, JSONDisk
 
     with Cache(disk=JSONDisk, disk_compress_level=6) as cache:
-        pass
+        cache['key'] = {'value': 1}
+
+Subclass ``JSONDisk`` and override ``json_dumps`` and ``json_loads`` to
+customize serialization for both keys and values. Each callable receives one
+argument. ``json_dumps`` must return a string, which is UTF-8 encoded before
+compression. ``json_loads`` receives the decoded string. The defaults are
+``json.dumps`` and ``json.loads``, with their standard options unchanged.
+Wrap function attributes with ``staticmethod`` so they do not receive an
+implicit disk instance. For example, to load JSON numbers as decimals:
+
+.. code-block:: python
+
+    import json
+    from decimal import Decimal
+    from functools import partial
+
+    class DecimalJSONDisk(JSONDisk):
+        json_loads = staticmethod(partial(json.loads, parse_float=Decimal))
+
+    with Cache(disk=DecimalJSONDisk) as cache:
+        cache['value'] = 1.25
+        assert cache['value'] == Decimal('1.25')
+
+Similarly, ``partial(json.dumps, cls=CustomEncoder)`` and
+``partial(json.loads, cls=CustomDecoder)`` can use custom JSON encoder and
+decoder classes. Adapt serializers returning bytes by decoding their output
+to a string in the dump hook. File-like values stored and fetched with
+``read=True`` bypass the JSON hooks, as before.
+
+Use the same subclass and serialization options for every client, including
+when reopening a cache. Changing key serialization changes key identity;
+changing value serialization may make existing values unreadable. Hook
+callables are not cache settings and are not stored in SQLite.
 
 Four data types can be stored natively in the cache metadata database:
 integers, floats, strings, and bytes. Other datatypes are converted to bytes
