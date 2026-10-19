@@ -3,10 +3,69 @@
 import pickle
 import shutil
 import tempfile
+from collections import OrderedDict, UserDict
+from types import MappingProxyType
 
 import pytest
 
 import diskcache as dc
+
+
+@pytest.mark.parametrize('items', [[], [('a', 1)]])
+@pytest.mark.parametrize('other', [None, 0, object(), [], [1], (), '', 'a'])
+def test_comparison_non_mapping(tmp_path, items, other):
+    index = dc.Index(str(tmp_path), items)
+    try:
+        assert index.__eq__(other) is NotImplemented
+        assert index.__ne__(other) is NotImplemented
+        assert (index == other) is False
+        assert (other == index) is False
+        assert (index != other) is True
+        assert (other != index) is True
+    finally:
+        index.cache.close()
+
+
+def test_comparison_reflected(tmp_path):
+    equal = object()
+    unequal = object()
+
+    class Other:
+        def __len__(self):
+            raise AssertionError('non-mapping length must not be consulted')
+
+        def __eq__(self, other):
+            return equal
+
+        def __ne__(self, other):
+            return unequal
+
+    index = dc.Index(str(tmp_path), a=1)
+    try:
+        other = Other()
+        assert (index == other) is equal
+        assert (index != other) is unequal
+    finally:
+        index.cache.close()
+
+
+@pytest.mark.parametrize(
+    'factory', [dict, UserDict, MappingProxyType, OrderedDict]
+)
+def test_comparison_mapping_order(tmp_path, factory):
+    index = dc.Index(str(tmp_path), [('a', 1), ('b', 2)])
+    try:
+        matching = factory({'a': 1, 'b': 2})
+        reversed_order = factory({'b': 2, 'a': 1})
+        different = factory({'a': 1, 'b': 3})
+        assert index == matching
+        assert not index != matching
+        assert index != different
+        assert not index == different
+        assert (index == reversed_order) is (factory is not OrderedDict)
+        assert (index != reversed_order) is (factory is OrderedDict)
+    finally:
+        index.cache.close()
 
 
 def rmdir(directory):

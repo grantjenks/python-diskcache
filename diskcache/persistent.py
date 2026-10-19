@@ -6,6 +6,7 @@ from collections import OrderedDict
 from collections.abc import (
     ItemsView,
     KeysView,
+    Mapping,
     MutableMapping,
     Sequence,
     ValuesView,
@@ -1117,6 +1118,9 @@ class Index(MutableMapping):
         :return: True if index equals other
 
         """
+        if not isinstance(other, Mapping):
+            return NotImplemented
+
         if len(self) != len(other):
             return False
 
@@ -1149,7 +1153,10 @@ class Index(MutableMapping):
         :return: True if index does not equal other
 
         """
-        return not self == other
+        result = self.__eq__(other)
+        if result is NotImplemented:
+            return NotImplemented
+        return not result
 
     def memoize(self, name=None, typed=False, ignore=()):
         """Memoizing cache decorator.
