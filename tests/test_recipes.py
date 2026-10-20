@@ -3,6 +3,7 @@
 import shutil
 import threading
 import time
+from unittest import mock
 
 import pytest
 
@@ -26,6 +27,41 @@ def test_averager(cache):
         nums.add(i)
     assert nums.get() == 9.5
     assert nums.pop() == 9.5
+
+
+@pytest.mark.parametrize('expire', [None, 1])
+@pytest.mark.parametrize('before_first_call', [False, True])
+def test_throttle_after_idle(cache, expire, before_first_call):
+    clock = [time.time()]
+    delays = []
+
+    def sleep(seconds):
+        delays.append(seconds)
+        clock[0] += seconds
+
+    with mock.patch('time.time', lambda: clock[0]):
+
+        @dc.throttle(
+            cache,
+            2,
+            1,
+            name='limiter',
+            expire=expire,
+            time_func=lambda: clock[0],
+            sleep_func=sleep,
+        )
+        def work():
+            return 'ok'
+
+        if not before_first_call:
+            assert work() == 'ok'
+        clock[0] += 10
+
+        assert work() == 'ok'
+        assert work() == 'ok'
+        assert delays == []
+        assert work() == 'ok'
+        assert delays == [0.5]
 
 
 def test_lock(cache):

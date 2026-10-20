@@ -265,6 +265,7 @@ def throttle(
 
     Assumes keys will not be evicted. Set the eviction policy to 'none' on the
     cache to guarantee the keys are not evicted.
+    If the bucket expires, the next call starts with a full bucket of tokens.
 
     >>> import diskcache, time
     >>> cache = diskcache.Cache()
@@ -291,8 +292,8 @@ def throttle(
         def wrapper(*args, **kwargs):
             while True:
                 with cache.transact(retry=True):
-                    last, tally = cache.get(key)
                     now = time_func()
+                    last, tally = cache.get(key, default=(now, count))
                     tally += (now - last) * rate
                     delay = 0
 
