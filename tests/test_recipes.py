@@ -28,6 +28,40 @@ def test_averager(cache):
     assert nums.pop() == 9.5
 
 
+@pytest.mark.parametrize('separate_connection', [False, True])
+def test_throttle_recreation_preserves_bucket(cache, separate_connection):
+    clock = [0.0]
+    delays = []
+
+    def sleep(delay):
+        delays.append(delay)
+        clock[0] += delay
+
+    def decorate(connection):
+        return dc.throttle(
+            connection,
+            1,
+            10,
+            name='shared-api-limit',
+            time_func=lambda: clock[0],
+            sleep_func=sleep,
+        )(lambda: 'result')
+
+    first = decorate(cache)
+    assert first() == 'result'
+    assert cache['shared-api-limit'] == (0.0, 0.0)
+
+    connection = dc.Cache(cache.directory) if separate_connection else cache
+    try:
+        second = decorate(connection)
+        assert cache['shared-api-limit'] == (0.0, 0.0)
+        assert second() == 'result'
+        assert delays == [10.0]
+    finally:
+        if separate_connection:
+            connection.close()
+
+
 def test_lock(cache):
     state = {'num': 0}
     lock = dc.Lock(cache, 'demo')
