@@ -104,3 +104,23 @@ def test_memoize_stampede(cache):
     while (time.time() - start) < 1:
         worker(100)
     assert state['num'] > 0
+
+
+@pytest.mark.parametrize('count', [0, -1, 0.5, float('nan'), float('inf')])
+def test_throttle_rejects_invalid_capacity(cache, count):
+    with pytest.raises(ValueError, match='count'):
+        dc.throttle(cache, count, 1, name='invalid')(lambda: None)
+    assert 'invalid' not in cache
+
+
+@pytest.mark.parametrize('seconds', [0, -1, float('nan'), float('inf')])
+def test_throttle_rejects_invalid_period(cache, seconds):
+    with pytest.raises(ValueError, match='seconds'):
+        dc.throttle(cache, 1, seconds, name='invalid')(lambda: None)
+    assert 'invalid' not in cache
+
+
+@pytest.mark.parametrize('count, seconds', [(1, 0.25), (1.5, 2), (2, 1)])
+def test_throttle_valid_capacity_and_period(cache, count, seconds):
+    function = dc.throttle(cache, count, seconds)(lambda: 'result')
+    assert function() == 'result'
