@@ -266,6 +266,9 @@ def throttle(
     Assumes keys will not be evicted. Set the eviction policy to 'none' on the
     cache to guarantee the keys are not evicted.
 
+    The token capacity `count` must be finite and at least one. The refill
+    period `seconds` must be finite and greater than zero.
+
     >>> import diskcache, time
     >>> cache = diskcache.Cache()
     >>> count = 0
@@ -282,6 +285,10 @@ def throttle(
     """
 
     def decorator(func):
+        if not math.isfinite(count) or count < 1:
+            raise ValueError('count must be finite and at least one')
+        if not math.isfinite(seconds) or seconds <= 0:
+            raise ValueError('seconds must be finite and greater than zero')
         rate = count / float(seconds)
         key = full_name(func) if name is None else name
         now = time_func()
