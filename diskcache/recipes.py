@@ -285,7 +285,7 @@ def throttle(
         rate = count / float(seconds)
         key = full_name(func) if name is None else name
         now = time_func()
-        cache.set(key, (now, count), expire=expire, tag=tag, retry=True)
+        cache.add(key, (now, count), expire=expire, tag=tag, retry=True)
 
         @functools.wraps(func)
         def wrapper(*args, **kwargs):
