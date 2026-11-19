@@ -36,6 +36,7 @@ __all__ = [
     'DEFAULT_SETTINGS',
     'Deque',
     'Disk',
+    'DjangoCache',
     'ENOVAL',
     'EVICTION_POLICY',
     'EmptyDirWarning',
@@ -52,13 +53,23 @@ __all__ = [
     'throttle',
 ]
 
-try:
-    from .djangocache import DjangoCache  # noqa
+from typing import TYPE_CHECKING
 
-    __all__.append('DjangoCache')
-except Exception:  # pylint: disable=broad-except  # pragma: no cover
-    # Django not installed or not setup so ignore.
-    pass
+if TYPE_CHECKING:
+    from .djangocache import DjangoCache
+
+
+def __getattr__(name):
+    if name == 'DjangoCache':
+        from .djangocache import DjangoCache
+
+        globals()['DjangoCache'] = DjangoCache
+        return DjangoCache
+    raise AttributeError(f'module {__name__!r} has no attribute {name!r}')
+
+
+def __dir__():
+    return sorted(set(globals()) | set(__all__))
 
 __title__ = 'diskcache'
 __version__ = '5.6.3'

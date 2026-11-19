@@ -1405,3 +1405,38 @@ def test_memoize_iter(cache):
     assert len(cache) == 3
     for key in cache:
         assert cache[key] == 6
+
+
+def test_lazy_djangocache_import():
+    """Verify that importing diskcache does not import django."""
+    import sys
+
+    script = (
+        'import sys, diskcache\n'
+        'assert "django" not in sys.modules, "django imported prematurely"\n'
+        'assert "DjangoCache" in diskcache.__all__\n'
+        'assert "DjangoCache" in dir(diskcache)\n'
+        'try:\n'
+        '    import django\n'
+        '    has_django = True\n'
+        'except ImportError:\n'
+        '    has_django = False\n'
+        'if has_django:\n'
+        '    from diskcache import DjangoCache\n'
+        '    assert "django" in sys.modules\n'
+        '    assert DjangoCache is not None\n'
+        '    assert diskcache.DjangoCache is DjangoCache\n'
+        'else:\n'
+        '    try:\n'
+        '        _ = diskcache.DjangoCache\n'
+        '        assert False, "expected ModuleNotFoundError or AttributeError"\n'
+        '    except (ModuleNotFoundError, AttributeError):\n'
+        '        pass\n'
+    )
+    result = sp.run(
+        [sys.executable, '-c', script],
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+    assert result.returncode == 0, result.stderr
